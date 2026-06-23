@@ -8,27 +8,27 @@ STDOUT:
    - Network:      http://127.0.0.1:3000
 
  ✓ Starting...
- ✓ Ready in 1699ms
- ✓ Compiled /world-builder/home in 312ms (708 modules)
+ ✓ Ready in 1833ms
+ ✓ Compiled /world-builder/home in 298ms (708 modules)
  GET /world-builder/home 200 in 516ms
- GET /world-builder/home 200 in 49ms
- ✓ Compiled /world-builder in 119ms (755 modules)
- GET /world-builder 200 in 227ms
- ✓ Compiled /world-builder/stories/[storyId] in 113ms (780 modules)
- GET /world-builder/stories/the-memory-thief 200 in 526ms
- ✓ Compiled /world-builder/story-graph in 385ms (1188 modules)
- GET /world-builder/story-graph 200 in 610ms
- ✓ Compiled /world-builder/app-preview in 176ms (1201 modules)
- GET /world-builder/app-preview 200 in 433ms
- ✓ Compiled /world-builder/settings in 171ms (1210 modules)
- GET /world-builder/settings 200 in 411ms
- GET /world-builder/story-graph 200 in 131ms
- GET /world-builder 200 in 47ms
- GET /world-builder/settings 200 in 34ms
- GET /world-builder/home 200 in 50ms
- GET /world-builder/settings 200 in 46ms
- GET /world-builder/app-preview 200 in 44ms
- GET /world-builder/stories/the-memory-thief 200 in 58ms
+ GET /world-builder/home 200 in 47ms
+ ✓ Compiled /world-builder in 123ms (755 modules)
+ GET /world-builder 200 in 228ms
+ ✓ Compiled /world-builder/stories/[storyId] in 115ms (780 modules)
+ GET /world-builder/stories/the-memory-thief 200 in 499ms
+ ✓ Compiled /world-builder/story-graph in 252ms (1188 modules)
+ GET /world-builder/story-graph 200 in 394ms
+ ✓ Compiled /world-builder/app-preview in 108ms (1201 modules)
+ GET /world-builder/app-preview 200 in 254ms
+ ✓ Compiled /world-builder/settings in 108ms (1210 modules)
+ GET /world-builder/settings 200 in 239ms
+ GET /world-builder/story-graph 200 in 91ms
+ GET /world-builder 200 in 48ms
+ GET /world-builder/settings 200 in 37ms
+ GET /world-builder/home 200 in 60ms
+ GET /world-builder/settings 200 in 45ms
+ GET /world-builder/app-preview 200 in 51ms
+ GET /world-builder/stories/the-memory-thief 200 in 64ms
 [?25h
 
 

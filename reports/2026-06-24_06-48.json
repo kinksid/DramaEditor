@@ -1,0 +1,254 @@
+{
+  "generatedAt": "2026-06-23T22:48:41.116Z",
+  "generatedAtLocal": "2026-06-24 06:48:25 Asia/Shanghai",
+  "projectId": "world-neon-tokyo-noir",
+  "baseUrl": "http://127.0.0.1:3000",
+  "discovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
+    "remoteEntryUrl": null,
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "seed world id",
+    "storyRouteSource": "hard-coded story route in app links",
+    "notes": [
+      "No remote login credentials were found in repository files, env files, or test fixtures.",
+      "No external DramaEditor Editor URL was found; local Next.js route was used for offline inspection.",
+      "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
+    ]
+  },
+  "changeSummary": [
+    {
+      "focus": "剧本内容",
+      "changed": false,
+      "status": "unchanged"
+    },
+    {
+      "focus": "角色",
+      "changed": false,
+      "status": "unchanged"
+    },
+    {
+      "focus": "场景时间线",
+      "changed": false,
+      "status": "unchanged"
+    },
+    {
+      "focus": "批注",
+      "changed": false,
+      "status": "unavailable"
+    },
+    {
+      "focus": "版本历史",
+      "changed": false,
+      "status": "unavailable"
+    },
+    {
+      "focus": "导出",
+      "changed": false,
+      "status": "unchanged"
+    },
+    {
+      "focus": "协作成员",
+      "changed": false,
+      "status": "unavailable"
+    },
+    {
+      "focus": "搜索",
+      "changed": false,
+      "status": "unchanged"
+    },
+    {
+      "focus": "设置与偏好",
+      "changed": false,
+      "status": "unchanged"
+    }
+  ],
+  "functionalResults": [
+    {
+      "module": "剧本编辑器",
+      "status": "manual_intervention",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Typing persisted to Zustand local storage.",
+        "Node drag did not update stored position.",
+        "Selection worked through React Flow node click.",
+        "Undo/redo shortcuts are not implemented in the current UI and require manual product follow-up."
+      ],
+      "unsupported": [
+        "撤销",
+        "重做"
+      ],
+      "performance": {
+        "titleEditLatencyMs": 1208,
+        "dragPersisted": false
+      }
+    },
+    {
+      "module": "角色面板",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Add, edit, and delete flows passed.",
+        "Avatar upload UI is not implemented and requires manual follow-up."
+      ],
+      "unsupported": [
+        "头像上传"
+      ]
+    },
+    {
+      "module": "场景时间线",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "Story graph supports node drag and episode focus, but no episode reorder or insert-scene timeline UI exists.",
+        "Timeline-specific drag reorder and scene insertion need product implementation before this checklist can run."
+      ],
+      "unsupported": [
+        "拖拽调整顺序",
+        "插入场次"
+      ]
+    },
+    {
+      "module": "批注系统",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "No annotation or threaded comment UI exists in the current build."
+      ],
+      "unsupported": [
+        "新增批注",
+        "回复批注",
+        "删除批注"
+      ]
+    },
+    {
+      "module": "版本历史",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "No version history UI, version switcher, or diff viewer exists in the current build."
+      ],
+      "unsupported": [
+        "切换版本",
+        "对比差异"
+      ]
+    },
+    {
+      "module": "导出功能",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "App data export download: drama-play-app-story.json",
+        "Backup export download: drama-editor-production-backup.json",
+        "Word export is not implemented and requires manual follow-up."
+      ],
+      "unsupported": [
+        "Word 导出"
+      ]
+    },
+    {
+      "module": "协作成员",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "The app contains only static workflow copy; no live member presence, online status, or permission management UI exists."
+      ],
+      "unsupported": [
+        "查看在线状态",
+        "权限管理"
+      ]
+    },
+    {
+      "module": "搜索功能",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Keyword filtering on the home feed passed."
+      ]
+    },
+    {
+      "module": "设置与偏好",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Bundle ID input and entry mode select passed.",
+        "Theme, keyboard shortcuts, and autosave preferences are not implemented."
+      ],
+      "unsupported": [
+        "主题",
+        "快捷键",
+        "自动保存"
+      ]
+    },
+    {
+      "module": "App 预览遍历",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Episode navigation and branch traversal in preview passed."
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "name": "home",
+      "route": "/world-builder/home",
+      "wallClockMs": 530,
+      "attempt": 1,
+      "domContentLoadedMs": 107,
+      "loadEventMs": 293,
+      "transferSize": 9174
+    },
+    {
+      "name": "world_builder",
+      "route": "/world-builder",
+      "wallClockMs": 651,
+      "attempt": 1,
+      "domContentLoadedMs": 237,
+      "loadEventMs": 443,
+      "transferSize": 9083
+    },
+    {
+      "name": "story_project",
+      "route": "/world-builder/stories/the-memory-thief",
+      "wallClockMs": 914,
+      "attempt": 1,
+      "domContentLoadedMs": 505,
+      "loadEventMs": 711,
+      "transferSize": 9123
+    },
+    {
+      "name": "story_graph",
+      "route": "/world-builder/story-graph",
+      "wallClockMs": 804,
+      "attempt": 1,
+      "domContentLoadedMs": 396,
+      "loadEventMs": 613,
+      "transferSize": 10583
+    },
+    {
+      "name": "app_preview",
+      "route": "/world-builder/app-preview",
+      "wallClockMs": 665,
+      "attempt": 1,
+      "domContentLoadedMs": 255,
+      "loadEventMs": 461,
+      "transferSize": 8824
+    },
+    {
+      "name": "settings",
+      "route": "/world-builder/settings",
+      "wallClockMs": 647,
+      "attempt": 1,
+      "domContentLoadedMs": 240,
+      "loadEventMs": 448,
+      "transferSize": 8325
+    }
+  ],
+  "anomalies": [],
+  "fixes": [],
+  "recommendations": [
+    "Provide DramaEditor User credentials and the remote Editor URL to enable true online inspection.",
+    "Implement missing modules (annotations, version history, collaboration presence, timeline insertion/reorder, theme/shortcut/autosave preferences) before expecting full checklist coverage."
+  ]
+}
