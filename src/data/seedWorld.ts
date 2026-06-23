@@ -1,0 +1,408 @@
+import type {
+  Character,
+  Episode,
+  Location,
+  SetupDraft,
+  StoryEdge,
+  StoryNode,
+  World,
+} from "@/types/worldBuilder";
+
+export const seedWorld: World = {
+  id: "world-neon-tokyo-noir",
+  title: "霓虹东京迷案",
+  subtitle: "记忆盗窃侦探惊悚故事",
+  description:
+    "在雨夜笼罩、极度数字化的东京，一名侦探追捕能够直接从受害者脑中偷走记忆的神秘盗贼。",
+  genre: ["科幻", "悬疑", "剧情"],
+  tags: ["赛博朋克", "记忆盗窃", "东京", "黑色电影"],
+  createdAt: "2026-06-23",
+};
+
+export const seedCharacters: Character[] = [
+  {
+    id: "char-detective",
+    name: "侦探",
+    age: 38,
+    role: "主角",
+    description: "一名疲惫的私家侦探，脑内记忆植入体已经损坏。",
+  },
+  {
+    id: "char-memory-thief",
+    name: "记忆盗贼",
+    age: 30,
+    role: "反派",
+    description:
+      "一个神秘罪犯，专门盗取并交易人类记忆。",
+  },
+];
+
+export const seedLocations: Location[] = [
+  {
+    id: "loc-tokyo-streets",
+    name: "霓虹雨夜东京街头",
+    type: "Establishing",
+    description: "被雨水浸透的小巷、全息招牌和无尽的人潮。",
+  },
+  {
+    id: "loc-memory-market",
+    name: "记忆黑市",
+    type: "Master",
+    description:
+      "隐藏在柏青哥店深处的非法交易场，摆满记忆读取机器。",
+  },
+  {
+    id: "loc-precinct",
+    name: "侦探据点",
+    type: "Master",
+    description:
+      "一间安静的办公室，堆满案件资料、破损屏幕和冷掉的咖啡。",
+  },
+];
+
+export const seedEpisodes: Episode[] = [
+  { id: "ep1", index: 1, label: "1", title: "雨中幽灵" },
+  { id: "ep2", index: 2, label: "2a", title: "没有信号的脸" },
+  { id: "ep2b", index: 2, label: "2b", title: "分支剧情" },
+  { id: "ep3", index: 3, label: "3", title: "自我残留" },
+  { id: "ep4", index: 4, label: "4", title: "黎明陷阱" },
+];
+
+export const defaultScript = `FADE IN:
+
+SCENE 1
+
+EXT. TOKYO - SHINJUKU WARD - NIGHT
+
+Rain hammers the street in silver curtains. Holographic kanji advertisements bleed color across rivers of black puddles.
+
+Among the crowd - a long coat, a lowered brim - KENJI MURA, 38, gaunt, left eye replaced by a matte-grey ocular implant, moves against the human current like a man swimming upstream in his own mind.
+
+KENJI（旁白）
+东京从不入睡。过去也一样。诀窍是分清到底是谁在说谎。
+
+He stops at a noodle stall, scanning a memory trace only he can see.`;
+
+export const seedSetupDraft: SetupDraft = {
+  worldTitle: seedWorld.title,
+  genre: seedWorld.genre.join(", "),
+  tags: seedWorld.tags.join(", "),
+  worldDescription: seedWorld.description,
+  tone: "Moody, precise, paranoid",
+  visualStyle: "Rainy cyberpunk noir with warm amber interiors",
+  script: defaultScript,
+};
+
+export const seedStoryNodes: StoryNode[] = [
+  {
+    id: "ep1-scene-1",
+    kind: "scene",
+    data: {
+      id: "ep1-scene-1",
+      episodeId: "ep1",
+      title: "新宿雨夜 - 追猎开始",
+      status: "draft",
+      prompt:
+        "镜头从霓虹雨夜的东京街面开始，低机位贴近水洼，湿漉漉的柏油路像黑色镜面，反射出品红与电蓝色全息招牌。",
+    },
+  },
+  {
+    id: "ep1-interaction-1",
+    kind: "interaction",
+    data: {
+      id: "ep1-interaction-1",
+      episodeId: "ep1",
+      title: "选择蓝色门",
+      instruction:
+        "Locked off camera. Composition, framing, and focal length stay identical from the first frame to the last. No push, pull, zoom, pan, rotation, or virtual camera breathing.",
+      options: [
+        {
+          id: "opt-ep1-blue-door",
+          label: "点击 (0.50, 0.50)",
+          actionType: "tap",
+          actionValue: "(0.50, 0.50)",
+          targetNodeId: "ep1-scene-2",
+          color: "#3b82f6",
+          hotspot: { x: 0.54, y: 0.58 },
+        },
+        {
+          id: "opt-ep1-signal",
+          label: "点击 (0.51, 0.82)",
+          actionType: "tap",
+          actionValue: "(0.51, 0.82)",
+          targetNodeId: "ep2b-scene-1",
+          color: "#3b82f6",
+          hotspot: { x: 0.51, y: 0.82 },
+        },
+      ],
+    },
+  },
+  {
+    id: "ep1-scene-2",
+    kind: "scene",
+    data: {
+      id: "ep1-scene-2",
+      episodeId: "ep1",
+      title: "地下诊所",
+      status: "empty",
+      prompt:
+        "Use @incoming_last_frame as the first frame for visual continuity. Continuing directly from the moment the detective crosses the threshold, the blue door still swinging shut behind him.",
+    },
+  },
+  {
+    id: "ep2-scene-1",
+    kind: "scene",
+    data: {
+      id: "ep2-scene-1",
+      episodeId: "ep2",
+      title: "涩谷 - 不存在的信号",
+      status: "draft",
+      prompt:
+        "A rainy crossing becomes an antenna field of impossible reflections as Kenji follows a memory signal that should not exist.",
+    },
+  },
+  {
+    id: "ep2-interaction-1",
+    kind: "interaction",
+    data: {
+      id: "ep2-interaction-1",
+      episodeId: "ep2",
+      title: "后巷追逐",
+      instruction: "保持后巷追逐的节奏，选择转向并决定是否继续追踪信号。",
+      options: [
+        {
+          id: "opt-ep2-swipe",
+          label: "向右滑动",
+          actionType: "swipe",
+          actionValue: "right",
+          targetNodeId: "ep2-scene-2",
+          color: "#22c55e",
+          hotspot: { x: 0.76, y: 0.5 },
+        },
+      ],
+    },
+  },
+  {
+    id: "ep2-scene-2",
+    kind: "scene",
+    data: {
+      id: "ep2-scene-2",
+      episodeId: "ep2",
+      title: "Echo 开口 - 扣住手腕",
+      status: "empty",
+      prompt:
+        "Kenji catches Echo by the wrist under a broken vending-machine glow, but the face in front of him glitches out of memory.",
+    },
+  },
+  {
+    id: "ep2b-scene-1",
+    kind: "scene",
+    data: {
+      id: "ep2b-scene-1",
+      episodeId: "ep2b",
+      title: "健司的公寓 - 夜",
+      status: "draft",
+      prompt:
+        "Kenji wakes in his cramped apartment, rain stitching bright lines across the blinds while his damaged implant repeats a false memory.",
+    },
+  },
+  {
+    id: "ep2b-interaction-1",
+    kind: "interaction",
+    data: {
+      id: "ep2b-interaction-1",
+      episodeId: "ep2b",
+      title: "设置互动",
+      instruction:
+        "Locked camera. The room stays still while the player chooses whether to inspect the memory trace or follow the blue pulse.",
+      options: [
+        {
+          id: "opt-ep2b-tap",
+          label: "点击 (0.50, 0.50)",
+          actionType: "tap",
+          actionValue: "(0.50, 0.50)",
+          targetNodeId: "ep2b-scene-2",
+          color: "#3b82f6",
+          hotspot: { x: 0.5, y: 0.5 },
+        },
+      ],
+    },
+  },
+  {
+    id: "ep2b-scene-2",
+    kind: "scene",
+    data: {
+      id: "ep2b-scene-2",
+      episodeId: "ep2b",
+      title: "记忆唯一的占有物",
+      status: "empty",
+      prompt:
+        "The apartment folds into a private hallucination where Kenji sees a stolen memory projected across broken glass.",
+    },
+  },
+  {
+    id: "ep3-scene-1",
+    kind: "scene",
+    data: {
+      id: "ep3-scene-1",
+      episodeId: "ep3",
+      title: "公寓 - 褪色的照片",
+      status: "draft",
+      prompt:
+        "A cramped apartment, old coffee, files, and a family photograph whose faces are slowly becoming static.",
+    },
+  },
+  {
+    id: "ep3-interaction-1",
+    kind: "interaction",
+    data: {
+      id: "ep3-interaction-1",
+      episodeId: "ep3",
+      title: "握住芯片 - 做决定",
+      instruction: "被盗芯片在健司掌心发热。长按确认，将牺牲一段真实记忆。",
+      options: [
+        {
+          id: "opt-ep3-hold",
+          label: "长按 1500ms",
+          actionType: "hold",
+          actionValue: "1500ms",
+          targetNodeId: "ep3-scene-2",
+          color: "#f97316",
+          hotspot: { x: 0.5, y: 0.78 },
+        },
+      ],
+    },
+  },
+  {
+    id: "ep3-scene-2",
+    kind: "scene",
+    data: {
+      id: "ep3-scene-2",
+      episodeId: "ep3",
+      title: "决定已下",
+      status: "empty",
+      prompt:
+        "Kenji chooses to burn one true memory to illuminate a hidden route through the black market.",
+    },
+  },
+  {
+    id: "ep4-scene-1",
+    kind: "scene",
+    data: {
+      id: "ep4-scene-1",
+      episodeId: "ep4",
+      title: "台场海滨 - 情报交换",
+      status: "draft",
+      prompt:
+        "Dawn at the waterfront. Cargo cranes move like quiet machines of judgment while the final exchange begins.",
+    },
+  },
+  {
+    id: "ep4-interaction-1",
+    kind: "interaction",
+    data: {
+      id: "ep4-interaction-1",
+      episodeId: "ep4",
+      title: "覆盖安全锁",
+      instruction: "在黎明到来前，于覆盖窗口内连续点击三次。",
+      options: [
+        {
+          id: "opt-ep4-choice",
+          label: "3x in 1500ms",
+          actionType: "choice",
+          actionValue: "3x / 1500ms",
+          targetNodeId: "ep4-scene-2",
+          color: "#a855f7",
+          hotspot: { x: 0.5, y: 0.5 },
+        },
+      ],
+    },
+  },
+  {
+    id: "ep4-scene-2",
+    kind: "scene",
+    data: {
+      id: "ep4-scene-2",
+      episodeId: "ep4",
+      title: "陷阱已布下",
+      status: "empty",
+      prompt:
+        "The trap closes in amber morning light as Kenji watches his own stolen memory become bait.",
+    },
+  },
+];
+
+export const seedStoryEdges: StoryEdge[] = [
+  {
+    id: "edge-ep1-1",
+    source: "ep1-scene-1",
+    target: "ep1-interaction-1",
+    label: "继续",
+  },
+  {
+    id: "edge-ep1-2",
+    source: "ep1-interaction-1",
+    target: "ep1-scene-2",
+    label: "点击",
+    actionType: "tap",
+  },
+  {
+    id: "edge-ep1-branch",
+    source: "ep1-interaction-1",
+    target: "ep2b-scene-1",
+    label: "点击",
+    actionType: "tap",
+  },
+  {
+    id: "edge-ep2-1",
+    source: "ep2-scene-1",
+    target: "ep2-interaction-1",
+    label: "继续",
+  },
+  {
+    id: "edge-ep2-2",
+    source: "ep2-interaction-1",
+    target: "ep2-scene-2",
+    label: "向右滑动",
+    actionType: "swipe",
+  },
+  {
+    id: "edge-ep2b-1",
+    source: "ep2b-scene-1",
+    target: "ep2b-interaction-1",
+    label: "继续",
+  },
+  {
+    id: "edge-ep2b-2",
+    source: "ep2b-interaction-1",
+    target: "ep2b-scene-2",
+    label: "点击",
+    actionType: "tap",
+  },
+  {
+    id: "edge-ep3-1",
+    source: "ep3-scene-1",
+    target: "ep3-interaction-1",
+    label: "继续",
+  },
+  {
+    id: "edge-ep3-2",
+    source: "ep3-interaction-1",
+    target: "ep3-scene-2",
+    label: "长按 1500ms",
+    actionType: "hold",
+  },
+  {
+    id: "edge-ep4-1",
+    source: "ep4-scene-1",
+    target: "ep4-interaction-1",
+    label: "继续",
+  },
+  {
+    id: "edge-ep4-2",
+    source: "ep4-interaction-1",
+    target: "ep4-scene-2",
+    label: "选择 A",
+    actionType: "choice",
+  },
+];

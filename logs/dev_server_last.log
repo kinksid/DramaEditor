@@ -1,0 +1,35 @@
+STDOUT:
+
+> drama-play@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+   ▲ Next.js 15.5.19
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 3.3s
+ ✓ Compiled /world-builder/home in 310ms (708 modules)
+ GET /world-builder/home 200 in 526ms
+ GET /world-builder/home 200 in 58ms
+ ✓ Compiled /world-builder in 113ms (755 modules)
+ GET /world-builder 200 in 213ms
+ ✓ Compiled /world-builder/stories/[storyId] in 113ms (780 modules)
+ GET /world-builder/stories/the-memory-thief 200 in 444ms
+ ✓ Compiled /world-builder/story-graph in 248ms (1188 modules)
+ GET /world-builder/story-graph 200 in 381ms
+ ✓ Compiled /world-builder/app-preview in 114ms (1201 modules)
+ GET /world-builder/app-preview 200 in 253ms
+ ✓ Compiled /world-builder/settings in 107ms (1210 modules)
+ GET /world-builder/settings 200 in 237ms
+ GET /world-builder/story-graph 200 in 85ms
+ GET /world-builder 200 in 50ms
+ GET /world-builder/settings 200 in 36ms
+ GET /world-builder/home 200 in 46ms
+ GET /world-builder/settings 200 in 40ms
+ GET /world-builder/app-preview 200 in 39ms
+ GET /world-builder/stories/the-memory-thief 200 in 46ms
+[?25h
+
+
+STDERR:
