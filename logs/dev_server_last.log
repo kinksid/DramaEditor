@@ -8,27 +8,27 @@ STDOUT:
    - Network:      http://127.0.0.1:3000
 
  ✓ Starting...
- ✓ Ready in 1710ms
- ✓ Compiled /world-builder/home in 306ms (708 modules)
- GET /world-builder/home 200 in 531ms
- GET /world-builder/home 200 in 49ms
- ✓ Compiled /world-builder in 110ms (755 modules)
- GET /world-builder 200 in 211ms
- ✓ Compiled /world-builder/stories/[storyId] in 108ms (780 modules)
- GET /world-builder/stories/the-memory-thief 200 in 479ms
- ✓ Compiled /world-builder/story-graph in 224ms (1188 modules)
- GET /world-builder/story-graph 200 in 360ms
- ✓ Compiled /world-builder/app-preview in 119ms (1201 modules)
- GET /world-builder/app-preview 200 in 276ms
- ✓ Compiled /world-builder/settings in 117ms (1210 modules)
- GET /world-builder/settings 200 in 273ms
- GET /world-builder/story-graph 200 in 104ms
- GET /world-builder 200 in 54ms
- GET /world-builder/settings 200 in 35ms
- GET /world-builder/home 200 in 58ms
- GET /world-builder/settings 200 in 41ms
- GET /world-builder/app-preview 200 in 45ms
- GET /world-builder/stories/the-memory-thief 200 in 54ms
+ ✓ Ready in 1765ms
+ ✓ Compiled /world-builder/home in 315ms (708 modules)
+ GET /world-builder/home 200 in 529ms
+ GET /world-builder/home 200 in 48ms
+ ✓ Compiled /world-builder in 126ms (755 modules)
+ GET /world-builder 200 in 235ms
+ ✓ Compiled /world-builder/stories/[storyId] in 111ms (780 modules)
+ GET /world-builder/stories/the-memory-thief 200 in 508ms
+ ✓ Compiled /world-builder/story-graph in 256ms (1188 modules)
+ GET /world-builder/story-graph 200 in 390ms
+ ✓ Compiled /world-builder/app-preview in 137ms (1201 modules)
+ GET /world-builder/app-preview 200 in 284ms
+ ✓ Compiled /world-builder/settings in 113ms (1210 modules)
+ GET /world-builder/settings 200 in 246ms
+ GET /world-builder/story-graph 200 in 83ms
+ GET /world-builder 200 in 46ms
+ GET /world-builder/settings 200 in 37ms
+ GET /world-builder/home 200 in 46ms
+ GET /world-builder/settings 200 in 47ms
+ GET /world-builder/app-preview 200 in 43ms
+ GET /world-builder/stories/the-memory-thief 200 in 48ms
 [?25h
 
 
