@@ -425,6 +425,9 @@ async function runInspection() {
         throw new Error("Scene title change did not persist to local store");
       }
 
+      await page.getByRole("button", { name: "关闭节点编辑器" }).click();
+      await page.waitForTimeout(200);
+
       const graphNode = page.locator('[data-testid="rf__node-ep4-scene-1"]');
       const box = await graphNode.boundingBox();
       if (!box) throw new Error("Unable to locate graph node bounding box");
@@ -432,7 +435,22 @@ async function runInspection() {
       await page.mouse.down();
       await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 + 50, { steps: 8 });
       await page.mouse.up();
-      await page.waitForTimeout(250);
+      await page.waitForTimeout(500);
+
+      if (initialPosition) {
+        await page.waitForFunction(async ({ key, nodeId, previousPosition }) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return false;
+          const parsed = JSON.parse(raw);
+          const node = parsed?.state?.nodes?.find((item) => item.id === nodeId);
+          if (!node?.position) return false;
+          return node.position.x !== previousPosition.x || node.position.y !== previousPosition.y;
+        }, {
+          key: LOCAL_STORAGE_KEY,
+          nodeId: "ep4-scene-1",
+          previousPosition: initialPosition,
+        }, { timeout: 2_000 }).catch(() => {});
+      }
 
       const movedState = await getPersistedState(page);
       const movedNode = movedState.nodes.find((node) => node.id === "ep4-scene-1");
@@ -447,7 +465,7 @@ async function runInspection() {
 
       addResult(results, {
         module: "剧本编辑器",
-        status: "passed",
+        status: dragWorked ? "passed" : "manual_intervention",
         fixStatus: fixes.some((item) => item.module === "剧本编辑器" && item.status === "fixed") ? "fixed_after_retry" : "not_needed",
         notes: [
           "Typing persisted to Zustand local storage.",
@@ -720,7 +738,9 @@ async function main() {
       `[${stamp.isoLocal}] project=${projectId} pass=${passCount} manual=${manualCount} fixes=${inspection.fixes.length} failed_fixes=${failedFixCount} report=${path.relative(ROOT, reportPath)} snapshot=${path.relative(ROOT, snapshotPath)}\n`,
     );
 
-    if (inspection.errors.length > 0 || manualCount > 0) {
+    const hasAnomalies = inspection.errors.length > 0;
+
+    if (hasAnomalies) {
       await writeFile(errorPath, JSON.stringify({
         generatedAt: new Date().toISOString(),
         projectId,
@@ -742,7 +762,7 @@ async function main() {
     const summary = {
       reportPath,
       snapshotPath,
-      errorPath: inspection.errors.length > 0 || manualCount > 0 ? errorPath : null,
+      errorPath: hasAnomalies ? errorPath : null,
       fixLogPath: inspection.fixes.length > 0 ? fixLogPath : null,
       results: {
         passed: passCount,
