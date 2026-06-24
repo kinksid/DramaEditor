@@ -8,27 +8,27 @@ STDOUT:
    - Network:      http://127.0.0.1:3000
 
  ✓ Starting...
- ✓ Ready in 2.8s
- ✓ Compiled /world-builder/home in 349ms (708 modules)
- GET /world-builder/home 200 in 564ms
- GET /world-builder/home 200 in 46ms
- ✓ Compiled /world-builder in 119ms (755 modules)
- GET /world-builder 200 in 219ms
- ✓ Compiled /world-builder/stories/[storyId] in 111ms (780 modules)
- GET /world-builder/stories/the-memory-thief 200 in 506ms
- ✓ Compiled /world-builder/story-graph in 250ms (1188 modules)
- GET /world-builder/story-graph 200 in 386ms
- ✓ Compiled /world-builder/app-preview in 108ms (1201 modules)
- GET /world-builder/app-preview 200 in 251ms
- ✓ Compiled /world-builder/settings in 112ms (1210 modules)
- GET /world-builder/settings 200 in 249ms
- GET /world-builder/story-graph 200 in 80ms
- GET /world-builder 200 in 45ms
- GET /world-builder/settings 200 in 37ms
- GET /world-builder/home 200 in 47ms
- GET /world-builder/settings 200 in 40ms
- GET /world-builder/app-preview 200 in 43ms
- GET /world-builder/stories/the-memory-thief 200 in 51ms
+ ✓ Ready in 2.2s
+ ✓ Compiled /world-builder/home in 314ms (708 modules)
+ GET /world-builder/home 200 in 527ms
+ GET /world-builder/home 200 in 49ms
+ ✓ Compiled /world-builder in 124ms (755 modules)
+ GET /world-builder 200 in 223ms
+ ✓ Compiled /world-builder/stories/[storyId] in 112ms (780 modules)
+ GET /world-builder/stories/the-memory-thief 200 in 492ms
+ ✓ Compiled /world-builder/story-graph in 229ms (1188 modules)
+ GET /world-builder/story-graph 200 in 363ms
+ ✓ Compiled /world-builder/app-preview in 112ms (1201 modules)
+ GET /world-builder/app-preview 200 in 254ms
+ ✓ Compiled /world-builder/settings in 103ms (1210 modules)
+ GET /world-builder/settings 200 in 235ms
+ GET /world-builder/story-graph 200 in 83ms
+ GET /world-builder 200 in 51ms
+ GET /world-builder/settings 200 in 34ms
+ GET /world-builder/home 200 in 44ms
+ GET /world-builder/settings 200 in 36ms
+ GET /world-builder/app-preview 200 in 37ms
+ GET /world-builder/stories/the-memory-thief 200 in 48ms
 [?25h
 
 
