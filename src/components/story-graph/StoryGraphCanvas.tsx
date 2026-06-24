@@ -6,6 +6,7 @@ import ReactFlow, {
   MiniMap,
   MarkerType,
   Panel,
+  applyNodeChanges,
   useReactFlow,
   useViewport,
   type Connection,
@@ -68,7 +69,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
     selectNode,
     selectEpisode,
     connectNodes,
-    updateNodePositions,
+    updateNodePosition,
     autoLayoutEpisodes,
     addSceneNode,
   } = useWorldBuilderStore();
@@ -112,6 +113,11 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
     });
     return output;
   }, [episodes, nodes]);
+  const [canvasNodes, setCanvasNodes] = useState<Node[]>(flowNodes);
+
+  useEffect(() => {
+    setCanvasNodes(flowNodes);
+  }, [flowNodes]);
 
   const flowEdges = useMemo<Edge[]>(
     () =>
@@ -141,29 +147,13 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
   };
 
   const handleNodesChange = (changes: NodeChange[]) => {
-    const positions = changes.reduce<Array<{ id: string; position: { x: number; y: number } }>>(
-      (acc, change) => {
-        if (
-          change.type === "position" &&
-          change.position &&
-          !change.id.startsWith("frame-")
-        ) {
-          acc.push({ id: change.id, position: change.position });
-        }
-        return acc;
-      },
-      [],
-    );
-
-    if (positions.length) {
-      updateNodePositions(positions);
-    }
+    setCanvasNodes((current) => applyNodeChanges(changes, current));
   };
 
   return (
     <div className="h-full min-h-[720px] overflow-hidden bg-white">
       <ReactFlow
-        nodes={flowNodes}
+        nodes={canvasNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
         fitView
@@ -174,6 +164,10 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
         panOnDrag={mode === "pan"}
         selectionOnDrag={mode === "select"}
         onNodesChange={handleNodesChange}
+        onNodeDragStop={(_, node) => {
+          if (node.id.startsWith("frame-")) return;
+          updateNodePosition(node.id, node.position);
+        }}
         onNodeClick={(_, node) => {
           if (node.id.startsWith("frame-")) {
             selectEpisode(node.id.replace("frame-", ""));
