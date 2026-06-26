@@ -24,6 +24,9 @@ const sampleWorlds = [
     description: asset.description,
     poster: asset.poster,
     tone: "from-ink-strong via-ink-muted to-accent",
+    heat: "热度 9.2",
+    completion: "完播 68%",
+    interactions: "3 个选择",
   })),
   {
     title: "绒星宇宙",
@@ -31,6 +34,9 @@ const sampleWorlds = [
     description:
       "柔软的小生物伙伴漂浮在梦境星球上，展开温柔、轻盈的互动短剧。",
     tone: "from-ink-strong via-ink to-accent",
+    heat: "热度 8.7",
+    completion: "完播 61%",
+    interactions: "5 个选择",
   },
   {
     title: "血色之城",
@@ -38,30 +44,45 @@ const sampleWorlds = [
     description:
       "一座过分明亮的城市隐藏着百年吸血族与人类共存的秘密。",
     tone: "from-ink-strong via-red-950 to-accent",
+    heat: "热度 8.9",
+    completion: "完播 57%",
+    interactions: "4 个选择",
   },
   {
     title: "黄金时代伊比利亚",
     genre: "历史",
     description: "17 世纪西班牙的帝国、信仰与阴谋交织成可分支的宫廷故事。",
     tone: "from-accent via-stone-700 to-ink-strong",
+    heat: "热度 8.4",
+    completion: "完播 63%",
+    interactions: "6 个选择",
   },
   {
     title: "最后一条短信",
     genre: "悬疑",
     description: "一条迟来的消息把观众拖入记忆、愧疚和失踪时间的谜网。",
     tone: "from-ink-strong via-ink-muted to-accent",
+    heat: "热度 9.0",
+    completion: "完播 66%",
+    interactions: "4 个选择",
   },
   {
     title: "西溪高中假女友",
     genre: "剧情",
     description: "不起眼的女生被卷入一段假恋爱关系，选择会改变校园权力结构。",
     tone: "from-panel via-accent-soft to-accent",
+    heat: "热度 8.5",
+    completion: "完播 72%",
+    interactions: "3 个选择",
   },
   {
     title: "雨夜公路追击",
     genre: "悬疑",
     description: "雨夜高速上，每一次路线选择都决定追捕是否成功。",
     tone: "from-ink-strong via-ink-muted to-accent",
+    heat: "热度 8.8",
+    completion: "完播 59%",
+    interactions: "5 个选择",
   },
 ];
 
@@ -202,12 +223,18 @@ function WorldFeedCard({
   description,
   tone,
   poster,
+  heat,
+  completion,
+  interactions,
 }: {
   title: string;
   genre: string;
   description: string;
   tone: string;
   poster?: string;
+  heat: string;
+  completion: string;
+  interactions: string;
 }) {
   return (
     <button className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-orange-200">
@@ -223,6 +250,13 @@ function WorldFeedCard({
         </div>
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[heat, completion, interactions].map((item) => (
+            <span key={item} className="rounded-lg bg-orange-50 px-2 py-1 text-[11px] font-semibold text-accent">
+              {item}
+            </span>
+          ))}
+        </div>
       </div>
     </button>
   );
