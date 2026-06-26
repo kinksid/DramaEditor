@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T08:45:44.000Z",
+  "generatedAt": "2026-06-26T08:49:18.000Z",
   "discovery": {
     "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
     "remoteEntryUrl": null,
@@ -18,6 +18,7 @@
       "Home recommendation feed now supports sorting by hotness, completion, and interaction density.",
       "Home feed cards now show personalized recommendation reasons.",
       "Home feed cards now include page-local negative feedback via a not-interested action.",
+      "Home feed negative feedback now has an undo strip for accidental hides.",
       "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
     ]
   },

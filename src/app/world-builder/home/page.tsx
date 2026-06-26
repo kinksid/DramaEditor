@@ -103,6 +103,7 @@ export default function StudioHomePage() {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("hot");
   const [hiddenTitles, setHiddenTitles] = useState<string[]>([]);
+  const lastHiddenTitle = hiddenTitles.at(-1);
   const [creating, setCreating] = useState(false);
 
   const worlds = useMemo(() => {
@@ -235,6 +236,18 @@ export default function StudioHomePage() {
               </label>
             </div>
           </div>
+          {lastHiddenTitle && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-accent">
+              <span>已减少推荐「{lastHiddenTitle}」</span>
+              <button
+                type="button"
+                onClick={() => setHiddenTitles((titles) => titles.slice(0, -1))}
+                className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-ink-strong shadow-sm"
+              >
+                撤销
+              </button>
+            </div>
+          )}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {worlds.map((item) => (
               <WorldFeedCard key={item.title} {...item} onHide={() => setHiddenTitles((titles) => [...titles, item.title])} />

@@ -128,5 +128,19 @@
         "result": "The feed now has a basic user feedback loop for tuning recommendations."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T08:49:18.000Z",
+    "timestampLocal": "2026-06-26 16:49:18 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-negative-feedback-undo",
+        "status": "optimized",
+        "action": "Added an undo strip for the most recently hidden recommendation.",
+        "result": "Users can recover from accidental negative feedback without reloading the page."
+      }
+    ]
   }
 ]
