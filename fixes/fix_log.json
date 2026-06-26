@@ -86,5 +86,19 @@
         "result": "The home page now better supports return-user retention and unfinished interactive paths."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T07:10:42.000Z",
+    "timestampLocal": "2026-06-26 15:10:42 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-sort-modes",
+        "status": "optimized",
+        "action": "Added recommendation sort modes for hotness, completion, and interaction density.",
+        "result": "The feed can now be tuned toward discovery, retention, or interactive-depth goals."
+      }
+    ]
   }
 ]

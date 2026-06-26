@@ -87,20 +87,24 @@ const sampleWorlds = [
   },
 ];
 
+type SortMode = "hot" | "completion" | "interactive";
+
 export default function StudioHomePage() {
   const { world, updateSetupDraft } = useWorldBuilderStore();
   const [prompt, setPrompt] = useState("一个失忆侦探追捕能偷走记忆的神秘盗贼。");
   const [genre, setGenre] = useState("全部类型");
   const [query, setQuery] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("hot");
   const [creating, setCreating] = useState(false);
 
   const worlds = useMemo(() => {
-    return sampleWorlds.filter((item) => {
+    const filtered = sampleWorlds.filter((item) => {
       const matchesGenre = genre === "全部类型" || item.genre === genre;
       const matchesQuery = `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase());
       return matchesGenre && matchesQuery;
     });
-  }, [genre, query]);
+    return [...filtered].sort((a, b) => metricValue(b, sortMode) - metricValue(a, sortMode));
+  }, [genre, query, sortMode]);
 
   const handleCreate = () => {
     setCreating(true);
@@ -181,28 +185,46 @@ export default function StudioHomePage() {
         </section>
 
         <section className="mx-auto mt-12 max-w-6xl">
-          <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-              <SlidersHorizontal size={15} />
-              <select
-                value={genre}
-                onChange={(event) => setGenre(event.target.value)}
-                className="min-h-7 bg-transparent outline-none"
-              >
-                {["全部类型", "奇幻", "恐怖", "历史", "悬疑", "剧情"].map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-              <Search size={15} className="text-slate-400" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="搜索世界"
-                className="min-h-7 w-44 bg-transparent outline-none"
-              />
-            </label>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">推荐流</p>
+              <h2 className="mt-1 text-2xl font-semibold text-ink-strong">为你推荐</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                <Sparkles size={15} />
+                <select
+                  value={sortMode}
+                  onChange={(event) => setSortMode(event.target.value as SortMode)}
+                  className="min-h-7 bg-transparent outline-none"
+                >
+                  <option value="hot">热门优先</option>
+                  <option value="completion">完播优先</option>
+                  <option value="interactive">互动密度</option>
+                </select>
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                <SlidersHorizontal size={15} />
+                <select
+                  value={genre}
+                  onChange={(event) => setGenre(event.target.value)}
+                  className="min-h-7 bg-transparent outline-none"
+                >
+                  {["全部类型", "奇幻", "恐怖", "历史", "悬疑", "剧情"].map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                <Search size={15} className="text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="搜索世界"
+                  className="min-h-7 w-44 bg-transparent outline-none"
+                />
+              </label>
+            </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {worlds.map((item) => (
@@ -225,6 +247,12 @@ export default function StudioHomePage() {
       </div>
     </WorldBuilderLayout>
   );
+}
+
+function metricValue(item: { heat: string; completion: string; interactions: string }, sortMode: SortMode) {
+  if (sortMode === "completion") return Number(item.completion.match(/\d+/)?.[0] ?? 0);
+  if (sortMode === "interactive") return Number(item.interactions.match(/\d+/)?.[0] ?? 0);
+  return Number(item.heat.match(/\d+(?:\.\d+)?/)?.[0] ?? 0);
 }
 
 function WorldFeedCard({

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T07:00:40.000Z",
+  "generatedAt": "2026-06-26T07:10:42.000Z",
   "discovery": {
     "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
     "remoteEntryUrl": null,
@@ -15,6 +15,7 @@
       "Home feed cards now expose heat, completion, and interaction-count chips for faster content decisions.",
       "Home feed cards now include a direct preview CTA that opens the vertical APP preview.",
       "Home page now includes a continue-watching card with progress and direct APP preview resume path.",
+      "Home recommendation feed now supports sorting by hotness, completion, and interaction density.",
       "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
     ]
   },
