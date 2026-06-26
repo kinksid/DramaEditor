@@ -72,5 +72,19 @@
         "result": "Interactive markup remains valid and safer for browser behavior."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T07:00:40.000Z",
+    "timestampLocal": "2026-06-26 15:00:40 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-continue-watching-card",
+        "status": "optimized",
+        "action": "Reworked the home continue area into a continue-watching card with progress and APP preview link.",
+        "result": "The home page now better supports return-user retention and unfinished interactive paths."
+      }
+    ]
   }
 ]

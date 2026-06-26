@@ -159,15 +159,24 @@ export default function StudioHomePage() {
 
         <section className="mx-auto mt-14 max-w-6xl">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            继续制作
+            继续观看
           </p>
           <Link
-            href="/world-builder/stories/the-memory-thief"
-            className="group block h-[150px] w-[116px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#090d16,#151b29_45%,#f27d3d)] p-3 text-white shadow-soft"
+            href="/world-builder/app-preview"
+            className="group flex max-w-xl items-center gap-4 rounded-3xl border border-slate-200 bg-white p-3 text-left shadow-soft hover:border-orange-200"
           >
-            <p className="mt-14 text-[10px] uppercase tracking-[0.12em] text-white/55">霓虹东京迷案</p>
-            <h2 className="mt-1 text-sm font-semibold leading-4">记忆盗贼</h2>
-            <p className="mt-1 text-[10px] text-white/60">45 分钟前编辑</p>
+            <div className="grid h-[132px] w-[92px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,#090d16,#151b29_45%,#f27d3d)] text-white">
+              <Play size={22} fill="currentColor" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-accent">上次看到 第 1 集 · 互动选择前</p>
+              <h2 className="mt-2 truncate text-xl font-semibold text-ink-strong">{world.title}</h2>
+              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{world.description}</p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-[42%] rounded-full bg-accent" />
+              </div>
+              <p className="mt-2 text-xs text-slate-400">42% 已观看 · 点按继续互动</p>
+            </div>
           </Link>
         </section>
 
