@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T06:30:03.864Z",
+  "generatedAt": "2026-06-26T06:21:52.000Z",
   "discovery": {
     "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
     "remoteEntryUrl": null,
@@ -9,7 +9,8 @@
     "storyRouteSource": "hard-coded story route in app links",
     "notes": [
       "No remote login credentials were found in repository files, env files, or test fixtures.",
-      "No external DramaEditor Editor URL was found; local Next.js route was used for offline inspection.",
+      "No external DramaPlay APP URL was found; local Next.js route was used for offline inspection.",
+      "App preview now includes a short-video style social action rail for favorite, discussion, and share signals.",
       "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
     ]
   },
@@ -18,7 +19,7 @@
     "storyRoute": "the-memory-thief",
     "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
     "remoteEntryUrl": null,
-    "loginIdentity": "DramaEditor User",
+    "loginIdentity": "DramaPlay User",
     "loginAvailable": false,
     "browserSessionAvailable": false,
     "latestVersionSource": "local_seed_state"

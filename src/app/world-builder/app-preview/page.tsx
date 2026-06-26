@@ -9,8 +9,11 @@ import {
   Download,
   Film,
   GitBranch,
+  Heart,
+  MessageCircle,
   Play,
   RotateCcw,
+  Share2,
   Smartphone,
 } from "lucide-react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
@@ -229,7 +232,8 @@ function PhoneScreen({
           <h2 className="mt-3 text-2xl font-semibold">{node.data.title}</h2>
           <p className="mt-3 text-sm leading-6 text-white/68">{node.data.instruction}</p>
         </div>
-        <div className="relative z-10 space-y-2">
+        <SocialActionRail compact likes="18.6k" comments={`${node.data.options.length} 选项`} />
+        <div className="relative z-10 space-y-2 pr-14">
           {node.data.options.map((option) => (
             <button
               key={option.id}
@@ -275,11 +279,12 @@ function PhoneScreen({
         <video src={node.data.videoUrl} autoPlay muted loop playsInline controls className="absolute inset-0 h-full w-full object-cover" />
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/70" />
+      <SocialActionRail likes="32.8k" comments="892" />
       <div className="relative z-10 flex items-center justify-between text-xs text-white/75">
         <span>{worldTitle}</span>
         <span>{statusLabels[node.data.status]}</span>
       </div>
-      <div className="relative z-10 rounded-3xl border border-white/12 bg-black/40 p-5 backdrop-blur">
+      <div className="relative z-10 mr-14 rounded-3xl border border-white/12 bg-black/40 p-5 backdrop-blur">
         <div className="mb-4 flex items-center gap-2 text-white/75">
           <Play size={18} />
           <span className="text-sm font-semibold">{node.data.videoUrl?.startsWith("mock://") ? "模拟视频" : "本地视频"}</span>
@@ -292,6 +297,43 @@ function PhoneScreen({
         <ArrowLeft size={16} className="rotate-180" />
       </div>
     </div>
+  );
+}
+
+function SocialActionRail({
+  likes,
+  comments,
+  compact = false,
+}: {
+  likes: string;
+  comments: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("absolute right-4 z-20 flex flex-col items-center gap-4", compact ? "bottom-32" : "bottom-24")}>
+      <ActionRailButton icon={Heart} label={likes} title="收藏热度" />
+      <ActionRailButton icon={MessageCircle} label={comments} title="互动讨论" />
+      <ActionRailButton icon={Share2} label="分享" title="分享剧情" />
+    </div>
+  );
+}
+
+function ActionRailButton({
+  icon: Icon,
+  label,
+  title,
+}: {
+  icon: typeof Heart;
+  label: string;
+  title: string;
+}) {
+  return (
+    <button title={title} className="flex w-12 flex-col items-center gap-1 text-white drop-shadow">
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/35 backdrop-blur">
+        <Icon size={21} fill="currentColor" strokeWidth={1.8} />
+      </span>
+      <span className="w-full truncate text-center text-[10px] font-semibold">{label}</span>
+    </button>
   );
 }
 

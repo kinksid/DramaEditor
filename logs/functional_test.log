@@ -16,3 +16,4 @@
 [2026-06-24 12:42:36 Asia/Shanghai] project=world-neon-tokyo-noir pass=5 manual=5 fixes=0 failed_fixes=0 report=reports/2026-06-24_12-42.json snapshot=snapshots/project_world-neon-tokyo-noir.json
 [2026-06-24 13:27:58 Asia/Shanghai] project=world-neon-tokyo-noir pass=5 manual=5 fixes=0 failed_fixes=0 report=reports/2026-06-24_13-27.json snapshot=snapshots/project_world-neon-tokyo-noir.json
 [2026-06-24 14:29:47 Asia/Shanghai] project=world-neon-tokyo-noir pass=5 manual=5 fixes=0 failed_fixes=0 report=reports/2026-06-24_14-29.json snapshot=snapshots/project_world-neon-tokyo-noir.json
+[2026-06-26 14:21:52 Asia/Shanghai] project=world-neon-tokyo-noir pass=3 manual=1 fixes=3 failed_fixes=0 push=succeeded report=reports/2026-06-26_14-21.json snapshot=snapshots/project_world-neon-tokyo-noir.json optimization=app-preview-social-rail
