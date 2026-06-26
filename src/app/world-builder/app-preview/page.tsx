@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
+  ChevronsUp,
   Download,
   Film,
   GitBranch,
@@ -33,6 +34,7 @@ export default function AppPreviewPage() {
   const [activeNodeId, setActiveNodeId] = useState(firstPlayable?.id ?? "");
   const activeNode = nodes.find((node) => node.id === activeNodeId && node.data.episodeId === episodeId) ?? firstPlayable;
   const currentEpisode = episodes.find((episode) => episode.id === episodeId) ?? episodes[0];
+  const nextEpisode = episodes.find((episode) => episode.index > (currentEpisode?.index ?? 0));
 
   useEffect(() => {
     if (!episodeId && episodes[0]) {
@@ -135,7 +137,7 @@ export default function AppPreviewPage() {
                 <div className="absolute left-1/2 top-2 z-20 h-7 w-32 -translate-x-1/2 rounded-full bg-[#17181c]" />
                 <div className="absolute inset-x-16 top-0 z-30 h-1 rounded-b-full bg-white/12" />
                 <div className="aspect-[393/852] overflow-hidden rounded-[2.2rem] bg-black text-white">
-                  <PhoneScreen node={activeNode} worldTitle={world.title} onChoose={chooseTarget} />
+                  <PhoneScreen node={activeNode} worldTitle={world.title} nextEpisodeTitle={nextEpisode?.title} onChoose={chooseTarget} />
                 </div>
                 <div className="absolute inset-x-24 bottom-2 z-20 h-1 rounded-full bg-white/35" />
               </div>
@@ -203,10 +205,12 @@ export default function AppPreviewPage() {
 function PhoneScreen({
   node,
   worldTitle,
+  nextEpisodeTitle,
   onChoose,
 }: {
   node?: StoryNode;
   worldTitle: string;
+  nextEpisodeTitle?: string;
   onChoose: (targetNodeId?: string) => void;
 }) {
   if (!node) {
@@ -293,8 +297,8 @@ function PhoneScreen({
         <p className="mt-3 line-clamp-6 text-sm leading-6 text-white/65">{node.data.prompt}</p>
       </div>
       <div className="relative z-10 flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/72 backdrop-blur">
-        <span>向后继续播放</span>
-        <ArrowLeft size={16} className="rotate-180" />
+        <span>{nextEpisodeTitle ? `上滑续看 · ${nextEpisodeTitle}` : "向后继续播放"}</span>
+        {nextEpisodeTitle ? <ChevronsUp size={16} /> : <ArrowLeft size={16} className="rotate-180" />}
       </div>
     </div>
   );

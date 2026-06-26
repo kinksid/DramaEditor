@@ -24,5 +24,19 @@
         "result": "The preview better communicates short-video engagement and sharing behavior."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T06:33:01.000Z",
+    "timestampLocal": "2026-06-26 14:33:01 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "app-preview-up-next",
+        "status": "optimized",
+        "action": "Added an up-swipe next-episode cue to the vertical APP preview.",
+        "result": "The prototype better supports continuous viewing and short-video style retention."
+      }
+    ]
   }
 ]
