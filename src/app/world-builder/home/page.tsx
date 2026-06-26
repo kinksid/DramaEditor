@@ -28,6 +28,7 @@ const sampleWorlds = [
     heat: "热度 9.2",
     completion: "完播 68%",
     interactions: "3 个选择",
+    reason: `因为你喜欢${asset.genre}互动短剧`,
   })),
   {
     title: "绒星宇宙",
@@ -38,6 +39,7 @@ const sampleWorlds = [
     heat: "热度 8.7",
     completion: "完播 61%",
     interactions: "5 个选择",
+    reason: "因为你常看轻奇幻分支",
   },
   {
     title: "血色之城",
@@ -48,6 +50,7 @@ const sampleWorlds = [
     heat: "热度 8.9",
     completion: "完播 57%",
     interactions: "4 个选择",
+    reason: "因为你浏览过惊悚选择",
   },
   {
     title: "黄金时代伊比利亚",
@@ -57,6 +60,7 @@ const sampleWorlds = [
     heat: "热度 8.4",
     completion: "完播 63%",
     interactions: "6 个选择",
+    reason: "因为你偏好高互动剧情",
   },
   {
     title: "最后一条短信",
@@ -66,6 +70,7 @@ const sampleWorlds = [
     heat: "热度 9.0",
     completion: "完播 66%",
     interactions: "4 个选择",
+    reason: "因为你喜欢悬疑反转",
   },
   {
     title: "西溪高中假女友",
@@ -75,6 +80,7 @@ const sampleWorlds = [
     heat: "热度 8.5",
     completion: "完播 72%",
     interactions: "3 个选择",
+    reason: "因为同类校园线完播高",
   },
   {
     title: "雨夜公路追击",
@@ -84,6 +90,7 @@ const sampleWorlds = [
     heat: "热度 8.8",
     completion: "完播 59%",
     interactions: "5 个选择",
+    reason: "因为你点过追击题材",
   },
 ];
 
@@ -264,6 +271,7 @@ function WorldFeedCard({
   heat,
   completion,
   interactions,
+  reason,
 }: {
   title: string;
   genre: string;
@@ -273,6 +281,7 @@ function WorldFeedCard({
   heat: string;
   completion: string;
   interactions: string;
+  reason: string;
 }) {
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-orange-200">
@@ -287,6 +296,7 @@ function WorldFeedCard({
           {genre}
         </div>
         <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">{reason}</p>
         <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{description}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {[heat, completion, interactions].map((item) => (
