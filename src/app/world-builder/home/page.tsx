@@ -102,16 +102,18 @@ export default function StudioHomePage() {
   const [genre, setGenre] = useState("全部类型");
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("hot");
+  const [hiddenTitles, setHiddenTitles] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
   const worlds = useMemo(() => {
     const filtered = sampleWorlds.filter((item) => {
       const matchesGenre = genre === "全部类型" || item.genre === genre;
       const matchesQuery = `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase());
-      return matchesGenre && matchesQuery;
+      const isVisible = !hiddenTitles.includes(item.title);
+      return matchesGenre && matchesQuery && isVisible;
     });
     return [...filtered].sort((a, b) => metricValue(b, sortMode) - metricValue(a, sortMode));
-  }, [genre, query, sortMode]);
+  }, [genre, hiddenTitles, query, sortMode]);
 
   const handleCreate = () => {
     setCreating(true);
@@ -235,7 +237,7 @@ export default function StudioHomePage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {worlds.map((item) => (
-              <WorldFeedCard key={item.title} {...item} />
+              <WorldFeedCard key={item.title} {...item} onHide={() => setHiddenTitles((titles) => [...titles, item.title])} />
             ))}
             <Link
               href="/world-builder/setup"
@@ -272,6 +274,7 @@ function WorldFeedCard({
   completion,
   interactions,
   reason,
+  onHide,
 }: {
   title: string;
   genre: string;
@@ -282,6 +285,7 @@ function WorldFeedCard({
   completion: string;
   interactions: string;
   reason: string;
+  onHide: () => void;
 }) {
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-orange-200">
@@ -311,6 +315,13 @@ function WorldFeedCard({
         >
           <Play size={15} /> 立即预览
         </Link>
+        <button
+          type="button"
+          onClick={onHide}
+          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-50"
+        >
+          不感兴趣
+        </button>
       </div>
     </article>
   );

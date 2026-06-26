@@ -114,5 +114,19 @@
         "result": "The feed better communicates personalization and why a user should try each interactive title."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T08:45:44.000Z",
+    "timestampLocal": "2026-06-26 16:45:44 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-negative-feedback",
+        "status": "optimized",
+        "action": "Added a page-local 'not interested' action to hide feed cards from the current recommendation list.",
+        "result": "The feed now has a basic user feedback loop for tuning recommendations."
+      }
+    ]
   }
 ]
