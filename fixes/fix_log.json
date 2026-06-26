@@ -52,5 +52,25 @@
         "result": "The home feed better supports fast short-video style content decisions."
       }
     ]
+  },
+  {
+    "timestamp": "2026-06-26T06:50:38.000Z",
+    "timestampLocal": "2026-06-26 14:50:38 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-preview-cta",
+        "status": "optimized",
+        "action": "Added a direct preview CTA to home feed cards.",
+        "result": "The feed reduces the distance from discovery to interactive playback preview."
+      },
+      {
+        "id": "home-feed-card-semantics",
+        "status": "fixed",
+        "action": "Changed the feed card wrapper from button to article before adding a nested Link.",
+        "result": "Interactive markup remains valid and safer for browser behavior."
+      }
+    ]
   }
 ]

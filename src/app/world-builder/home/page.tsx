@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ImagePlus,
   Loader2,
+  Play,
   Plus,
   Search,
   SlidersHorizontal,
@@ -237,7 +238,7 @@ function WorldFeedCard({
   interactions: string;
 }) {
   return (
-    <button className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-orange-200">
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-orange-200">
       {poster ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={poster} alt={title} className="h-40 w-full object-cover" />
@@ -257,7 +258,13 @@ function WorldFeedCard({
             </span>
           ))}
         </div>
+        <Link
+          href="/world-builder/app-preview"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white"
+        >
+          <Play size={15} /> 立即预览
+        </Link>
       </div>
-    </button>
+    </article>
   );
 }

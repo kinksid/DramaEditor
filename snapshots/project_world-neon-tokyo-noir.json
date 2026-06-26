@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T06:40:39.000Z",
+  "generatedAt": "2026-06-26T06:50:38.000Z",
   "discovery": {
     "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
     "remoteEntryUrl": null,
@@ -13,6 +13,7 @@
       "App preview now includes a short-video style social action rail for favorite, discussion, and share signals.",
       "App preview scene state now includes an up-swipe next-episode continuation cue when another episode is available.",
       "Home feed cards now expose heat, completion, and interaction-count chips for faster content decisions.",
+      "Home feed cards now include a direct preview CTA that opens the vertical APP preview.",
       "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
     ]
   },

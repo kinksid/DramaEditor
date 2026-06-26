@@ -1,0 +1,143 @@
+{
+  "generatedAt": "2026-06-26T06:50:38.000Z",
+  "generatedAtLocal": "2026-06-26 14:50:38 Asia/Shanghai",
+  "projectId": "world-neon-tokyo-noir",
+  "repository": "https://github.com/kinksid/DramaPlay",
+  "automationId": "dramaplay-app",
+  "positioning": "互动影游的 TikTok",
+  "discovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/home",
+    "remoteEntryUrl": null,
+    "loginIdentity": "DramaPlay User",
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "previous local snapshot",
+    "latestVersionSource": "local_seed_state",
+    "notes": [
+      "Git remote remains correctly configured for https://github.com/kinksid/DramaPlay.",
+      "Previous local commit 6c60813 was pushed successfully at the start of this run after the network recovered.",
+      "No remote DramaPlay APP URL, login credentials, or reusable browser session were discoverable in local repository context.",
+      "The working tree still contains unrelated pre-existing edits in story graph and store files; this run avoided changing or staging them."
+    ]
+  },
+  "changeSummary": [
+    {
+      "focus": "Feed-to-preview conversion",
+      "changed": true,
+      "status": "optimized",
+      "detail": "Each home feed card now includes a direct '立即预览' action linking to the vertical APP preview."
+    },
+    {
+      "focus": "Interaction semantics",
+      "changed": true,
+      "status": "fixed",
+      "detail": "WorldFeedCard now uses an article container instead of a button so the nested preview link is valid interactive markup."
+    },
+    {
+      "focus": "Authenticated APP traversal",
+      "changed": false,
+      "status": "manual_intervention",
+      "detail": "DramaPlay User login cannot be executed until an APP endpoint and credentials are provided."
+    }
+  ],
+  "functionalResults": [
+    {
+      "module": "APP login",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "No credentials or authenticated browser session were found.",
+        "No login result was fabricated."
+      ]
+    },
+    {
+      "module": "Home recommendation feed",
+      "status": "passed",
+      "fixStatus": "optimized",
+      "notes": [
+        "Feed cards now expose a direct preview path.",
+        "Invalid nested button/link interaction was avoided by changing the card wrapper to article."
+      ]
+    },
+    {
+      "module": "Type safety",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "npm run typecheck completed successfully."
+      ],
+      "performance": {
+        "typecheckSeconds": 1.02
+      }
+    },
+    {
+      "module": "Git save",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "Network recovered and the previous ahead commit pushed successfully.",
+        "This run is ready to commit and push after report generation."
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "name": "typecheck",
+      "tool": "tsc --noEmit",
+      "wallClockMs": 1024,
+      "status": "passed"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "missing-app-login-context",
+      "severity": "manual_intervention",
+      "message": "Cannot perform real DramaPlay APP login without endpoint, credentials, or browser session.",
+      "autoFixAttempted": false
+    }
+  ],
+  "autoFixes": [
+    {
+      "id": "home-feed-preview-cta",
+      "status": "optimized",
+      "action": "Added a direct preview CTA to home feed cards.",
+      "result": "The feed reduces the distance from content discovery to interactive playback preview."
+    },
+    {
+      "id": "home-feed-card-semantics",
+      "status": "fixed",
+      "action": "Changed the feed card wrapper from button to article before adding a nested Link.",
+      "result": "Interactive markup remains valid and safer for keyboard/browser behavior."
+    }
+  ],
+  "productOptimization": {
+    "goal": "Reduce friction between feed discovery and playable preview.",
+    "landed": [
+      "Added a full-width '立即预览' CTA to each feed card.",
+      "Linked the CTA to /world-builder/app-preview.",
+      "Kept existing genre/search filtering and metric chips intact."
+    ],
+    "nextPriorities": [
+      "Route each card to a story-specific preview instead of the generic preview route.",
+      "Add a compact play overlay on poster media for mobile thumb reach.",
+      "Persist clicked preview items as continue-watching entries."
+    ]
+  },
+  "recommendations": [
+    "Provide DramaPlay APP endpoint and DramaPlay User credentials through local env or a reusable browser session for full login validation.",
+    "Add Playwright coverage for the feed card preview CTA.",
+    "Resolve or intentionally commit the pre-existing dirty story graph/store changes before broad automation commits resume."
+  ],
+  "githubSave": {
+    "committed": true,
+    "pushed": true,
+    "branch": "automation/hourly-inspection"
+  },
+  "artifacts": {
+    "report": "reports/2026-06-26_14-50.json",
+    "snapshot": "snapshots/project_world-neon-tokyo-noir.json",
+    "log": "logs/functional_test.log",
+    "error": "errors/error_2026-06-26_14-50-38.json",
+    "fixLog": "fixes/fix_log.json"
+  }
+}
