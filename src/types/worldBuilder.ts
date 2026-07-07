@@ -116,3 +116,57 @@ export type StoryValidationIssue = {
 };
 
 export type ThirdPartyWorkflowTarget = "tapnow" | "libtv";
+
+export type ReferenceKind = "image" | "video" | "text";
+
+export type CreationReference = {
+  id: string;
+  kind: ReferenceKind;
+  name: string;
+  url?: string;
+  textContent?: string;
+  mimeType?: string;
+  analysisSummary?: string;
+};
+
+export type DecomposeWorldview = {
+  worldTitle: string;
+  genre: string;
+  tags: string;
+  tone: string;
+  visualStyle: string;
+  worldDescription: string;
+};
+
+export type DecomposeResult = {
+  worldview: DecomposeWorldview;
+  characters: Omit<Character, "id">[];
+  locations: Omit<Location, "id">[];
+  script: string;
+};
+
+export type DecomposePreviewMode = "worldview" | "characters" | "script" | "all";
+
+export type WorldProject = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  setupDraft: SetupDraft;
+  characters: Character[];
+  locations: Location[];
+  episodes: Episode[];
+  nodes: StoryNode[];
+  edges: StoryEdge[];
+  world: World;
+  references: CreationReference[];
+  decomposeStatus?: "idle" | "running" | "done" | "error";
+  decomposeError?: string;
+};
+
+export type CreationSession = {
+  prompt: string;
+  visualStylePreset?: string;
+  references: CreationReference[];
+  lastDecompose?: DecomposeResult;
+};

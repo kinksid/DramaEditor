@@ -65,7 +65,11 @@ export function InteractionNode({ data, selected }: NodeProps<InteractionNodeVie
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-3.5 !w-3.5 !border-2 !border-white !bg-accent !cursor-crosshair"
+      />
     </div>
   );
 }

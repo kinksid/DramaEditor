@@ -12,8 +12,20 @@ import {
   seedStoryNodes,
   seedWorld,
 } from "@/data/seedWorld";
+import {
+  buildBlankProject,
+  buildProjectFromDecompose,
+  emptyCreationSession,
+  parseCommaList,
+  projectToWorkspace,
+  syncProjectsFromWorkspace,
+} from "@/lib/worldBuilderProject";
+import { analyzeScript, buildStoryGraphFromAnalysis } from "@/lib/scriptAnalysis";
 import type {
   Character,
+  CreationReference,
+  CreationSession,
+  DecomposeResult,
   Episode,
   InteractionNodeData,
   InteractionOption,
@@ -23,13 +35,14 @@ import type {
   StoryEdge,
   StoryNode,
   World,
+  WorldProject,
   EndingNodeData,
   StoryValidationIssue,
   CanvasPosition,
   ThirdPartyWorkflowTarget,
 } from "@/types/worldBuilder";
 
-const STORE_VERSION = 5;
+const STORE_VERSION = 6;
 
 type WorldBuilderState = {
   world: World;
@@ -78,6 +91,11 @@ type WorldBuilderState = {
   updateOption: (nodeId: string, optionId: string, option: Partial<InteractionOption>) => void;
   deleteOption: (nodeId: string, optionId: string) => void;
   connectNodes: (source: string, target: string, label?: string, actionType?: StoryEdge["actionType"]) => void;
+  createConnectedNode: (
+    sourceNodeId: string,
+    kind: StoryNode["kind"],
+    position: CanvasPosition,
+  ) => string | null;
   selectNode: (id?: string) => void;
   selectEpisode: (id: string) => void;
   exportStoryJson: () => string;
@@ -89,6 +107,20 @@ type WorldBuilderState = {
   redo: () => void;
   historyIndex: number;
   historyLength: number;
+  projects: WorldProject[];
+  activeProjectId: string;
+  creationSession: CreationSession;
+  updateCreationSession: (patch: Partial<CreationSession>) => void;
+  addReference: (reference: CreationReference) => void;
+  removeReference: (id: string) => void;
+  updateReference: (id: string, patch: Partial<CreationReference>) => void;
+  setDecomposePreview: (result: DecomposeResult) => void;
+  createProjectFromSession: (options?: { decomposeResult?: DecomposeResult }) => string;
+  switchProject: (id: string) => void;
+  listProjects: () => WorldProject[];
+  commitSetupToWorld: () => void;
+  generateStoryGraphFromScript: (options?: { force?: boolean }) => boolean;
+  ensureProjectLoaded: (projectId?: string) => boolean;
 };
 
 type PersistedWorldBuilderState = Pick<
@@ -103,6 +135,9 @@ type PersistedWorldBuilderState = Pick<
   | "setupDraft"
   | "lastSavedAt"
   | "lastPublishedAt"
+  | "projects"
+  | "activeProjectId"
+  | "creationSession"
 >;
 
 const cloneSeed = () => ({
@@ -158,21 +193,54 @@ const withAutoLayout = (episodes: Episode[], nodes: StoryNode[]) =>
     } as StoryNode;
   });
 
-const seedPersistedState = (): PersistedWorldBuilderState => {
+const buildSeedProject = (): WorldProject => {
   const seed = cloneSeed();
+  const now = seed.world.createdAt;
   return {
-    world: seed.world,
+    id: seed.world.id,
+    name: seed.world.title,
+    createdAt: now,
+    updatedAt: now,
+    setupDraft: seed.setupDraft,
     characters: seed.characters,
     locations: seed.locations,
     episodes: seed.episodes,
     nodes: withAutoLayout(seed.episodes, seed.nodes),
     edges: seed.edges,
-    selectedEpisodeId: seed.selectedEpisodeId,
-    setupDraft: seed.setupDraft,
-    lastSavedAt: seed.lastSavedAt,
-    lastPublishedAt: seed.lastPublishedAt,
+    world: seed.world,
+    references: [],
+    decomposeStatus: "idle",
   };
 };
+
+const seedPersistedState = (): PersistedWorldBuilderState => {
+  const seedProject = buildSeedProject();
+  return {
+    world: seedProject.world,
+    characters: seedProject.characters,
+    locations: seedProject.locations,
+    episodes: seedProject.episodes,
+    nodes: seedProject.nodes,
+    edges: seedProject.edges,
+    selectedEpisodeId: seedProject.episodes[0]?.id ?? "",
+    setupDraft: seedProject.setupDraft,
+    lastSavedAt: undefined,
+    lastPublishedAt: undefined,
+    projects: [seedProject],
+    activeProjectId: seedProject.id,
+    creationSession: emptyCreationSession(),
+  };
+};
+
+const workspaceSlice = (state: WorldBuilderState) => ({
+  world: state.world,
+  characters: state.characters,
+  locations: state.locations,
+  episodes: state.episodes,
+  nodes: state.nodes,
+  edges: state.edges,
+  setupDraft: state.setupDraft,
+});
 
 const MAX_HISTORY = 50;
 
@@ -199,8 +267,14 @@ const restoreSnapshot = (state: WorldBuilderState, snap: HistorySnapshot) => ({
 
 export const useWorldBuilderStore = create<WorldBuilderState>()(
   persist(
-    (set, get) => ({
-      ...cloneSeed(),
+    (set, get) => {
+      const seedProject = buildSeedProject();
+      const seedWorkspace = projectToWorkspace(seedProject);
+      return {
+      ...seedWorkspace,
+      projects: [seedProject],
+      activeProjectId: seedProject.id,
+      creationSession: emptyCreationSession(),
       hasHydrated: false,
       historyIndex: -1,
       historyLength: 0,
@@ -248,18 +322,20 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
         }
       },
       loadSeedData: () => set(() => {
-        const seed = cloneSeed();
+        const seedProject = buildSeedProject();
         return {
-          ...seed,
-          nodes: withAutoLayout(seed.episodes, seed.nodes),
+          ...projectToWorkspace(seedProject),
+          projects: [seedProject],
+          activeProjectId: seedProject.id,
         };
       }),
       saveToLocal: () => set({ lastSavedAt: new Date().toISOString() }),
       resetWorld: () => set(() => {
-        const seed = cloneSeed();
+        const seedProject = buildSeedProject();
         return {
-          ...seed,
-          nodes: withAutoLayout(seed.episodes, seed.nodes),
+          ...projectToWorkspace(seedProject),
+          projects: [seedProject],
+          activeProjectId: seedProject.id,
         };
       }),
       generateAllMockVideos: () =>
@@ -651,13 +727,215 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             };
           }),
         })),
-      connectNodes: (source, target, label = "继续", actionType) =>
-        set((state) => ({
-          edges: [
-            ...state.edges,
-            { id: `edge-${uuidv4()}`, source, target, label, actionType },
-          ],
-        })),
+      connectNodes: (source, target, label = "继续", actionType) => {
+        get().pushHistory();
+        set((state) => {
+          const sourceNode = state.nodes.find((node) => node.id === source);
+          const nodes = state.nodes.map((node) => {
+            if (node.id !== source || node.kind !== "interaction") return node;
+            const option = node.data.options.find((item) => !item.targetNodeId);
+            if (!option) return node;
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                options: node.data.options.map((item) =>
+                  item.id === option.id ? { ...item, targetNodeId: target } : item,
+                ),
+              },
+            };
+          });
+          const edgeExists = state.edges.some((edge) => edge.source === source && edge.target === target);
+          return {
+            nodes,
+            edges: edgeExists
+              ? state.edges
+              : [...state.edges, { id: `edge-${uuidv4()}`, source, target, label, actionType }],
+          };
+        });
+      },
+      createConnectedNode: (sourceNodeId, kind, position) => {
+        const state = get();
+        const sourceNode = state.nodes.find((node) => node.id === sourceNodeId);
+        if (!sourceNode) return null;
+
+        get().pushHistory();
+        const targetEpisodeId = sourceNode.data.episodeId;
+        const episodeIndex = Math.max(
+          state.episodes.findIndex((episode) => episode.id === targetEpisodeId),
+          0,
+        );
+        const episode = state.episodes[episodeIndex] ?? state.episodes[0];
+        if (!episode) return null;
+
+        const nodeIndex = state.nodes.filter((node) => node.data.episodeId === targetEpisodeId).length;
+        const fallbackPosition = defaultNodePosition(episode, episodeIndex, nodeIndex);
+        const nextPosition = {
+          x: position.x || fallbackPosition.x,
+          y: position.y || fallbackPosition.y,
+        };
+
+        let createdId = "";
+        set((current) => {
+          if (kind === "scene") {
+            const id = `scene-${uuidv4()}`;
+            createdId = id;
+            const newNode: StoryNode = {
+              id,
+              kind: "scene",
+              data: {
+                id,
+                episodeId: targetEpisodeId,
+                title: "未命名视频节点",
+                prompt: "描述这一段视频的剧情动作、构图、镜头运动和连续性要求。",
+                status: "empty",
+              },
+              position: nextPosition,
+            };
+            const nodes = [...current.nodes, newNode];
+            const edges = [
+              ...current.edges,
+              { id: `edge-${uuidv4()}`, source: sourceNodeId, target: id, label: "继续" },
+            ];
+            const nextState = {
+              ...current,
+              nodes,
+              edges,
+              selectedNodeId: id,
+              selectedEpisodeId: targetEpisodeId,
+            };
+            return {
+              ...nextState,
+              projects: syncProjectsFromWorkspace(
+                current.projects,
+                current.activeProjectId,
+                workspaceSlice(nextState),
+              ),
+            };
+          }
+
+          if (kind === "interaction") {
+            const id = `interaction-${uuidv4()}`;
+            createdId = id;
+            const newNode: StoryNode = {
+              id,
+              kind: "interaction",
+              data: {
+                id,
+                episodeId: targetEpisodeId,
+                title: "未命名互动节点",
+                instruction: "描述互动限制、用户动作和触发后的剧情结果。",
+                options: [],
+              },
+              position: nextPosition,
+            };
+            const nodes = [...current.nodes, newNode];
+            const edges = [
+              ...current.edges,
+              { id: `edge-${uuidv4()}`, source: sourceNodeId, target: id, label: "继续" },
+            ];
+            const nextState = {
+              ...current,
+              nodes,
+              edges,
+              selectedNodeId: id,
+              selectedEpisodeId: targetEpisodeId,
+            };
+            return {
+              ...nextState,
+              projects: syncProjectsFromWorkspace(
+                current.projects,
+                current.activeProjectId,
+                workspaceSlice(nextState),
+              ),
+            };
+          }
+
+          const id = `ending-${uuidv4()}`;
+          createdId = id;
+          const newNode: StoryNode = {
+            id,
+            kind: "ending",
+            data: {
+              id,
+              episodeId: targetEpisodeId,
+              title: "未命名结局节点",
+              endingType: "normal",
+              description: "描述这条分支的结局、情绪落点和 App 播放后的状态。",
+            },
+            position: nextPosition,
+          };
+          const nodes = [...current.nodes, newNode];
+          const edges = [
+            ...current.edges,
+            {
+              id: `edge-${uuidv4()}`,
+              source: sourceNodeId,
+              target: id,
+              label: "结局",
+              actionType: "ending" as const,
+            },
+          ];
+
+          const nodesWithOption =
+            sourceNode.kind === "interaction"
+              ? nodes.map((node) => {
+                  if (node.id !== sourceNodeId || node.kind !== "interaction") return node;
+                  const option = node.data.options.find((item) => !item.targetNodeId);
+                  if (!option) return node;
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      options: node.data.options.map((item) =>
+                        item.id === option.id ? { ...item, targetNodeId: id } : item,
+                      ),
+                    },
+                  };
+                })
+              : nodes;
+
+          const nextState = {
+            ...current,
+            nodes: nodesWithOption,
+            edges,
+            selectedNodeId: id,
+            selectedEpisodeId: targetEpisodeId,
+          };
+          return {
+            ...nextState,
+            projects: syncProjectsFromWorkspace(
+              current.projects,
+              current.activeProjectId,
+              workspaceSlice(nextState),
+            ),
+          };
+        });
+
+        if (sourceNode.kind === "interaction" && kind !== "ending") {
+          const latest = get().nodes.find((node) => node.id === sourceNodeId);
+          if (latest?.kind === "interaction") {
+            const option = latest.data.options.find((item) => !item.targetNodeId);
+            if (option) {
+              get().updateOption(sourceNodeId, option.id, { targetNodeId: createdId });
+            } else {
+              get().addOption(sourceNodeId);
+              const refreshed = get().nodes.find((node) => node.id === sourceNodeId);
+              if (refreshed?.kind === "interaction") {
+                const lastOption = refreshed.data.options[refreshed.data.options.length - 1];
+                if (lastOption) {
+                  get().updateOption(sourceNodeId, lastOption.id, {
+                    targetNodeId: createdId,
+                    label: "继续",
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        return createdId || null;
+      },
       selectNode: (id) => set({ selectedNodeId: id }),
       selectEpisode: (id) => set({ selectedEpisodeId: id }),
       exportStoryJson: () => {
@@ -790,6 +1068,167 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           null,
           2,
         );
+      },
+      updateCreationSession: (patch) =>
+        set((state) => ({
+          creationSession: { ...state.creationSession, ...patch },
+        })),
+      addReference: (reference) =>
+        set((state) => ({
+          creationSession: {
+            ...state.creationSession,
+            references: [...state.creationSession.references, reference],
+          },
+        })),
+      removeReference: (id) =>
+        set((state) => ({
+          creationSession: {
+            ...state.creationSession,
+            references: state.creationSession.references.filter((item) => item.id !== id),
+          },
+        })),
+      updateReference: (id, patch) =>
+        set((state) => ({
+          creationSession: {
+            ...state.creationSession,
+            references: state.creationSession.references.map((item) =>
+              item.id === id ? { ...item, ...patch } : item,
+            ),
+          },
+        })),
+      setDecomposePreview: (result) =>
+        set((state) => ({
+          creationSession: { ...state.creationSession, lastDecompose: result },
+        })),
+      createProjectFromSession: (options) => {
+        const state = get();
+        const session = {
+          ...state.creationSession,
+          prompt: state.creationSession.prompt,
+        };
+        const project = options?.decomposeResult
+          ? buildProjectFromDecompose(options.decomposeResult, session)
+          : buildBlankProject(session);
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        set({
+          projects: [...syncedProjects, project],
+          activeProjectId: project.id,
+          ...projectToWorkspace(project),
+        });
+        return project.id;
+      },
+      switchProject: (id) => {
+        const state = get();
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        const project = syncedProjects.find((item) => item.id === id);
+        if (!project) return;
+        set({
+          projects: syncedProjects,
+          activeProjectId: id,
+          ...projectToWorkspace(project),
+        });
+      },
+      listProjects: () => {
+        const state = get();
+        const synced = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        return [...synced].sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
+      },
+      commitSetupToWorld: () => {
+        const state = get();
+        const genre = parseCommaList(state.setupDraft.genre);
+        const tags = parseCommaList(state.setupDraft.tags);
+        set((current) => {
+          const nextWorld = {
+            ...current.world,
+            title: current.setupDraft.worldTitle,
+            description: current.setupDraft.worldDescription,
+            genre: genre.length > 0 ? genre : current.world.genre,
+            tags: tags.length > 0 ? tags : current.world.tags,
+          };
+          const syncedProjects = syncProjectsFromWorkspace(
+            current.projects,
+            current.activeProjectId,
+            {
+              ...workspaceSlice(current),
+              world: nextWorld,
+            },
+          );
+          return {
+            world: nextWorld,
+            projects: syncedProjects,
+            lastSavedAt: new Date().toISOString(),
+          };
+        });
+        get().generateStoryGraphFromScript();
+      },
+      generateStoryGraphFromScript: (options) => {
+        const state = get();
+        if (!options?.force && state.episodes.length > 0) {
+          return false;
+        }
+        const script = state.setupDraft.script.trim();
+        if (!script) {
+          return false;
+        }
+
+        const analysis = analyzeScript(script);
+        const graph = buildStoryGraphFromAnalysis(analysis);
+
+        const existingNames = new Set(state.characters.map((item) => item.name));
+        const newCharacters = analysis.characters
+          .filter((item) => !existingNames.has(item.name))
+          .map((item) => ({
+            id: uuidv4(),
+            name: item.name,
+            role: item.role,
+            description: `${item.name} - ${item.role}`,
+          }));
+
+        set((current) => {
+          const nextState = {
+            ...current,
+            characters: [...newCharacters, ...current.characters],
+            episodes: graph.episodes,
+            nodes: withAutoLayout(graph.episodes, graph.nodes),
+            edges: graph.edges,
+            selectedEpisodeId: graph.episodes[0]?.id ?? "",
+            selectedNodeId: undefined,
+            lastSavedAt: new Date().toISOString(),
+          };
+          return {
+            ...nextState,
+            projects: syncProjectsFromWorkspace(
+              current.projects,
+              current.activeProjectId,
+              workspaceSlice(nextState),
+            ),
+          };
+        });
+        return true;
+      },
+      ensureProjectLoaded: (projectId) => {
+        const state = get();
+        const targetId = projectId ?? state.activeProjectId;
+        if (!targetId) return false;
+        if (state.activeProjectId === targetId) return true;
+        const project = state.projects.find((item) => item.id === targetId);
+        if (!project) return false;
+        get().switchProject(targetId);
+        return true;
       },
       importStoryJson: (jsonStr) => {
         try {
@@ -933,36 +1372,88 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           return { success: false, message: "JSON 解析失败，请检查文件格式" };
         }
       },
-    }),
+    };
+    },
     {
       name: "drama-world-builder",
       version: STORE_VERSION,
       migrate: (persistedState, version) => {
-        const state = persistedState as Partial<PersistedWorldBuilderState> | undefined;
-        const hasBranchEpisode = state?.episodes?.some((episode) => episode.id === "ep2b");
-        const hasHotspots = state?.nodes?.some((node) =>
-          node.kind === "interaction" && node.data.options.some((option) => option.hotspot),
-        );
-        if (!state || version < STORE_VERSION || !hasBranchEpisode || !hasHotspots) {
-          return seedPersistedState();
+        const state = persistedState as Partial<PersistedWorldBuilderState> & Record<string, unknown> | undefined;
+        if (!state) return seedPersistedState();
+
+        if (version < 6) {
+          const hasBranchEpisode = state.episodes?.some((episode) => episode.id === "ep2b");
+          const hasHotspots = state.nodes?.some((node) =>
+            node.kind === "interaction" && node.data.options.some((option) => option.hotspot),
+          );
+          if (!hasBranchEpisode || !hasHotspots) {
+            return seedPersistedState();
+          }
+          const legacyProject: WorldProject = {
+            id: state.world?.id ?? seedWorld.id,
+            name: state.setupDraft?.worldTitle ?? state.world?.title ?? seedWorld.title,
+            createdAt: state.world?.createdAt ?? seedWorld.createdAt,
+            updatedAt: state.lastSavedAt ?? state.world?.createdAt ?? seedWorld.createdAt,
+            setupDraft: state.setupDraft ?? structuredClone(seedSetupDraft),
+            characters: state.characters ?? structuredClone(seedCharacters),
+            locations: state.locations ?? structuredClone(seedLocations),
+            episodes: state.episodes ?? structuredClone(seedEpisodes),
+            nodes: withAutoLayout(
+              state.episodes ?? seedEpisodes,
+              state.nodes ?? seedStoryNodes,
+            ),
+            edges: state.edges ?? structuredClone(seedStoryEdges),
+            world: state.world ?? structuredClone(seedWorld),
+            references: [],
+            decomposeStatus: "idle",
+          };
+          return {
+            world: legacyProject.world,
+            characters: legacyProject.characters,
+            locations: legacyProject.locations,
+            episodes: legacyProject.episodes,
+            nodes: legacyProject.nodes,
+            edges: legacyProject.edges,
+            selectedEpisodeId: state.selectedEpisodeId ?? legacyProject.episodes[0]?.id ?? "",
+            setupDraft: legacyProject.setupDraft,
+            lastSavedAt: state.lastSavedAt,
+            lastPublishedAt: state.lastPublishedAt,
+            projects: [legacyProject],
+            activeProjectId: legacyProject.id,
+            creationSession: emptyCreationSession(),
+          };
         }
+
         return {
           ...seedPersistedState(),
           ...state,
+          projects: state.projects ?? seedPersistedState().projects,
+          activeProjectId: state.activeProjectId ?? seedPersistedState().activeProjectId,
+          creationSession: state.creationSession ?? emptyCreationSession(),
         };
       },
-      partialize: (state) => ({
-        world: state.world,
-        characters: state.characters,
-        locations: state.locations,
-        episodes: state.episodes,
-        nodes: state.nodes,
-        edges: state.edges,
-        selectedEpisodeId: state.selectedEpisodeId,
-        setupDraft: state.setupDraft,
-        lastSavedAt: state.lastSavedAt,
-        lastPublishedAt: state.lastPublishedAt,
-      }),
+      partialize: (state) => {
+        const projects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        return {
+          world: state.world,
+          characters: state.characters,
+          locations: state.locations,
+          episodes: state.episodes,
+          nodes: state.nodes,
+          edges: state.edges,
+          selectedEpisodeId: state.selectedEpisodeId,
+          setupDraft: state.setupDraft,
+          lastSavedAt: state.lastSavedAt,
+          lastPublishedAt: state.lastPublishedAt,
+          projects,
+          activeProjectId: state.activeProjectId,
+          creationSession: state.creationSession,
+        };
+      },
       onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
     },
   ),

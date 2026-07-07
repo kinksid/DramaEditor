@@ -7,9 +7,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const activeProjectId = useWorldBuilderStore((s) => s.activeProjectId);
   const { t } = useI18n();
   const language = useSettingsStore((s) => s.language);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
@@ -20,7 +22,13 @@ export function Sidebar() {
   const items = [
     { label: t("nav.home"), href: "/world-builder/home", icon: Home },
     { label: t("nav.worlds"), href: "/world-builder/worlds", icon: Sparkles },
-    { label: "故事线", href: "/world-builder/story-graph", icon: Map },
+    {
+      label: "故事线",
+      href: activeProjectId
+        ? `/world-builder/story-graph?project=${activeProjectId}`
+        : "/world-builder/story-graph",
+      icon: Map,
+    },
     { label: t("nav.assets"), href: "/world-builder/assets", icon: Film },
     { label: t("nav.appPreview"), href: "/world-builder/app-preview", icon: Smartphone },
   ];

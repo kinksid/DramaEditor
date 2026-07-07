@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Box, FileText, ExternalLink, Film, GitBranch, MousePointerClick, UserRound, UsersRound, X, Check, Sparkles, Loader2, Trash2, ImagePlus, MapPin, Play } from "lucide-react";
+import { analyzeScript } from "@/lib/scriptAnalysis";
 import { cn } from "@/lib/utils";
 import { dramaPlayAssets } from "@/data/dramaPlayAssets";
 import { locationTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
@@ -31,78 +32,18 @@ export function GraphOutline() {
     const text = scriptDraft.trim();
     if (!text) { setAnalyzing(false); return; }
 
-    const lines = text.split("\n").filter((l) => l.trim());
-    const chars: { name: string; role: string }[] = [];
-    const sceneList: { title: string; prompt: string }[] = [];
-    const interactions: { title: string; instruction: string }[] = [];
-    const episodeList: { title: string }[] = [];
-
-    let currentScene = "";
-    let currentPrompt = "";
-
-    lines.forEach((line) => {
-      const trimmed = line.trim();
-      if (trimmed.includes("：") || trimmed.includes("，") && (trimmed.length < 30)) {
-        const parts = trimmed.split(/[：，,]/);
-        if (parts.length >= 2 && !trimmed.startsWith("第") && !trimmed.startsWith("场")) {
-          const name = parts[0].replace(/[\d.、\-—\s]/g, "").trim();
-          if (name.length >= 2 && name.length <= 8 && !name.includes("外景") && !name.includes("内景")) {
-            if (!chars.find((c) => c.name === name)) chars.push({ name, role: parts.slice(1).join(" · ").trim() || "角色" });
-          }
-        }
-      }
-      if (trimmed.startsWith("第") && trimmed.includes("场")) {
-        if (currentScene) sceneList.push({ title: currentScene, prompt: currentPrompt || currentScene });
-        currentScene = trimmed;
-        currentPrompt = "";
-      } else if (trimmed.startsWith("外景") || trimmed.startsWith("内景")) {
-        currentPrompt += (currentPrompt ? " " : "") + trimmed;
-      }
-    });
-    if (currentScene) sceneList.push({ title: currentScene, prompt: currentPrompt || currentScene });
-
-    if (sceneList.length > 0) {
-      const chunks = Math.max(1, Math.ceil(sceneList.length / 4));
-      for (let i = 0; i < sceneList.length; i += chunks) {
-        const episodeScenes = sceneList.slice(i, i + chunks);
-        episodeList.push({ title: episodeScenes[0]?.title.replace(/第.*场/, "").trim() || `剧集 ${Math.floor(i / chunks) + 1}` });
-      }
-    }
-    episodeList.forEach((ep, idx) => { if (idx < episodeList.length - 1) interactions.push({ title: `${ep.title} · 选择分支`, instruction: `在"${ep.title}"结束后，用户选择下一步方向` }); });
-
-    if (chars.length === 0) chars.push({ name: "主角", role: "主要角色" });
-    if (episodeList.length === 0) episodeList.push({ title: "第一集" });
-
     setTimeout(() => {
-      setAnalysisResult({ characters: chars, scenes: sceneList.length > 0 ? sceneList : [{ title: "场景 1", prompt: text.slice(0, 100) }], interactions, episodes: episodeList });
+      setAnalysisResult(analyzeScript(text));
       setAnalyzing(false);
-    }, 600);
+    }, 300);
   };
 
   const applyAnalysis = () => {
     if (!analysisResult) return;
-    const st = useWorldBuilderStore.getState();
-    analysisResult.characters.forEach((c) => { if (!st.characters.find((ch) => ch.name === c.name)) st.addCharacter({ name: c.name, role: c.role, description: `${c.name} - ${c.role}` }); });
-    analysisResult.episodes.forEach((ep, epIdx) => {
-      st.addEpisode({ title: ep.title });
-      setTimeout(() => {
-        const updated = useWorldBuilderStore.getState();
-        const epId = updated.episodes[updated.episodes.length - 1]?.id;
-        if (!epId) return;
-        const startIdx = epIdx * Math.max(1, Math.ceil(analysisResult.scenes.length / analysisResult.episodes.length));
-        const endIdx = Math.min(startIdx + Math.ceil(analysisResult.scenes.length / analysisResult.episodes.length), analysisResult.scenes.length);
-        for (let i = startIdx; i < endIdx; i++) {
-          const scene = analysisResult.scenes[i];
-          if (scene) {
-            updated.addSceneNode(epId);
-            setTimeout(() => { const nds = useWorldBuilderStore.getState().nodes; const l = nds[nds.length - 1]; if (l && l.kind === "scene") useWorldBuilderStore.getState().updateNode(l.id, { title: scene.title, prompt: scene.prompt }); }, 30);
-          }
-        }
-        const interaction = analysisResult.interactions[epIdx];
-        if (interaction) setTimeout(() => { const snds = useWorldBuilderStore.getState().nodes.filter((n) => n.data.episodeId === epId && n.kind === "scene"); const tid = snds.length > 1 ? snds[1]?.id : snds[0]?.id; const st2 = useWorldBuilderStore.getState(); st2.addInteractionNode(epId); setTimeout(() => { const ints = useWorldBuilderStore.getState().nodes.filter((n) => n.kind === "interaction" && n.data.episodeId === epId); const li = ints[ints.length - 1]; if (li) { useWorldBuilderStore.getState().updateNode(li.id, { title: interaction.title, instruction: interaction.instruction }); if (tid) useWorldBuilderStore.getState().addOption(li.id); } }, 50); }, 100);
-      }, 30);
-    });
-    setAnalysisResult(null); setScriptOpen(false);
+    updateSetupDraft({ script: scriptDraft });
+    useWorldBuilderStore.getState().generateStoryGraphFromScript({ force: true });
+    setAnalysisResult(null);
+    setScriptOpen(false);
   };
 
   /* Selected node for asset tab */

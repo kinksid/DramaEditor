@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { dramaPlayAssets } from "@/data/dramaPlayAssets";
-import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
 type WorldCard = {
@@ -15,10 +15,10 @@ type WorldCard = {
   active: boolean;
   tone?: string;
   poster?: string;
+  projectId?: string;
 };
 
-const worlds: WorldCard[] = [
-  { title: "记忆盗贼", genre: "悬疑", description: "雨夜东京里，一名侦探追捕能偷走记忆的神秘罪犯。", tone: "from-ink-strong via-ink-muted to-accent", active: true },
+const sampleCards: WorldCard[] = [
   ...dramaPlayAssets.map((asset) => ({
     title: asset.title,
     genre: asset.genre,
@@ -31,20 +31,39 @@ const worlds: WorldCard[] = [
 ];
 
 export default function WorldsPage() {
-  const { world } = useWorldBuilderStore();
+  const router = useRouter();
+  const { listProjects, switchProject, activeProjectId } = useWorldBuilderStore();
   const [genre, setGenre] = useState("全部类型");
   const [query, setQuery] = useState("");
 
-  const filtered = useMemo(
-    () =>
-      worlds.filter(({ title, genre: itemGenre, description }) => {
-        return (
-          (genre === "全部类型" || itemGenre === genre) &&
-          `${title} ${description}`.toLowerCase().includes(query.toLowerCase())
-        );
-      }),
-    [genre, query],
-  );
+  const projects = listProjects();
+
+  const worlds = useMemo(() => {
+    const projectCards: WorldCard[] = projects.map((project) => ({
+      title: project.name,
+      genre: project.setupDraft.genre.split(/[,，]/)[0]?.trim() || "未分类",
+      description: project.setupDraft.worldDescription || project.world.description,
+      active: project.id === activeProjectId,
+      projectId: project.id,
+    }));
+    const merged = [...projectCards, ...sampleCards];
+    return merged.filter(({ title, genre: itemGenre, description }) => {
+      return (
+        (genre === "全部类型" || itemGenre === genre) &&
+        `${title} ${description}`.toLowerCase().includes(query.toLowerCase())
+      );
+    });
+  }, [genre, query, projects, activeProjectId]);
+
+  const openProject = (card: WorldCard) => {
+    if (!card.projectId) {
+      router.push("/world-builder/setup");
+      return;
+    }
+    switchProject(card.projectId);
+    const target = projects.find((item) => item.id === card.projectId);
+    router.push(target?.episodes.length ? `/world-builder/story-graph?project=${card.projectId}` : `/world-builder/setup?project=${card.projectId}`);
+  };
 
   return (
     <WorldBuilderLayout agentMode="none">
@@ -58,7 +77,7 @@ export default function WorldsPage() {
               管理所有可继续制作、可生成故事或可发布到 App 的世界。
             </p>
           </div>
-          <Link href="/world-builder/setup" className="relative z-10 inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/world-builder/home" className="relative z-10 inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white">
             <Plus size={16} /> 新建世界
           </Link>
         </section>
@@ -67,7 +86,7 @@ export default function WorldsPage() {
           <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
             <SlidersHorizontal size={15} />
             <select value={genre} onChange={(event) => setGenre(event.target.value)} className="bg-transparent outline-none">
-              {["全部类型", "古风", "恋爱", "奇幻", "恐怖", "历史", "悬疑", "爱情"].map((item) => (
+              {["全部类型", "古风", "恋爱", "奇幻", "恐怖", "历史", "悬疑", "爱情", "未分类"].map((item) => (
                 <option key={item}>{item}</option>
               ))}
             </select>
@@ -79,11 +98,12 @@ export default function WorldsPage() {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map(({ title, genre: itemGenre, description, tone, poster, active }) => (
-            <Link
-              key={title}
-              href={active ? "/world-builder" : "/world-builder/setup"}
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft hover:border-pink-200"
+          {worlds.map(({ title, genre: itemGenre, description, poster, active, projectId }) => (
+            <button
+              key={`${projectId ?? "sample"}-${title}`}
+              type="button"
+              onClick={() => openProject({ title, genre: itemGenre, description, active, poster, projectId })}
+              className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-soft hover:border-pink-200"
             >
               {poster ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -97,11 +117,12 @@ export default function WorldsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">{itemGenre}</span>
                   {active && <span className="rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-semibold text-accent">继续制作</span>}
+                  {projectId && !active && <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">我的项目</span>}
                 </div>
-                <h2 className="mt-3 text-lg font-semibold">{active ? world.title : title}</h2>
-                <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{active ? world.description : description}</p>
+                <h2 className="mt-3 text-lg font-semibold">{title}</h2>
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{description}</p>
               </div>
-            </Link>
+            </button>
           ))}
         </div>
       </div>

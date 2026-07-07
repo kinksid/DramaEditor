@@ -64,7 +64,11 @@ export function SceneNode({ data, selected }: NodeProps<SceneNodeViewData>) {
         <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">{data.prompt}</p>
       </div>
 
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-3.5 !w-3.5 !border-2 !border-white !bg-accent !cursor-crosshair"
+      />
     </div>
   );
 }

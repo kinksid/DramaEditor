@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   MiniMap,
@@ -14,21 +14,20 @@ import ReactFlow, {
   type Node,
   type NodeChange,
   type NodeTypes,
+  type OnConnectEnd,
+  type OnConnectStart,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
-  Film,
-  Flag,
   Hand,
   LayoutGrid,
   Maximize2,
   Minus,
   MousePointer2,
-  MousePointerClick,
   Plus,
   RotateCcw,
-  X,
 } from "lucide-react";
+import { NewNodeMenu } from "@/components/story-graph/NewNodeMenu";
 import { EpisodeFrame } from "@/components/story-graph/EpisodeFrame";
 import { InteractionNode } from "@/components/story-graph/nodes/InteractionNode";
 import { SceneNode } from "@/components/story-graph/nodes/SceneNode";
@@ -67,7 +66,16 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
     selectNode, selectEpisode, connectNodes, updateNodePosition, updateNodePositions, autoLayoutEpisodes,
   } = useWorldBuilderStore();
   const [mode, setMode] = useState<"select" | "pan">("select");
+  const [connectMenu, setConnectMenu] = useState<{
+    x: number;
+    y: number;
+    flowX: number;
+    flowY: number;
+    sourceNodeId: string;
+  } | null>(null);
   const framePrevPos = useRef<Record<string, { x: number; y: number }>>({});
+  const connectSession = useRef<{ sourceNodeId: string } | null>(null);
+  const connectSucceeded = useRef(false);
 
   const nodeW = 280, nodeH = 380, padX = 120, padY = 130;
 
@@ -131,7 +139,40 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
     }),
   [edges]);
 
-  const handleConnect = (c: Connection) => { if (c.source && c.target) connectNodes(c.source, c.target); };
+  const handleConnect = (c: Connection) => {
+    if (c.source && c.target) {
+      connectSucceeded.current = true;
+      connectNodes(c.source, c.target);
+    }
+  };
+
+  const handleConnectStart: OnConnectStart = (_, params) => {
+    if (params.handleType === "source" && params.nodeId && !params.nodeId.startsWith("frame-")) {
+      connectSession.current = { sourceNodeId: params.nodeId };
+      connectSucceeded.current = false;
+      setConnectMenu(null);
+    }
+  };
+
+  const handleConnectEnd: OnConnectEnd = (event) => {
+    const session = connectSession.current;
+    connectSession.current = null;
+    if (!session || connectSucceeded.current) return;
+
+    const clientX = "clientX" in event ? event.clientX : 0;
+    const clientY = "clientY" in event ? event.clientY : 0;
+    const pane = document.querySelector(".react-flow__pane") as HTMLElement | null;
+    if (!pane) return;
+
+    const rect = pane.getBoundingClientRect();
+    setConnectMenu({
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      flowX: clientX,
+      flowY: clientY,
+      sourceNodeId: session.sourceNodeId,
+    });
+  };
   const handleNodesChange = (changes: NodeChange[]) => setCanvasNodes((cur) => applyNodeChanges(changes, cur));
 
   /* Snap frame position to other frames */
@@ -162,8 +203,16 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
       <ReactFlow
         nodes={canvasNodes} edges={flowEdges} nodeTypes={nodeTypes}
         fitView fitViewOptions={{ padding: 0.16 }} minZoom={0.18} maxZoom={2}
-        nodesDraggable={true} panOnDrag={[1]} panOnScroll={true}
-        selectionOnDrag={mode === "select"} selectionKeyCode="Shift"
+        nodesDraggable nodesConnectable
+        zoomOnScroll
+        zoomOnPinch
+        panOnScroll={false}
+        panOnDrag={mode === "pan" ? [0, 1] : [1]}
+        selectionOnDrag={mode === "select"}
+        selectionKeyCode="Shift"
+        connectOnClick={false}
+        onConnectStart={handleConnectStart}
+        onConnectEnd={handleConnectEnd}
         onNodesChange={handleNodesChange}
         onNodeDragStart={(_, node) => {
           if (node.id.startsWith("frame-")) framePrevPos.current[node.id] = { x: node.position.x, y: node.position.y };
@@ -209,7 +258,10 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
           selectEpisode((node.data as StoryNode["data"]).episodeId);
           selectNode(node.id);
         }}
-        onPaneClick={() => selectNode(undefined)}
+        onPaneClick={() => {
+          setConnectMenu(null);
+          selectNode(undefined);
+        }}
         onConnect={handleConnect}
         proOptions={{ hideAttribution: true }}
       >
@@ -217,6 +269,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
         <FocusSelectedEpisode episodes={episodes} selectedEpisodeId={selectedEpisodeId} />
         <CanvasControls mode={mode} setMode={setMode} onAutoLayout={autoLayoutEpisodes} />
         <CanvasInteractions onOpenNode={onOpenNode} />
+        <ConnectionDropMenu connectMenu={connectMenu} onClose={() => setConnectMenu(null)} />
         <MiniMap pannable zoomable nodeStrokeWidth={3}
           className="!bottom-5 !right-5 !h-[112px] !w-[180px] !rounded-2xl !border !border-slate-200 !bg-white/95 !shadow-soft" />
       </ReactFlow>
@@ -353,14 +406,52 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
 
   if (!ctxMenu) return null;
   return (
-    <div data-ctx-menu className="absolute z-50 rounded-2xl border border-pink-100 bg-white p-2 shadow-soft"
-      style={{ left: ctxMenu.x, top: ctxMenu.y }}>
-      <div className="mb-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">新建节点</div>
-      <button onClick={() => createNodeAtMenu("scene")} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-accent-soft"><Film size={16} className="text-accent" /> 视频节点</button>
-      <button onClick={() => createNodeAtMenu("interaction")} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-accent-soft"><MousePointerClick size={16} className="text-accent" /> 互动节点</button>
-      <button onClick={() => createNodeAtMenu("ending")} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-accent-soft"><Flag size={16} className="text-branch-ending" /> 结局节点</button>
-      <button onClick={() => setCtxMenu(null)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-400 hover:bg-slate-50"><X size={16} /> 取消</button>
-    </div>
+    <NewNodeMenu
+      x={ctxMenu.x}
+      y={ctxMenu.y}
+      onPick={createNodeAtMenu}
+      onCancel={() => setCtxMenu(null)}
+    />
+  );
+}
+
+function ConnectionDropMenu({
+  connectMenu,
+  onClose,
+}: {
+  connectMenu: {
+    x: number;
+    y: number;
+    flowX: number;
+    flowY: number;
+    sourceNodeId: string;
+  } | null;
+  onClose: () => void;
+}) {
+  const flow = useReactFlow();
+  const createConnectedNode = useWorldBuilderStore((state) => state.createConnectedNode);
+
+  if (!connectMenu) return null;
+
+  const handlePick = (kind: "scene" | "interaction" | "ending") => {
+    const position = flow.screenToFlowPosition({
+      x: connectMenu.flowX,
+      y: connectMenu.flowY,
+    });
+    createConnectedNode(connectMenu.sourceNodeId, kind, {
+      x: position.x,
+      y: position.y - 120,
+    });
+    onClose();
+  };
+
+  return (
+    <NewNodeMenu
+      x={connectMenu.x}
+      y={connectMenu.y}
+      onPick={handlePick}
+      onCancel={onClose}
+    />
   );
 }
 

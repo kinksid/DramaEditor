@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  ChevronDown,
-  ImagePlus,
   Loader2,
   Play,
   Plus,
@@ -13,8 +12,12 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
+import { DecomposePreviewPanel } from "@/components/world-builder/DecomposePreviewPanel";
+import { ReferenceChips, ReferenceUploadMenu } from "@/components/world-builder/ReferenceUploadMenu";
+import { VisualStylePicker } from "@/components/world-builder/VisualStylePicker";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { dramaPlayAssets } from "@/data/dramaPlayAssets";
+import { decomposeStory } from "@/lib/worldBuilderApi";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
@@ -78,15 +81,35 @@ const sampleWorlds = [
 type SortMode = "hot" | "completion" | "interactive";
 
 export default function StudioHomePage() {
+  const router = useRouter();
   const { t } = useI18n();
-  const { world, updateSetupDraft } = useWorldBuilderStore();
-  const [prompt, setPrompt] = useState("大唐天宝年间，长安城西市，胡商云集、灯火彻夜不熄的盛世一隅。");
+  const {
+    creationSession,
+    updateCreationSession,
+    removeReference,
+    createProjectFromSession,
+    listProjects,
+    activeProjectId,
+    switchProject,
+  } = useWorldBuilderStore();
+
+  const [prompt, setPrompt] = useState(
+    creationSession.prompt || "大唐天宝年间，长安城西市，胡商云集、灯火彻夜不熄的盛世一隅。",
+  );
   const [genre, setGenre] = useState("全部类型");
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("hot");
   const [hiddenTitles, setHiddenTitles] = useState<string[]>([]);
   const lastHiddenTitle = hiddenTitles.at(-1);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    updateCreationSession({ prompt });
+  }, [prompt, updateCreationSession]);
+
+  const projects = listProjects();
+  const continueProject = projects.find((item) => item.id === activeProjectId) ?? projects[0];
 
   const worlds = useMemo(() => {
     const filtered = sampleWorlds.filter((item) => {
@@ -97,17 +120,35 @@ export default function StudioHomePage() {
     return [...filtered].sort((a, b) => metricValue(b, sortMode) - metricValue(a, sortMode));
   }, [genre, hiddenTitles, query, sortMode]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setCreating(true);
-    updateSetupDraft({ worldDescription: prompt, worldTitle: "未命名世界" });
-    window.setTimeout(() => { window.location.href = "/world-builder/setup"; }, 450);
+    setCreateError(null);
+    updateCreationSession({ prompt });
+    try {
+      const { result } = await decomposeStory({
+        prompt,
+        visualStyle: creationSession.visualStylePreset,
+        references: creationSession.references,
+      });
+      const projectId = createProjectFromSession({ decomposeResult: result });
+      router.push(`/world-builder/setup?project=${projectId}`);
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "创建失败");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleStartBlank = () => {
+    updateCreationSession({ prompt });
+    const projectId = createProjectFromSession();
+    router.push(`/world-builder/setup?project=${projectId}`);
   };
 
   return (
     <WorldBuilderLayout agentMode="none">
       <div className="min-h-screen">
 
-        {/* Hero section */}
         <section className="mx-auto max-w-6xl px-6 pt-14">
           <div className="overflow-hidden rounded-[28px] border border-pink-100 bg-white shadow-soft">
             <div className="relative min-h-[360px] bg-[radial-gradient(circle_at_18%_18%,rgba(217,70,138,0.35),transparent_32%),radial-gradient(circle_at_82%_6%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)] p-10 text-white">
@@ -129,60 +170,87 @@ export default function StudioHomePage() {
                     placeholder={t("home.promptPlaceholder")}
                     className="min-h-28 w-full resize-none rounded-xl border-0 bg-transparent px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/40"
                   />
+                  <ReferenceChips
+                    references={creationSession.references}
+                    onRemove={removeReference}
+                  />
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
                     <div className="flex flex-wrap gap-2">
-                      <button className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition">
-                        <ImagePlus size={14} /> {t("home.addRef")}
-                      </button>
-                      <button className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition">
-                        {t("home.autoSplit")} <ChevronDown size={14} />
-                      </button>
-                      <button className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition">
-                        {t("home.visualStyle")} <ChevronDown size={14} />
-                      </button>
+                      <ReferenceUploadMenu label={t("home.addRef")} />
+                      <DecomposePreviewPanel prompt={prompt} label={t("home.autoSplit")} />
+                      <VisualStylePicker label={t("home.visualStyle")} />
                     </div>
                     <button
-                      onClick={handleCreate}
-                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white shadow-glow hover:bg-accent-deep transition"
+                      type="button"
+                      onClick={() => void handleCreate()}
+                      disabled={creating || !prompt.trim()}
+                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white shadow-glow hover:bg-accent-deep transition disabled:opacity-60"
                     >
                       {creating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                       {t("home.createBtn")}
                     </button>
                   </div>
+                  {createError && (
+                    <p className="mt-2 text-left text-xs text-red-300">{createError}</p>
+                  )}
+                  {creationSession.lastDecompose && (
+                    <p className="mt-2 text-left text-xs text-white/50">
+                      已应用拆解草稿：{creationSession.lastDecompose.worldview.worldTitle}
+                    </p>
+                  )}
                 </div>
-                <Link href="/world-builder/setup" className="mt-5 inline-flex items-center gap-2 text-sm text-white/40 hover:text-accent transition">
+                <button
+                  type="button"
+                  onClick={handleStartBlank}
+                  className="mt-5 inline-flex items-center gap-2 text-sm text-white/40 hover:text-accent transition"
+                >
                   {t("home.orStartBlank")} <ArrowRight size={14} />
-                </Link>
+                </button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Continue watching */}
         <section className="mt-10 mx-auto max-w-6xl px-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             {t("home.continueWatching")}
           </p>
-          <Link
-            href="/world-builder/app-preview"
-            className="group flex max-w-xl items-center gap-4 rounded-3xl border border-pink-100 bg-white p-3 text-left shadow-soft hover:border-pink-300 transition"
-          >
-            <div className="grid h-[120px] w-[84px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,#1a0f2e,#2d1b3d_45%,#d9468a)] text-white">
-              <Play size={22} fill="currentColor" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-accent">{t("home.resumeWatch")}</p>
-              <h2 className="mt-2 truncate text-xl font-semibold text-ink-strong">{world.title}</h2>
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{world.description}</p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[42%] rounded-full bg-accent" />
+          {continueProject ? (
+            <button
+              type="button"
+              onClick={() => {
+                switchProject(continueProject.id);
+                router.push(`/world-builder/setup?project=${continueProject.id}`);
+              }}
+              className="group flex max-w-xl items-center gap-4 rounded-3xl border border-pink-100 bg-white p-3 text-left shadow-soft hover:border-pink-300 transition w-full"
+            >
+              <div className="grid h-[120px] w-[84px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,#1a0f2e,#2d1b3d_45%,#d9468a)] text-white">
+                <Play size={22} fill="currentColor" />
               </div>
-              <p className="mt-2 text-xs text-slate-400">42% {t("home.watchedPercent")}</p>
-            </div>
-          </Link>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-accent">{t("home.resumeWatch")}</p>
+                <h2 className="mt-2 truncate text-xl font-semibold text-ink-strong">{continueProject.name}</h2>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                  {continueProject.setupDraft.worldDescription || continueProject.world.description}
+                </p>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{
+                      width: `${Math.min(100, Math.round((continueProject.characters.length + continueProject.locations.length) * 8 + (continueProject.setupDraft.script ? 20 : 0)))}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  {new Date(continueProject.updatedAt).toLocaleDateString()} · {t("home.watchedPercent")}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <p className="text-sm text-slate-500">暂无项目，点击创建开始新世界。</p>
+          )}
         </section>
 
-        {/* Recommended */}
         <section className="mx-auto mt-10 max-w-6xl px-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -234,9 +302,13 @@ export default function StudioHomePage() {
                 </button>
               </div>
             )}
-            <Link href="/world-builder/setup" className="grid min-h-[240px] place-items-center rounded-3xl border border-dashed border-pink-200 bg-white text-slate-500 hover:border-accent hover:bg-accent-soft">
+            <button
+              type="button"
+              onClick={handleStartBlank}
+              className="grid min-h-[240px] place-items-center rounded-3xl border border-dashed border-pink-200 bg-white text-slate-500 hover:border-accent hover:bg-accent-soft"
+            >
               <span className="flex flex-col items-center gap-3 text-sm font-medium"><Plus size={22} /> 未命名世界</span>
-            </Link>
+            </button>
           </div>
           <div className="py-12 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t("home.endOfList")}</p>
