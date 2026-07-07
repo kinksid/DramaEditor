@@ -52,7 +52,7 @@ export default function SetupPage() {
                 className={cn(
                   "rounded-2xl border px-4 py-3 text-left text-sm",
                   index === step
-                    ? "border-orange-200 bg-orange-50 text-accent"
+                    ? "border-pink-200 accent-soft text-accent"
                     : "border-slate-200 bg-slate-50 text-slate-500",
                 )}
               >

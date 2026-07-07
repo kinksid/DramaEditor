@@ -49,15 +49,16 @@ export default function WorldsPage() {
   return (
     <WorldBuilderLayout agentMode="none">
       <div className="mx-auto max-w-7xl px-6 py-6">
-        <section className="flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-          <div>
+        <section className="relative overflow-hidden flex flex-wrap items-end justify-between gap-4 rounded-[28px] border border-pink-100 bg-white p-6 shadow-soft">
+          <div className="absolute inset-0 dot-matrix pointer-events-none" />
+          <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">世界库</p>
             <h1 className="mt-2 text-3xl font-semibold">世界库</h1>
             <p className="mt-3 text-sm leading-6 text-slate-500">
               管理所有可继续制作、可生成故事或可发布到 App 的世界。
             </p>
           </div>
-          <Link href="/world-builder/setup" className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/world-builder/setup" className="relative z-10 inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white">
             <Plus size={16} /> 新建世界
           </Link>
         </section>
@@ -82,18 +83,20 @@ export default function WorldsPage() {
             <Link
               key={title}
               href={active ? "/world-builder" : "/world-builder/setup"}
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft hover:border-orange-200"
+              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft hover:border-pink-200"
             >
               {poster ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={poster} alt={title} className="h-48 w-full object-cover" />
               ) : (
-                <div className={cn("h-48 bg-gradient-to-br", tone)} />
+                <div className="relative h-48 bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
+                  <div className="absolute inset-0 dot-matrix opacity-25" />
+                </div>
               )}
               <div className="p-5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">{itemGenre}</span>
-                  {active && <span className="rounded-lg bg-orange-50 px-2 py-1 text-[10px] font-semibold text-accent">继续制作</span>}
+                  {active && <span className="rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-semibold text-accent">继续制作</span>}
                 </div>
                 <h2 className="mt-3 text-lg font-semibold">{active ? world.title : title}</h2>
                 <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{active ? world.description : description}</p>

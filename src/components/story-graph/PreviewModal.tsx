@@ -40,13 +40,17 @@ export function PreviewModal({ open, onClose }: Props) {
               <p className="text-xs uppercase tracking-[0.16em] text-slate-400">预览播放</p>
               <h2 className="text-xl font-semibold">预览 · 记忆盗贼</h2>
             </div>
-            <button onClick={onClose} className="grid size-9 place-items-center rounded-xl hover:bg-slate-100">
+            <button
+              onClick={onClose}
+              aria-label="关闭预览"
+              className="grid size-9 place-items-center rounded-xl hover:bg-slate-100"
+            >
               <X size={18} />
             </button>
           </div>
           <div className="mx-auto grid aspect-[9/16] max-h-[72vh] w-full max-w-[360px] place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-black">
             {readyScenes.length ? (
-              <div className="relative flex h-full w-full flex-col justify-between bg-[linear-gradient(160deg,#090d16,#151b29_35%,#f27d3d)] p-6 text-white">
+              <div className="relative flex h-full w-full flex-col justify-between bg-[linear-gradient(160deg,#090d16,#151b29_35%,#d9468a)] p-6 text-white">
                 {readyScenes[0].data.videoUrl && !readyScenes[0].data.videoUrl.startsWith("mock://") && (
                   <video src={readyScenes[0].data.videoUrl} autoPlay muted loop playsInline controls className="absolute inset-0 h-full w-full object-cover" />
                 )}
@@ -89,7 +93,7 @@ export function PreviewModal({ open, onClose }: Props) {
                 className={cn(
                   "w-full rounded-2xl border px-4 py-3 text-left text-sm",
                   episode.id === currentEpisode?.id
-                    ? "border-orange-200 bg-orange-50 text-accent"
+                    ? "border-pink-200 accent-soft text-accent"
                     : "border-slate-200 hover:bg-slate-50",
                 )}
               >

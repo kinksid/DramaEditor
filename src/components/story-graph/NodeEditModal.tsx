@@ -127,7 +127,11 @@ export function NodeEditModal({ open, onClose }: { open: boolean; onClose: () =>
                 onChange={(event) => updateNode(node.id, { title: event.target.value })}
               />
             </label>
-            <button onClick={onClose} className="grid size-9 place-items-center rounded-xl hover:bg-slate-100">
+            <button
+              onClick={onClose}
+              aria-label="关闭节点编辑器"
+              className="grid size-9 place-items-center rounded-xl hover:bg-slate-100"
+            >
               <X size={18} />
             </button>
           </div>
@@ -382,7 +386,7 @@ function InteractionGestureEditor({
     const defaults: Record<InteractionOption["actionType"], Partial<InteractionOption>> = {
       tap: { actionValue: "(0.50, 0.50)", color: "#2f7df6", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
       swipe: { actionValue: "right", color: "#15a36b", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
-      hold: { actionValue: "1500ms", color: "#f27d3d", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
+      hold: { actionValue: "1500ms", color: "#d9468a", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
       rapidTap: { actionValue: "3x / 1500ms", color: "#d946ef", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
       choice: { actionValue: "A", color: "#8b5cf6", hotspot: active.hotspot ?? { x: 0.5, y: 0.5 } },
     };
@@ -401,7 +405,7 @@ function InteractionGestureEditor({
       <div className="mt-5 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">选项 ({node.data.options.length}/6)</p>
         <div className="flex gap-2">
-          <button onClick={onGenerate} className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700">
+          <button onClick={onGenerate} className="rounded-xl border border-pink-200 accent-soft px-3 py-2 text-sm font-semibold text-accent">
             生成循环视频
           </button>
           <button disabled={node.data.options.length >= 6} onClick={onAddOption} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold disabled:opacity-40">

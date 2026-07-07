@@ -1,265 +1,392 @@
 "use client";
 
-import { useState } from "react";
-import { Film, ImagePlus, MapPin, Plus, UserRound, Wand2 } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  Camera, Film, ImagePlus, MapPin, MousePointerClick,
+  PenLine, Plus, Search, Trash2, Upload, UserRound, Wand2, X,
+} from "lucide-react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
-import { dramaPlayAssets } from "@/data/dramaPlayAssets";
 import { cn } from "@/lib/utils";
 import { locationTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
+import type { Character, InteractionNodeData, Location, SceneNodeData, StoryNode } from "@/types/worldBuilder";
 import type { ReactNode } from "react";
 
-type AssetTab = "characters" | "locations" | "videos" | "references" | "dramaPlay";
+type AssetTab = "characters" | "locations" | "videos" | "interactions" | "references";
 
-const tabLabels: Record<AssetTab, string> = {
-  characters: "角色参考",
-  locations: "地点参考",
-  videos: "视频节点",
-  references: "世界参考",
-  dramaPlay: "Drama Play 素材",
+const tabInfo: Record<AssetTab, { label: string; icon: typeof UserRound }> = {
+  characters: { label: "角色参考", icon: UserRound },
+  locations: { label: "地点参考", icon: MapPin },
+  videos: { label: "视频节点", icon: Film },
+  interactions: { label: "交互节点", icon: MousePointerClick },
+  references: { label: "世界参考", icon: ImagePlus },
 };
 
 export default function AssetsPage() {
   const [tab, setTab] = useState<AssetTab>("characters");
+  const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const { characters, locations, nodes, selectedNodeId, updateNode, generateAllMockVideos } = useWorldBuilderStore();
-  const scenes = nodes.filter((node) => node.kind === "scene");
-  const selectedScene = scenes.find((scene) => scene.id === selectedNodeId) ?? scenes[0];
 
-  const applyVideoToScene = (asset: (typeof dramaPlayAssets)[number]) => {
-    if (!selectedScene) {
-      setNotice("请先创建一个视频节点。");
-      return;
-    }
-    updateNode(selectedScene.id, {
-      title: selectedScene.data.title === "未命名视频节点" ? asset.title : selectedScene.data.title,
-      videoUrl: asset.video,
-      firstFrameRef: asset.poster,
-      status: "ready",
-    });
-    setNotice(`已将《${asset.title}》视频套用到「${selectedScene.data.title}」`);
+  const {
+    characters, locations, nodes,
+    addCharacter, updateCharacter, deleteCharacter,
+    addLocation, updateLocation, deleteLocation,
+    updateNode, addSceneNode, addInteractionNode,
+    generateAllMockVideos,
+  } = useWorldBuilderStore();
+
+  const scenes = nodes.filter((n) => n.kind === "scene");
+  const interactions = nodes.filter((n) => n.kind === "interaction");
+
+  /* === Edit panel state === */
+  const [panel, setPanel] = useState<{
+    mode: "char" | "loc" | "video" | "interaction";
+    id?: string;
+  } | null>(null);
+
+  const [charForm, setCharForm] = useState<Character>({ id: "", name: "", role: "", description: "" });
+  const [locForm, setLocForm] = useState<Location>({ id: "", name: "", type: "Master", description: "" });
+  const [videoForm, setVideoForm] = useState<{ id: string; title: string; prompt: string; videoUrl: string; status: SceneNodeData["status"] }>({ id: "", title: "", prompt: "", videoUrl: "", status: "empty" });
+  const [intForm, setIntForm] = useState<{ id: string; title: string; instruction: string }>({ id: "", title: "", instruction: "" });
+
+  const openCharPanel = (c?: Character) => { setCharForm(c ?? { id: "", name: "", role: "", description: "" }); setPanel({ mode: "char", id: c?.id }); };
+  const openLocPanel = (l?: Location) => { setLocForm(l ?? { id: "", name: "", type: "Master", description: "" }); setPanel({ mode: "loc", id: l?.id }); };
+  const openVideoPanel = (s: StoryNode & { kind: "scene" }) => {
+    setVideoForm({ id: s.id, title: s.data.title, prompt: s.data.prompt, videoUrl: s.data.videoUrl ?? "", status: s.data.status });
+    setPanel({ mode: "video", id: s.id });
+  };
+  const openIntPanel = (n: StoryNode & { kind: "interaction" }) => {
+    setIntForm({ id: n.id, title: n.data.title, instruction: n.data.instruction });
+    setPanel({ mode: "interaction", id: n.id });
   };
 
-  const uploadLocalVideo = (file: File) => {
-    if (!selectedScene) {
-      setNotice("请先创建一个视频节点。");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== "string") return;
-      updateNode(selectedScene.id, {
-        videoUrl: reader.result,
-        status: "ready",
-      });
-      setNotice(`已上传并绑定到「${selectedScene.data.title}」`);
+  /* Save handlers */
+  const saveChar = () => {
+    if (!charForm.name.trim()) return;
+    if (panel?.id) updateCharacter(panel.id, charForm);
+    else addCharacter({ name: charForm.name, age: charForm.age, role: charForm.role, description: charForm.description, referenceImage: charForm.referenceImage });
+    setPanel(null);
+  };
+  const saveLoc = () => {
+    if (!locForm.name.trim()) return;
+    if (panel?.id) updateLocation(panel.id, locForm);
+    else addLocation({ name: locForm.name, type: locForm.type, description: locForm.description, referenceImage: locForm.referenceImage });
+    setPanel(null);
+  };
+  const saveVideo = () => {
+    if (!videoForm.title.trim() || !panel?.id) return;
+    updateNode(panel.id, { title: videoForm.title, prompt: videoForm.prompt, videoUrl: videoForm.videoUrl || undefined, status: videoForm.status });
+    setPanel(null);
+  };
+  const saveInt = () => {
+    if (!intForm.title.trim() || !panel?.id) return;
+    updateNode(panel.id, { title: intForm.title, instruction: intForm.instruction });
+    setPanel(null);
+  };
+
+  const handleImage = (file: File) => {
+    const r = new FileReader();
+    r.onload = () => {
+      if (typeof r.result !== "string") return;
+      if (panel?.mode === "char") setCharForm((f) => ({ ...f, referenceImage: r.result as string }));
+      if (panel?.mode === "loc") setLocForm((f) => ({ ...f, referenceImage: r.result as string }));
     };
-    reader.readAsDataURL(file);
+    r.readAsDataURL(file);
   };
+
+  /* Filters */
+  const filteredChars = characters.filter((c) => `${c.name} ${c.role} ${c.description}`.toLowerCase().includes(query.toLowerCase()));
+  const filteredLocs = locations.filter((l) => `${l.name} ${l.description}`.toLowerCase().includes(query.toLowerCase()));
+  const filteredScenes = scenes.filter((s) => `${s.data.title} ${s.data.prompt}`.toLowerCase().includes(query.toLowerCase()));
+  const filteredInts = interactions.filter((n) => `${n.data.title} ${n.data.instruction}`.toLowerCase().includes(query.toLowerCase()));
 
   return (
     <WorldBuilderLayout>
       <div className="mx-auto max-w-7xl px-6 py-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        {/* Header card with dot-matrix */}
+        <section className="relative overflow-hidden rounded-[28px] border border-pink-100 bg-white p-6 shadow-soft">
+          <div className="absolute inset-0 dot-matrix pointer-events-none" />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-                素材库
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">素材库</p>
               <h1 className="mt-2 text-3xl font-semibold">制作素材库</h1>
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                管理角色参考、地点参考、视频节点和世界规则资源。已接入 Drama Play 本地视频与海报素材，可直接套用到当前故事节点。
+                角色画像、场景地点、视频节点。上传参考图保持一致性，拖拽至画布创建节点。
               </p>
             </div>
-            <button
-              onClick={generateAllMockVideos}
-              className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white"
-            >
-              <Wand2 size={16} /> 生成全部模拟视频
-            </button>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {(Object.keys(tabLabels) as AssetTab[]).map((item) => (
-              <button
-                key={item}
-                onClick={() => setTab(item)}
-                className={cn(
-                  "rounded-xl border px-4 py-2 text-sm font-medium",
-                  tab === item
-                    ? "border-ink bg-ink text-white"
-                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
-                )}
-              >
-                {tabLabels[item]}
+            <div className="flex gap-2">
+              <button onClick={generateAllMockVideos} className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white">
+                <Wand2 size={16} /> 批量生成
               </button>
-            ))}
+            </div>
+          </div>
+          {/* Tab row */}
+          <div className="relative z-10 mt-5 flex flex-wrap gap-1">
+            {(Object.keys(tabInfo) as AssetTab[]).map((key) => {
+              const { label, icon: Icon } = tabInfo[key];
+              const count = key === "characters" ? characters.length : key === "locations" ? locations.length : key === "videos" ? scenes.length : key === "interactions" ? interactions.length : 3;
+              return (
+                <button key={key} onClick={() => setTab(key)}
+                  className={cn("inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition", tab === key ? "bg-ink text-white" : "text-slate-500 hover:bg-slate-50")}>
+                  <Icon size={15} /> {label}
+                  <span className={cn("rounded-md px-1.5 py-0.5 text-[11px]", tab === key ? "bg-white/15" : "bg-slate-100")}>{count}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
+        {/* Search */}
+        <div className="mt-4 flex justify-end">
+          <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+            <Search size={15} className="text-slate-400" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索..." className="w-52 bg-transparent outline-none text-sm" />
+          </label>
+        </div>
+
+        {/* === Characters === */}
         {tab === "characters" && (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {characters.map((character) => (
-              <AssetCard
-                key={character.id}
-                icon={<UserRound size={20} />}
-                title={character.name}
-                meta={`${character.role}${character.age ? ` · ${character.age} 岁` : ""}`}
-                description={character.description}
-              />
-            ))}
-            <AddAssetCard label="添加角色参考" />
-          </div>
-        )}
-
-        {tab === "locations" && (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {locations.map((location) => (
-              <AssetCard
-                key={location.id}
-                icon={<MapPin size={20} />}
-                title={location.name}
-                meta={locationTypeLabels[location.type]}
-                description={location.description}
-              />
-            ))}
-            <AddAssetCard label="添加地点参考" />
-          </div>
-        )}
-
-        {tab === "videos" && (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {scenes.map((scene) => (
-              <AssetCard
-                key={scene.id}
-                icon={<Film size={20} />}
-                title={scene.data.title}
-                meta={statusLabels[scene.data.status]}
-                description={scene.data.prompt}
-                videoUrl={scene.data.videoUrl}
-              />
-            ))}
-          </div>
-        )}
-
-        {tab === "dramaPlay" && (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {dramaPlayAssets.map((asset) => (
-              <article key={asset.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft">
-                <video src={asset.video} poster={asset.poster} controls className="aspect-video w-full bg-black object-cover" />
-                <div className="p-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="truncate font-semibold">{asset.title}</h2>
-                      <p className="mt-1 text-xs text-slate-500">{asset.genre} · {asset.source}</p>
-                    </div>
-                    <span className="rounded-lg bg-orange-50 px-2 py-1 text-[10px] font-semibold text-accent">本地视频</span>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredChars.map((c) => (
+              <article key={c.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
+                <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
+                  {c.referenceImage ? (
+                    <img src={c.referenceImage} alt={c.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-white/40"><Camera size={40} /></div>
+                  )}
+                  {/* Overlay buttons */}
+                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
+                    <button onClick={() => openCharPanel(c)} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                    <button onClick={() => { deleteCharacter(c.id); setNotice(`已删除「${c.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
                   </div>
-                  <p className="line-clamp-3 text-sm leading-6 text-slate-500">{asset.description}</p>
-                  <button onClick={() => applyVideoToScene(asset)} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
-                    <Film size={16} /> 套用到当前视频节点
-                  </button>
+                </div>
+                <div className="p-4">
+                  <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{c.role || "未设定"}</span>
+                  <h3 className="mt-2 text-lg font-semibold">{c.name}</h3>
+                  <p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-500">{c.description}</p>
+                  {c.age && <p className="mt-2 text-xs text-slate-400">{c.age} 岁</p>}
                 </div>
               </article>
             ))}
-            <UploadAssetCard onUpload={uploadLocalVideo} />
+            <button onClick={() => openCharPanel()} className="grid min-h-[320px] place-items-center rounded-3xl border-2 border-dashed border-pink-200 text-slate-400 hover:border-accent hover:text-accent hover:bg-accent-soft/30 transition">
+              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加角色</span>
+            </button>
           </div>
         )}
 
+        {/* === Locations === */}
+        {tab === "locations" && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredLocs.map((l) => (
+              <article key={l.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
+                <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d_48%,#5a3d6e)]">
+                  {l.referenceImage ? (
+                    <img src={l.referenceImage} alt={l.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-white/40"><MapPin size={40} /></div>
+                  )}
+                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
+                    <button onClick={() => openLocPanel(l)} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                    <button onClick={() => { deleteLocation(l.id); setNotice(`已删除「${l.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{locationTypeLabels[l.type]}</span>
+                  <h3 className="mt-2 text-lg font-semibold">{l.name}</h3>
+                  <p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-500">{l.description}</p>
+                </div>
+              </article>
+            ))}
+            <button onClick={() => openLocPanel()} className="grid min-h-[320px] place-items-center rounded-3xl border-2 border-dashed border-pink-200 text-slate-400 hover:border-accent hover:text-accent hover:bg-accent-soft/30 transition">
+              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加地点</span>
+            </button>
+          </div>
+        )}
+
+        {/* === Videos === */}
+        {tab === "videos" && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredScenes.map((s) => (
+              <article key={s.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
+                <div className="relative aspect-[9/16] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
+                  {s.data.videoUrl ? (
+                    <video src={s.data.videoUrl} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-white/40"><Film size={36} /></div>
+                  )}
+                  <span className={cn("absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    s.data.status === "ready" ? "bg-emerald-500/90 text-white" : s.data.status === "generating" ? "bg-blue-500/90 text-white" : "bg-white/90 text-slate-700")}>{statusLabels[s.data.status]}</span>
+                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
+                    <button onClick={() => openVideoPanel(s as StoryNode & { kind: "scene" })} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                    <button onClick={() => { useWorldBuilderStore.getState().deleteNode(s.id); setNotice(`已删除「${s.data.title}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold">{s.data.title}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{s.data.prompt}</p>
+                </div>
+              </article>
+            ))}
+            <button onClick={() => addSceneNode()} className="grid min-h-[400px] place-items-center rounded-3xl border-2 border-dashed border-pink-200 text-slate-400 hover:border-accent hover:text-accent hover:bg-accent-soft/30 transition">
+              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加视频节点</span>
+            </button>
+          </div>
+        )}
+
+        {/* === Interactions === */}
+        {tab === "interactions" && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredInts.map((n) => (
+              <article key={n.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
+                <div className="bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d,#3d1b4e)] p-5 text-white">
+                  <MousePointerClick size={24} className="text-accent" />
+                  <h3 className="mt-3 text-lg font-semibold">{n.data.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/60">{n.data.instruction}</p>
+                  <p className="mt-3 text-xs text-white/40">{(n.data as InteractionNodeData).options.length} 个选项</p>
+                </div>
+                <div className="flex justify-end gap-1 p-3 opacity-0 group-hover:opacity-100 transition">
+                  <button onClick={() => openIntPanel(n as StoryNode & { kind: "interaction" })} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-50"><PenLine size={12} /> 编辑</button>
+                  <button onClick={() => { useWorldBuilderStore.getState().deleteNode(n.id); setNotice(`已删除「${n.data.title}」`); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-100 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"><Trash2 size={12} /> 删除</button>
+                </div>
+              </article>
+            ))}
+            <button onClick={() => addInteractionNode()} className="grid min-h-[200px] place-items-center rounded-3xl border-2 border-dashed border-pink-200 text-slate-400 hover:border-accent hover:text-accent hover:bg-accent-soft/30 transition">
+              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加交互节点</span>
+            </button>
+          </div>
+        )}
+
+        {/* === References === */}
         {tab === "references" && (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <AssetCard
-              icon={<ImagePlus size={20} />}
-              title="世界封面"
-              meta="本地占位"
-              description="可用于 App 首页、故事详情页和分享卡片。后续可接入真实图片生成。"
-              imageUrl={dramaPlayAssets[0]?.poster}
-            />
-            <AssetCard
-              icon={<ImagePlus size={20} />}
-              title="角色一致性参考"
-              meta="待接入"
-              description="为每个角色绑定 reference image，保证视频生成时外观一致。"
-            />
-            <AddAssetCard label="添加世界参考" />
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <article className="overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft">
+              <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)] flex items-center justify-center"><ImagePlus size={40} className="text-white/40" /></div>
+              <div className="p-4"><h3 className="font-semibold">世界封面</h3><p className="mt-1 text-sm text-slate-500">App 首页、故事详情页和分享卡片</p></div>
+            </article>
+            <article className="overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft">
+              <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#2d1b3d,#1a0f2e_48%,#3d1b4e)] flex items-center justify-center"><Wand2 size={40} className="text-white/40" /></div>
+              <div className="p-4"><h3 className="font-semibold">风格参考板</h3><p className="mt-1 text-sm text-slate-500">统一视觉风格，确保生成内容一致性</p></div>
+            </article>
+            <button className="grid min-h-[320px] place-items-center rounded-3xl border-2 border-dashed border-pink-200 text-slate-400 hover:border-accent hover:text-accent hover:bg-accent-soft/30 transition">
+              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加参考</span>
+            </button>
           </div>
         )}
+
+        {/* Notice toast */}
         {notice && (
-          <div className="fixed bottom-5 right-5 z-50 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-emerald-700 shadow-soft">
-            {notice}
-          </div>
+          <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-emerald-700 shadow-soft" onClick={() => setNotice(null)}>{notice}</div>
         )}
       </div>
-    </WorldBuilderLayout>
-  );
-}
 
-function AssetCard({
-  icon,
-  title,
-  meta,
-  description,
-  imageUrl,
-  videoUrl,
-}: {
-  icon: ReactNode;
-  title: string;
-  meta: string;
-  description: string;
-  imageUrl?: string;
-  videoUrl?: string;
-}) {
-  return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft">
-      {videoUrl ? (
-        <video src={videoUrl} controls className="aspect-video w-full bg-black object-cover" />
-      ) : imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt={title} className="aspect-video w-full object-cover" />
-      ) : (
-        <div className="aspect-video bg-[linear-gradient(135deg,#090d16,#283244_45%,#f27d3d)]" />
-      )}
-      <div className="p-5">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-2xl bg-orange-50 text-accent">{icon}</div>
-          <div className="min-w-0">
-            <h2 className="truncate font-semibold">{title}</h2>
-            <p className="mt-1 text-xs text-slate-500">{meta}</p>
+      {/* === Slide-in Edit Panel === */}
+      {panel && (
+        <>
+          <div className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm" onClick={() => setPanel(null)} />
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+              <h2 className="text-lg font-semibold">
+                {panel.mode === "char" ? (panel.id ? "编辑角色" : "新建角色") :
+                 panel.mode === "loc" ? (panel.id ? "编辑地点" : "新建地点") :
+                 panel.mode === "video" ? "编辑视频节点" : "编辑交互节点"}
+              </h2>
+              <button onClick={() => setPanel(null)} className="grid size-9 place-items-center rounded-xl hover:bg-slate-50"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-5">
+
+              {/* Character Form */}
+              {panel.mode === "char" && (
+                <>
+                  {/* Avatar upload */}
+                  <div className="flex justify-center">
+                    <label className="relative cursor-pointer">
+                      {charForm.referenceImage ? (
+                        <img src={charForm.referenceImage} alt="" className="h-36 w-36 rounded-3xl object-cover border-2 border-pink-100" />
+                      ) : (
+                        <div className="grid h-36 w-36 place-items-center rounded-3xl border-2 border-dashed border-pink-200 bg-accent-soft/30 text-accent">
+                          <Camera size={32} />
+                        </div>
+                      )}
+                      <span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-accent text-white shadow"><Upload size={14} /></span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImage(f); }} />
+                    </label>
+                  </div>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">角色名</span>
+                    <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={charForm.name} onChange={(e) => setCharForm({ ...charForm, name: e.target.value })} placeholder="输入角色名" /></label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block"><span className="text-sm font-medium text-slate-700">年龄</span>
+                      <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" type="number" value={charForm.age ?? ""} onChange={(e) => setCharForm({ ...charForm, age: e.target.value ? Number(e.target.value) : undefined })} placeholder="可选" /></label>
+                    <label className="block"><span className="text-sm font-medium text-slate-700">身份</span>
+                      <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={charForm.role} onChange={(e) => setCharForm({ ...charForm, role: e.target.value })} placeholder="如：主角、反派" /></label>
+                  </div>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">角色描述</span>
+                    <textarea className="mt-1.5 min-h-36 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-accent" value={charForm.description} onChange={(e) => setCharForm({ ...charForm, description: e.target.value })} placeholder="外貌、性格、背景故事..." /></label>
+                </>
+              )}
+
+              {/* Location Form */}
+              {panel.mode === "loc" && (
+                <>
+                  <div className="flex justify-center">
+                    <label className="relative cursor-pointer">
+                      {locForm.referenceImage ? (
+                        <img src={locForm.referenceImage} alt="" className="h-36 w-36 rounded-3xl object-cover border-2 border-pink-100" />
+                      ) : (
+                        <div className="grid h-36 w-36 place-items-center rounded-3xl border-2 border-dashed border-pink-200 bg-accent-soft/30 text-accent">
+                          <MapPin size={32} />
+                        </div>
+                      )}
+                      <span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-accent text-white shadow"><Upload size={14} /></span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImage(f); }} />
+                    </label>
+                  </div>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">地点名</span>
+                    <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={locForm.name} onChange={(e) => setLocForm({ ...locForm, name: e.target.value })} placeholder="输入地点名" /></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">类型</span>
+                    <select className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={locForm.type} onChange={(e) => setLocForm({ ...locForm, type: e.target.value as Location["type"] })}>
+                      {Object.entries(locationTypeLabels).map(([v, l]) => (<option key={v} value={v}>{l}</option>))}
+                    </select></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">描述</span>
+                    <textarea className="mt-1.5 min-h-36 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-accent" value={locForm.description} onChange={(e) => setLocForm({ ...locForm, description: e.target.value })} placeholder="场景氛围、空间构造..." /></label>
+                </>
+              )}
+
+              {/* Video Form */}
+              {panel.mode === "video" && (
+                <>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">标题</span>
+                    <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={videoForm.title} onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })} /></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">视频提示词</span>
+                    <textarea className="mt-1.5 min-h-32 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-accent" value={videoForm.prompt} onChange={(e) => setVideoForm({ ...videoForm, prompt: e.target.value })} /></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">视频 URL</span>
+                    <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={videoForm.videoUrl} onChange={(e) => setVideoForm({ ...videoForm, videoUrl: e.target.value })} placeholder="https://..." /></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">状态</span>
+                    <select className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={videoForm.status} onChange={(e) => setVideoForm({ ...videoForm, status: e.target.value as SceneNodeData["status"] })}>
+                      {Object.entries(statusLabels).map(([v, l]) => (<option key={v} value={v}>{l}</option>))}
+                    </select></label>
+                </>
+              )}
+
+              {/* Interaction Form */}
+              {panel.mode === "interaction" && (
+                <>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">标题</span>
+                    <input className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent" value={intForm.title} onChange={(e) => setIntForm({ ...intForm, title: e.target.value })} /></label>
+                  <label className="block"><span className="text-sm font-medium text-slate-700">互动指令</span>
+                    <textarea className="mt-1.5 min-h-32 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-accent" value={intForm.instruction} onChange={(e) => setIntForm({ ...intForm, instruction: e.target.value })} placeholder="描述用户互动方式和剧情结果..." /></label>
+                </>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                <button onClick={() => setPanel(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm">取消</button>
+                <button onClick={panel.mode === "char" ? saveChar : panel.mode === "loc" ? saveLoc : panel.mode === "video" ? saveVideo : saveInt}
+                  className="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-white hover:bg-accent-deep">{panel.id ? "保存" : "创建"}</button>
+              </div>
+            </div>
           </div>
-        </div>
-        <p className="line-clamp-4 text-sm leading-6 text-slate-500">{description}</p>
-      </div>
-    </article>
-  );
-}
-
-function AddAssetCard({ label }: { label: string }) {
-  return (
-    <button className="grid min-h-64 place-items-center rounded-3xl border border-dashed border-slate-300 bg-white text-slate-500 hover:border-orange-200 hover:bg-orange-50">
-      <span className="flex flex-col items-center gap-3 text-sm font-medium">
-        <Plus size={22} />
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function UploadAssetCard({ onUpload }: { onUpload: (file: File) => void }) {
-  return (
-    <label className="grid min-h-64 cursor-pointer place-items-center rounded-3xl border border-dashed border-slate-300 bg-white text-slate-500 hover:border-orange-200 hover:bg-orange-50">
-      <input
-        className="hidden"
-        type="file"
-        accept="video/*"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) onUpload(file);
-          event.target.value = "";
-        }}
-      />
-      <span className="flex flex-col items-center gap-3 text-sm font-medium">
-        <Plus size={22} />
-        上传本地视频并绑定
-      </span>
-    </label>
+        </>
+      )}
+    </WorldBuilderLayout>
   );
 }

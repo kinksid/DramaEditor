@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GraphToolbar } from "@/components/story-graph/GraphToolbar";
 import { GraphOutline } from "@/components/story-graph/GraphOutline";
 import { InspectorPanel } from "@/components/story-graph/InspectorPanel";
@@ -8,10 +8,24 @@ import { NodeEditModal } from "@/components/story-graph/NodeEditModal";
 import { PreviewModal } from "@/components/story-graph/PreviewModal";
 import { StoryGraphCanvas } from "@/components/story-graph/StoryGraphCanvas";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
+import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
 export default function StoryGraphPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const selectNode = useWorldBuilderStore((s) => s.selectNode);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.id) {
+        selectNode(detail.id);
+        setEditorOpen(true);
+      }
+    };
+    window.addEventListener("scene-node-edit", handler);
+    return () => window.removeEventListener("scene-node-edit", handler);
+  }, [selectNode]);
 
   return (
     <WorldBuilderLayout agentMode="none">

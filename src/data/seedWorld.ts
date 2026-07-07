@@ -68,28 +68,28 @@ export const seedEpisodes: Episode[] = [
   { id: "ep4", index: 4, label: "4", title: "黎明陷阱" },
 ];
 
-export const defaultScript = `FADE IN:
+export const defaultScript = `淡入：
 
-SCENE 1
+第一场
 
-EXT. TOKYO - SHINJUKU WARD - NIGHT
+外景，东京新宿，夜。
 
-Rain hammers the street in silver curtains. Holographic kanji advertisements bleed color across rivers of black puddles.
+雨像银色帘幕一样砸在街面。全息汉字广告把霓虹色彩洇进黑色水洼，街道像一条被城市记忆污染的河。
 
-Among the crowd - a long coat, a lowered brim - KENJI MURA, 38, gaunt, left eye replaced by a matte-grey ocular implant, moves against the human current like a man swimming upstream in his own mind.
+人潮之中，村上健司，38 岁，长风衣，帽檐压低，左眼是一枚哑灰色义眼植入体。他逆着人流前进，像是在自己的脑海里逆流游泳。
 
 KENJI（旁白）
 东京从不入睡。过去也一样。诀窍是分清到底是谁在说谎。
 
-He stops at a noodle stall, scanning a memory trace only he can see.`;
+他停在一间拉面摊前，扫描一条只有他能看见的记忆残迹。`;
 
 export const seedSetupDraft: SetupDraft = {
   worldTitle: seedWorld.title,
   genre: seedWorld.genre.join(", "),
   tags: seedWorld.tags.join(", "),
   worldDescription: seedWorld.description,
-  tone: "Moody, precise, paranoid",
-  visualStyle: "Rainy cyberpunk noir with warm amber interiors",
+  tone: "阴郁、精确、偏执",
+  visualStyle: "雨夜赛博朋克黑色电影，室内带温暖琥珀色光线",
   script: defaultScript,
 };
 
@@ -114,7 +114,7 @@ export const seedStoryNodes: StoryNode[] = [
       episodeId: "ep1",
       title: "选择蓝色门",
       instruction:
-        "Locked off camera. Composition, framing, and focal length stay identical from the first frame to the last. No push, pull, zoom, pan, rotation, or virtual camera breathing.",
+        "固定机位。构图、取景和焦距从第一帧到最后一帧保持完全一致，不推拉、不变焦、不摇移、不旋转，也不出现虚拟相机呼吸感。",
       options: [
         {
           id: "opt-ep1-blue-door",
@@ -146,7 +146,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "地下诊所",
       status: "empty",
       prompt:
-        "Use @incoming_last_frame as the first frame for visual continuity. Continuing directly from the moment the detective crosses the threshold, the blue door still swinging shut behind him.",
+        "使用上一段最后一帧作为首帧，保持视觉连续性。侦探刚跨过门槛，蓝色门仍在他身后缓缓合上，地下诊所的冷光从门缝里涌出。",
     },
   },
   {
@@ -158,7 +158,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "涩谷 - 不存在的信号",
       status: "draft",
       prompt:
-        "A rainy crossing becomes an antenna field of impossible reflections as Kenji follows a memory signal that should not exist.",
+        "雨中的涩谷路口变成一片不可能存在的反射天线场。健司追踪一段本不该出现的记忆信号，人群和屏幕在雨水里错位重叠。",
     },
   },
   {
@@ -191,7 +191,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "Echo 开口 - 扣住手腕",
       status: "empty",
       prompt:
-        "Kenji catches Echo by the wrist under a broken vending-machine glow, but the face in front of him glitches out of memory.",
+        "健司在坏掉的自动售货机蓝光下扣住 Echo 的手腕，但眼前这张脸像从记忆里被擦除一样不断闪烁、错帧、失真。",
     },
   },
   {
@@ -203,7 +203,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "健司的公寓 - 夜",
       status: "draft",
       prompt:
-        "Kenji wakes in his cramped apartment, rain stitching bright lines across the blinds while his damaged implant repeats a false memory.",
+        "健司在狭窄公寓里醒来，雨光穿过百叶窗，在墙上缝出细亮的线。他受损的记忆植入体不断重复一段伪造记忆。",
     },
   },
   {
@@ -214,7 +214,7 @@ export const seedStoryNodes: StoryNode[] = [
       episodeId: "ep2b",
       title: "设置互动",
       instruction:
-        "Locked camera. The room stays still while the player chooses whether to inspect the memory trace or follow the blue pulse.",
+        "固定机位，房间保持静止。玩家选择是检查记忆残迹，还是追随蓝色脉冲进入另一条分支。",
       options: [
         {
           id: "opt-ep2b-tap",
@@ -237,7 +237,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "记忆唯一的占有物",
       status: "empty",
       prompt:
-        "The apartment folds into a private hallucination where Kenji sees a stolen memory projected across broken glass.",
+        "公寓折叠成健司的私人幻觉，被盗记忆投射在破碎玻璃上，像一段无法归还的证词。",
     },
   },
   {
@@ -249,7 +249,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "公寓 - 褪色的照片",
       status: "draft",
       prompt:
-        "A cramped apartment, old coffee, files, and a family photograph whose faces are slowly becoming static.",
+        "狭窄公寓里有冷掉的咖啡、堆叠的案件资料和一张家庭照片。照片里的人脸正在慢慢变成噪点。",
     },
   },
   {
@@ -267,7 +267,7 @@ export const seedStoryNodes: StoryNode[] = [
           actionType: "hold",
           actionValue: "1500ms",
           targetNodeId: "ep3-scene-2",
-          color: "#f97316",
+          color: "#d9468a",
           hotspot: { x: 0.5, y: 0.78 },
         },
       ],
@@ -282,7 +282,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "决定已下",
       status: "empty",
       prompt:
-        "Kenji chooses to burn one true memory to illuminate a hidden route through the black market.",
+        "健司选择燃烧一段真实记忆，用它照亮通往记忆黑市深处的隐藏路线。",
     },
   },
   {
@@ -294,7 +294,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "台场海滨 - 情报交换",
       status: "draft",
       prompt:
-        "Dawn at the waterfront. Cargo cranes move like quiet machines of judgment while the final exchange begins.",
+        "黎明时分的台场海滨，货运吊机像沉默的审判机器缓慢移动。最后一次情报交换即将开始。",
     },
   },
   {
@@ -308,7 +308,7 @@ export const seedStoryNodes: StoryNode[] = [
       options: [
         {
           id: "opt-ep4-choice",
-          label: "3x in 1500ms",
+          label: "1500 毫秒内点击 3 次",
           actionType: "choice",
           actionValue: "3x / 1500ms",
           targetNodeId: "ep4-scene-2",
@@ -327,7 +327,7 @@ export const seedStoryNodes: StoryNode[] = [
       title: "陷阱已布下",
       status: "empty",
       prompt:
-        "The trap closes in amber morning light as Kenji watches his own stolen memory become bait.",
+        "琥珀色晨光中，陷阱缓缓收紧。健司看着自己被偷走的记忆变成诱饵。",
     },
   },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, type NodeProps } from "reactflow";
-import { MousePointerClick, PenLine, Plus } from "lucide-react";
+import { MousePointerClick } from "lucide-react";
 import { actionTypeLabels } from "@/lib/worldBuilderLabels";
 import type { InteractionNodeData } from "@/types/worldBuilder";
 
@@ -11,61 +11,61 @@ type InteractionNodeViewData = InteractionNodeData & {
   branchLabel?: string;
 };
 
+const actionDotColors: Record<string, string> = {
+  tap: "bg-blue-500",
+  swipe: "bg-emerald-500",
+  hold: "bg-pink-500",
+  rapidTap: "bg-purple-500",
+  choice: "bg-violet-500",
+};
+
 export function InteractionNode({ data, selected }: NodeProps<InteractionNodeViewData>) {
   return (
-    <div className={`w-80 rounded-2xl border bg-white shadow-soft ${selected ? "border-accent shadow-glow" : "border-[#d9e1ec]"}`}>
-      <Handle type="target" position={Position.Left} className="!bg-slate-400" />
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <div>
-          <p className="inline-flex items-center gap-1 text-xs font-semibold text-ink">
-            <MousePointerClick size={13} className="text-accent" />
-            第 {data.episodeLabel ?? "?"} 集 · {data.branchLabel ?? "剧情模块"} · 互动节点
-          </p>
-          <h3 className="mt-1 line-clamp-1 text-sm font-semibold text-slate-800">{data.title}</h3>
-        </div>
-        <PenLine size={15} className="text-slate-400" />
-      </div>
-      <div className="p-4">
-        <div className="grid aspect-video place-items-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-400">
-          <span className="inline-flex items-center gap-1 text-xs">
-            <PenLine size={13} /> 设置互动
+    <div className={`group w-[280px] overflow-hidden rounded-2xl border bg-white shadow-sm transition-all ${selected ? "border-accent shadow-glow ring-1 ring-accent/20" : "border-slate-200 hover:border-pink-200 hover:shadow-md"}`}>
+      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-white !bg-slate-400" />
+
+      {/* Header */}
+      <div className="border-b border-slate-100 bg-gradient-to-r from-accent-soft/50 to-white px-3 py-2.5">
+        <div className="mb-1 flex items-center gap-1.5">
+          <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+            {data.episodeLabel ?? "?"}
           </span>
+          <span className="text-[10px] text-slate-400">{data.branchLabel ?? "剧情模块"}</span>
         </div>
-        <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-600">{data.instruction}</p>
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-          <p className="text-xs font-semibold text-slate-500">选项</p>
-          <p className="text-[11px] text-slate-400">
-            {data.options.length}/{Math.max(data.options.length, 1)}
-          </p>
+        <div className="flex items-center gap-1.5">
+          <MousePointerClick size={14} className="text-accent shrink-0" />
+          <h3 className="line-clamp-1 text-sm font-semibold text-ink-strong">{data.title}</h3>
         </div>
-        <div className="mt-2 space-y-2">
+        <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">{data.instruction}</p>
+      </div>
+
+      {/* Options list */}
+      <div className="p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">选项 {data.options.length}</span>
+        </div>
+        <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
           {data.options.map((option) => (
-            <div key={option.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex min-w-0 items-center gap-2 font-medium text-ink">
-                  <span className="grid size-5 shrink-0 place-items-center rounded-md bg-blue-50 text-[10px] text-branch-tap">
-                    {option.actionType === "tap" ? "点" : option.actionType === "swipe" ? "滑" : option.actionType === "hold" ? "按" : option.actionType === "rapidTap" ? "连" : "选"}
-                  </span>
-                  <span className="truncate">{option.label}</span>
-                </span>
-                <span className="shrink-0 text-slate-400">{actionTypeLabels[option.actionType]}</span>
-              </div>
-              <p className="mt-1 truncate pl-7 text-[11px] text-slate-400">
-                → {option.targetNodeId ? data.targetTitles?.[option.targetNodeId] ?? option.targetNodeId : "未连接"}
-              </p>
+            <div key={option.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-2 py-1.5 text-[11px] transition hover:bg-slate-50">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${actionDotColors[option.actionType] ?? "bg-slate-400"}`} />
+              <span className="truncate font-medium text-ink">{option.label}</span>
+              <span className="shrink-0 text-[10px] text-slate-400">{actionTypeLabels[option.actionType]}</span>
+              {option.targetNodeId ? (
+                <span className="shrink-0 text-[10px] text-slate-300">→ {data.targetTitles?.[option.targetNodeId] ?? "?"}</span>
+              ) : (
+                <span className="shrink-0 text-[10px] text-red-400">未连接</span>
+              )}
             </div>
           ))}
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <div className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500">
-              <Plus size={13} /> 添加选项
+          {data.options.length === 0 && (
+            <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-slate-200 py-3 text-[10px] text-slate-400">
+              <MousePointerClick size={11} /> 待添加选项
             </div>
-            <div className="inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-500">
-              <PenLine size={12} /> 编辑
-            </div>
-          </div>
+          )}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} className="!bg-slate-400" />
+
+      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-accent" />
     </div>
   );
 }

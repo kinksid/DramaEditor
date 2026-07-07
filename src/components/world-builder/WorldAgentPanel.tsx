@@ -65,7 +65,7 @@ export function WorldAgentPanel({ mode }: Props) {
           );
         })}
       </div>
-      <div className="mt-5 rounded-2xl bg-[#f1ece8] p-4">
+      <div className="mt-5 rounded-2xl bg-accent-soft p-4">
         <p className="text-sm leading-6 text-slate-700">
           故事脚本、分镜大纲和每个节点的视频提示词已准备好。是否继续为所有视频节点生成模拟视频？
         </p>

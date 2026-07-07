@@ -29,6 +29,8 @@ import type {
   ThirdPartyWorkflowTarget,
 } from "@/types/worldBuilder";
 
+const STORE_VERSION = 5;
+
 type WorldBuilderState = {
   world: World;
   characters: Character[];
@@ -81,7 +83,27 @@ type WorldBuilderState = {
   exportStoryJson: () => string;
   exportAppJson: () => string;
   exportThirdPartyWorkflow: (target: ThirdPartyWorkflowTarget) => string;
+  importStoryJson: (jsonStr: string) => { success: boolean; message: string };
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+  historyIndex: number;
+  historyLength: number;
 };
+
+type PersistedWorldBuilderState = Pick<
+  WorldBuilderState,
+  | "world"
+  | "characters"
+  | "locations"
+  | "episodes"
+  | "nodes"
+  | "edges"
+  | "selectedEpisodeId"
+  | "setupDraft"
+  | "lastSavedAt"
+  | "lastPublishedAt"
+>;
 
 const cloneSeed = () => ({
   world: structuredClone(seedWorld),
@@ -136,12 +158,95 @@ const withAutoLayout = (episodes: Episode[], nodes: StoryNode[]) =>
     } as StoryNode;
   });
 
+const seedPersistedState = (): PersistedWorldBuilderState => {
+  const seed = cloneSeed();
+  return {
+    world: seed.world,
+    characters: seed.characters,
+    locations: seed.locations,
+    episodes: seed.episodes,
+    nodes: withAutoLayout(seed.episodes, seed.nodes),
+    edges: seed.edges,
+    selectedEpisodeId: seed.selectedEpisodeId,
+    setupDraft: seed.setupDraft,
+    lastSavedAt: seed.lastSavedAt,
+    lastPublishedAt: seed.lastPublishedAt,
+  };
+};
+
+const MAX_HISTORY = 50;
+
+type HistorySnapshot = Pick<
+  WorldBuilderState,
+  "world" | "characters" | "locations" | "episodes" | "nodes" | "edges" | "setupDraft"
+>;
+
+const takeSnapshot = (state: WorldBuilderState): HistorySnapshot => ({
+  world: structuredClone(state.world),
+  characters: structuredClone(state.characters),
+  locations: structuredClone(state.locations),
+  episodes: structuredClone(state.episodes),
+  nodes: structuredClone(state.nodes),
+  edges: structuredClone(state.edges),
+  setupDraft: structuredClone(state.setupDraft),
+});
+
+const restoreSnapshot = (state: WorldBuilderState, snap: HistorySnapshot) => ({
+  ...state,
+  ...snap,
+  nodes: withAutoLayout(snap.episodes, snap.nodes),
+});
+
 export const useWorldBuilderStore = create<WorldBuilderState>()(
   persist(
     (set, get) => ({
       ...cloneSeed(),
       hasHydrated: false,
+      historyIndex: -1,
+      historyLength: 0,
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+      pushHistory: () => {
+        const state = get();
+        const snap = takeSnapshot(state);
+        set((s) => ({
+          // @ts-ignore — history is managed internally, not persisted
+          _history: [...((s as any)._history ?? []).slice(-MAX_HISTORY), snap],
+          historyIndex: Math.min(((s as any)._history?.length ?? 0), MAX_HISTORY - 1),
+          historyLength: Math.min(((s as any)._history?.length ?? 0) + 1, MAX_HISTORY),
+        }));
+      },
+      undo: () => {
+        const state = get() as any;
+        const history: HistorySnapshot[] = state._history ?? [];
+        if (history.length === 0) return;
+        const idx = state.historyIndex;
+        if (idx < 0) {
+          set({ historyIndex: history.length - 1, historyLength: history.length });
+          return;
+        }
+        const targetIdx = idx > 0 ? idx - 1 : history.length - 1;
+        const snap = history[targetIdx];
+        if (snap) {
+          set((s) => restoreSnapshot(s, snap));
+          set({ historyIndex: targetIdx, historyLength: history.length });
+        }
+      },
+      redo: () => {
+        const state = get() as any;
+        const history: HistorySnapshot[] = state._history ?? [];
+        if (history.length === 0) return;
+        const idx = state.historyIndex;
+        if (idx < 0 || idx >= history.length - 1) {
+          // At newest, can't redo — restore from seed as last resort
+          return;
+        }
+        const targetIdx = idx + 1;
+        const snap = history[targetIdx];
+        if (snap) {
+          set((s) => restoreSnapshot(s, snap));
+          set({ historyIndex: targetIdx, historyLength: history.length });
+        }
+      },
       loadSeedData: () => set(() => {
         const seed = cloneSeed();
         return {
@@ -276,48 +381,59 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
         set((state) => ({
           setupDraft: { ...state.setupDraft, ...draft },
         })),
-      addCharacter: (character) =>
+      addCharacter: (character) => {
+        get().pushHistory();
         set((state) => ({
           characters: [{ ...character, id: uuidv4() }, ...state.characters],
-        })),
+        }));
+      },
       updateCharacter: (id, character) =>
         set((state) => ({
           characters: state.characters.map((item) =>
             item.id === id ? { ...item, ...character } : item,
           ),
         })),
-      deleteCharacter: (id) =>
+      deleteCharacter: (id) => {
+        get().pushHistory();
         set((state) => ({
           characters: state.characters.filter((item) => item.id !== id),
-        })),
-      addLocation: (location) =>
+        }));
+      },
+      addLocation: (location) => {
+        get().pushHistory();
         set((state) => ({
           locations: [{ ...location, id: uuidv4() }, ...state.locations],
-        })),
+        }));
+      },
       updateLocation: (id, location) =>
         set((state) => ({
           locations: state.locations.map((item) =>
             item.id === id ? { ...item, ...location } : item,
           ),
         })),
-      deleteLocation: (id) =>
+      deleteLocation: (id) => {
+        get().pushHistory();
         set((state) => ({
           locations: state.locations.filter((item) => item.id !== id),
-        })),
-      addEpisode: (episode) =>
+        }));
+      },
+      addEpisode: (episode) => {
+        get().pushHistory();
         set((state) => ({
           episodes: [
             ...state.episodes,
             { ...episode, id: uuidv4(), index: state.episodes.length + 1 },
           ],
-        })),
+        }));
+      },
       updateEpisode: (id, episode) =>
         set((state) => ({
           episodes: state.episodes.map((item) =>
             item.id === id ? { ...item, ...episode } : item,
           ),
         })),
-      deleteEpisode: (id) =>
+      deleteEpisode: (id) => {
+        get().pushHistory();
         set((state) => ({
           episodes: state.episodes
             .filter((episode) => episode.id !== id)
@@ -327,8 +443,10 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             state.selectedEpisodeId === id
               ? state.episodes.find((episode) => episode.id !== id)?.id ?? "ep1"
               : state.selectedEpisodeId,
-        })),
-      addSceneNode: (episodeId) =>
+        }));
+      },
+      addSceneNode: (episodeId) => {
+        get().pushHistory();
         set((state) => {
           const id = `scene-${uuidv4()}`;
           const targetEpisodeId = episodeId ?? state.selectedEpisodeId;
@@ -353,8 +471,10 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             ],
             selectedNodeId: id,
           };
-        }),
-      addInteractionNode: (episodeId) =>
+        });
+      },
+      addInteractionNode: (episodeId) => {
+        get().pushHistory();
         set((state) => {
           const id = `interaction-${uuidv4()}`;
           const targetEpisodeId = episodeId ?? state.selectedEpisodeId;
@@ -379,8 +499,10 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             ],
             selectedNodeId: id,
           };
-        }),
-      addEndingNode: (episodeId) =>
+        });
+      },
+      addEndingNode: (episodeId) => {
+        get().pushHistory();
         set((state) => {
           const id = `ending-${uuidv4()}`;
           const targetEpisodeId = episodeId ?? state.selectedEpisodeId;
@@ -405,22 +527,26 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             ],
             selectedNodeId: id,
           };
-        }),
-      updateNode: (id, data) =>
+        });
+      },
+      updateNode: (id, data) => {
+        get().pushHistory();
         set((state) => ({
           nodes: state.nodes.map((node) =>
             node.id === id
               ? { ...node, data: { ...node.data, ...data } as StoryNode["data"] }
               : node,
           ) as StoryNode[],
-        })),
+        }));
+      },
       updateNodePosition: (id, position) =>
         set((state) => ({
           nodes: state.nodes.map((node) =>
             node.id === id ? ({ ...node, position } as StoryNode) : node,
           ),
         })),
-      updateNodePositions: (positions) =>
+      updateNodePositions: (positions) => {
+        get().pushHistory();
         set((state) => {
           const positionMap = new Map(positions.map((item) => [item.id, item.position]));
           return {
@@ -429,7 +555,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
               return position ? ({ ...node, position } as StoryNode) : node;
             }),
           };
-        }),
+        });
+      },
       autoLayoutEpisodes: () =>
         set((state) => ({
           nodes: state.nodes.map((node) => {
@@ -447,12 +574,14 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           }),
           lastSavedAt: new Date().toISOString(),
         })),
-      deleteNode: (id) =>
+      deleteNode: (id) => {
+        get().pushHistory();
         set((state) => ({
           nodes: state.nodes.filter((node) => node.id !== id),
           edges: state.edges.filter((edge) => edge.source !== id && edge.target !== id),
           selectedNodeId: state.selectedNodeId === id ? undefined : state.selectedNodeId,
-        })),
+        }));
+      },
       duplicateNode: (id) =>
         set((state) => {
           const node = state.nodes.find((item) => item.id === id);
@@ -662,9 +791,166 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           2,
         );
       },
+      importStoryJson: (jsonStr) => {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (!parsed.episodes || !Array.isArray(parsed.episodes)) {
+            return { success: false, message: "JSON 格式无效：缺少 episodes 数组" };
+          }
+
+          const state = get();
+          const importedEpisodes: Episode[] = [];
+          const importedNodes: StoryNode[] = [];
+          const importedEdges: StoryEdge[] = [];
+
+          // Import episodes and their nodes/edges
+          parsed.episodes.forEach((ep: any, epIndex: number) => {
+            const epId = ep.id ?? `ep-import-${uuidv4()}`;
+            const episode: Episode = {
+              id: epId,
+              index: epIndex + 1,
+              label: ep.label ?? String(epIndex + 1),
+              title: ep.title ?? `导入剧集 ${epIndex + 1}`,
+              description: ep.description,
+            };
+            importedEpisodes.push(episode);
+
+            // Import nodes
+            if (Array.isArray(ep.nodes)) {
+              ep.nodes.forEach((node: any, nodeIndex: number) => {
+                const nodeKind = node.kind || node.type === "video" ? "scene" : node.type === "interaction" ? "interaction" : node.kind || "scene";
+                const nodeId = node.id ?? `${nodeKind}-${uuidv4()}`;
+                const pos = defaultNodePosition(episode, epIndex, nodeIndex);
+
+                if (nodeKind === "interaction") {
+                  importedNodes.push({
+                    id: nodeId,
+                    kind: "interaction",
+                    data: {
+                      id: nodeId,
+                      episodeId: epId,
+                      title: node.title || node.data?.title || "互动节点",
+                      instruction: node.instruction || node.data?.instruction || "",
+                      loopVideoUrl: node.loopVideoUrl || node.data?.loopVideoUrl,
+                      firstFrameRef: node.firstFrameRef || node.data?.firstFrameRef,
+                      lastFrameRef: node.lastFrameRef || node.data?.lastFrameRef,
+                      options: (node.options || node.data?.options || []).map((opt: any) => ({
+                        id: opt.id ?? uuidv4(),
+                        label: opt.label ?? "选项",
+                        actionType: opt.actionType ?? "tap",
+                        actionValue: opt.actionValue,
+                        targetNodeId: opt.targetNodeId,
+                        color: opt.color,
+                        hotspot: opt.hotspot,
+                      })),
+                    },
+                    position: node.position ?? pos,
+                  });
+                } else if (nodeKind === "ending") {
+                  importedNodes.push({
+                    id: nodeId,
+                    kind: "ending",
+                    data: {
+                      id: nodeId,
+                      episodeId: epId,
+                      title: node.title || node.data?.title || "结局节点",
+                      endingType: node.endingType || node.data?.endingType || "normal",
+                      description: node.description || node.data?.description || "",
+                    },
+                    position: node.position ?? pos,
+                  });
+                } else {
+                  importedNodes.push({
+                    id: nodeId,
+                    kind: "scene",
+                    data: {
+                      id: nodeId,
+                      episodeId: epId,
+                      title: node.title || node.data?.title || "视频节点",
+                      prompt: node.prompt || node.data?.prompt || "",
+                      videoUrl: node.videoUrl || node.data?.videoUrl,
+                      firstFrameRef: node.firstFrameRef || node.data?.firstFrameRef,
+                      status: (node.status || node.data?.status || "draft") as SceneNodeData["status"],
+                    },
+                    position: node.position ?? pos,
+                  });
+                }
+              });
+            }
+
+            // Import edges
+            if (Array.isArray(ep.edges)) {
+              ep.edges.forEach((edge: any) => {
+                importedEdges.push({
+                  id: edge.id ?? `edge-${uuidv4()}`,
+                  source: edge.source,
+                  target: edge.target,
+                  label: edge.label ?? "继续",
+                  actionType: edge.actionType,
+                });
+              });
+            }
+
+            // Handle global edges array
+            if (Array.isArray(parsed.edges)) {
+              parsed.edges.forEach((edge: any) => {
+                importedEdges.push({
+                  id: edge.id ?? `edge-${uuidv4()}`,
+                  source: edge.source,
+                  target: edge.target,
+                  label: edge.label ?? "继续",
+                  actionType: edge.actionType,
+                });
+              });
+            }
+          });
+
+          // Update setupDraft script if available
+          const script = parsed.setupDraft?.script || parsed.script || "";
+
+          set({
+            episodes: importedEpisodes.length > 0 ? importedEpisodes : state.episodes,
+            nodes: withAutoLayout(
+              importedEpisodes.length > 0 ? importedEpisodes : state.episodes,
+              importedNodes.length > 0 ? importedNodes : state.nodes,
+            ),
+            edges: importedEdges.length > 0 ? importedEdges : state.edges,
+            selectedEpisodeId: importedEpisodes[0]?.id ?? state.selectedEpisodeId,
+            setupDraft: {
+              ...state.setupDraft,
+              script: script || state.setupDraft.script,
+              worldTitle: parsed.world?.title ?? state.setupDraft.worldTitle,
+              worldDescription: parsed.world?.description ?? state.setupDraft.worldDescription,
+            },
+            lastSavedAt: new Date().toISOString(),
+          });
+
+          return {
+            success: true,
+            message: `已导入 ${importedEpisodes.length} 个剧集、${importedNodes.length} 个节点、${importedEdges.length} 条连线`,
+          };
+        } catch {
+          return { success: false, message: "JSON 解析失败，请检查文件格式" };
+        }
+      },
     }),
     {
       name: "drama-world-builder",
+      version: STORE_VERSION,
+      migrate: (persistedState, version) => {
+        const state = persistedState as Partial<PersistedWorldBuilderState> | undefined;
+        const hasBranchEpisode = state?.episodes?.some((episode) => episode.id === "ep2b");
+        const hasHotspots = state?.nodes?.some((node) =>
+          node.kind === "interaction" && node.data.options.some((option) => option.hotspot),
+        );
+        if (!state || version < STORE_VERSION || !hasBranchEpisode || !hasHotspots) {
+          return seedPersistedState();
+        }
+        return {
+          ...seedPersistedState(),
+          ...state,
+        };
+      },
       partialize: (state) => ({
         world: state.world,
         characters: state.characters,

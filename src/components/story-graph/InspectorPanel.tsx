@@ -244,7 +244,7 @@ function GestureEditorModal({
     const defaults: Record<InteractionOption["actionType"], Partial<InteractionOption>> = {
       tap: { actionValue: "(0.50, 0.50)", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#2f7df6" },
       swipe: { actionValue: "right", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#15a36b" },
-      hold: { actionValue: "1500ms", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#f27d3d" },
+      hold: { actionValue: "1500ms", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#d9468a" },
       rapidTap: { actionValue: "3x / 1500ms", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#d946ef" },
       choice: { actionValue: "A", hotspot: selectedOption.hotspot ?? { x: 0.5, y: 0.5 }, color: "#8b5cf6" },
     };

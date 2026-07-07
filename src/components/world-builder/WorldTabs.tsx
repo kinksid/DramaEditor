@@ -109,7 +109,7 @@ export function WorldTabs() {
       {tab === "Storylines" && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {episodes.map((episode) => (
-            <Link key={episode.id} href="/world-builder/story-graph" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft hover:border-orange-200">
+            <Link key={episode.id} href="/world-builder/story-graph" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft hover:border-pink-200">
               <div className="flex items-center gap-3">
                 <div className="grid size-11 place-items-center rounded-2xl bg-accent-soft text-accent">
                   <Route size={20} />

@@ -14,7 +14,7 @@ export function CharacterCard({ character, onEdit, onDelete }: Props) {
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex gap-3">
-          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-orange-50 text-accent">
+          <div className="grid size-11 shrink-0 place-items-center rounded-2xl accent-soft text-accent">
             <UserRound size={20} />
           </div>
           <div>

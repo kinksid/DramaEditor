@@ -39,7 +39,7 @@ export default function TiersPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {tiers.map((tier) => (
             <article key={tier.name} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-              <div className="grid size-12 place-items-center rounded-2xl bg-orange-50 text-accent">{tier.icon}</div>
+              <div className="grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent">{tier.icon}</div>
               <h2 className="mt-5 text-xl font-semibold">{tier.name}</h2>
               <p className="mt-2 text-sm font-medium text-accent">{tier.price}</p>
               <div className="mt-5 space-y-3">

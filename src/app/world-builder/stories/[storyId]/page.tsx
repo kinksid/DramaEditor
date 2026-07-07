@@ -156,7 +156,7 @@ export default function StoryProjectPage() {
                       <Link
                         href="/world-builder/story-graph"
                         key={episode.id}
-                        className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-orange-200 hover:bg-orange-50/40"
+                        className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-pink-200 hover:bg-accent-soft/40"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
@@ -274,8 +274,8 @@ function StudioAction({
   description: string;
 }) {
   return (
-    <Link href={href} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-orange-200 hover:bg-orange-50/40">
-      <div className="grid size-10 place-items-center rounded-xl bg-orange-50 text-accent">
+    <Link href={href} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-pink-200 hover:bg-accent-soft/40">
+      <div className="grid size-10 place-items-center rounded-xl accent-soft text-accent">
         <Icon size={18} />
       </div>
       <h2 className="mt-4 font-semibold">{title}</h2>
@@ -298,7 +298,7 @@ function CheckRow({ done, label }: { done: boolean; label: string }) {
   return (
     <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
       <span className="text-slate-600">{label}</span>
-      {done ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-orange-600" />}
+      {done ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-pink-600" />}
     </div>
   );
 }
