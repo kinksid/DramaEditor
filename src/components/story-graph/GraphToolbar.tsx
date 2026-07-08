@@ -74,7 +74,7 @@ export function GraphToolbar({ onPreview }: Props) {
 
   const handleGenerateVideos = () => {
     generateAllMockVideos();
-    setNotice("所有视频节点已生成模拟视频");
+    setNotice("已提交视频生成任务，请稍候...");
   };
 
   const handlePublish = () => {

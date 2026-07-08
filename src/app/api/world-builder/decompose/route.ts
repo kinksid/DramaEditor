@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   buildDecomposeUserPrompt,
-  callOllamaDecompose,
+  callLlmDecompose,
   fallbackDecompose,
 } from "@/lib/worldBuilderServer";
+import { getProviderConfig } from "@/lib/providers/config";
+import { ensureActiveLlmPreset } from "@/lib/providers/llm/presets";
 import type { CreationReference } from "@/types/worldBuilder";
 
 export async function POST(request: Request) {
@@ -13,6 +15,7 @@ export async function POST(request: Request) {
       visualStyle?: string;
       references?: CreationReference[];
       useFallback?: boolean;
+      llmPresetId?: string;
     };
 
     const prompt = body.prompt ?? "";
@@ -33,10 +36,12 @@ export async function POST(request: Request) {
     }
 
     try {
-      const result = await callOllamaDecompose(userPrompt);
-      return NextResponse.json({ result, source: "ollama" });
-    } catch (ollamaError) {
-      const message = ollamaError instanceof Error ? ollamaError.message : "Ollama 不可用";
+      await ensureActiveLlmPreset(body.llmPresetId ?? null);
+      const result = await callLlmDecompose(userPrompt);
+      const provider = getProviderConfig().llm.provider;
+      return NextResponse.json({ result, source: provider });
+    } catch (llmError) {
+      const message = llmError instanceof Error ? llmError.message : "LLM 不可用";
       const result = fallbackDecompose({ prompt, visualStyle, references });
       return NextResponse.json({
         result,

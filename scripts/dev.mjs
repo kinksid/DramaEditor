@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -53,6 +54,10 @@ console.log("");
 console.log("========================================");
 console.log(`  本地访问:   http://localhost:${port}`);
 console.log(`  局域网访问: http://${lanHost}:${port}`);
+console.log("  LLM 预设将在服务启动时自动探测（见 config/llm-presets.json）");
+if (!existsSync(path.join(root, ".env.local"))) {
+  console.log("  提示: 可复制 .env.local.example 为 .env.local，并设置 LLM_PRESET_ID=ollama-lan-qwen36");
+}
 console.log("========================================");
 console.log("");
 

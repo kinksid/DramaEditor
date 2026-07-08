@@ -2,6 +2,10 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import type { CreationReference, DecomposeResult } from "@/types/worldBuilder";
+import { getProviderConfig } from "@/lib/providers/config";
+import { llmChatJson } from "@/lib/providers/llm";
+import { parseLlmJson } from "@/lib/providers/llm/parseJson";
+import { analyzeImageWithComfy } from "@/lib/providers/image/comfyui";
 
 export const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 export const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
@@ -88,38 +92,21 @@ export function buildDecomposeUserPrompt(input: {
     .join("\n\n");
 }
 
-export async function callOllamaDecompose(userPrompt: string): Promise<DecomposeResult> {
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      stream: false,
-      format: "json",
-      messages: [
-        { role: "system", content: DECOMPOSE_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-    }),
+export async function callLlmDecompose(userPrompt: string): Promise<DecomposeResult> {
+  const config = getProviderConfig();
+  const raw = await llmChatJson(config, {
+    system: DECOMPOSE_SYSTEM_PROMPT,
+    user: userPrompt,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Ollama 请求失败 (${response.status}): ${text.slice(0, 200)}`);
-  }
-
-  const data = (await response.json()) as { message?: { content?: string } };
-  const raw = data.message?.content?.trim();
-  if (!raw) throw new Error("Ollama 返回空内容");
-
-  let parsed: DecomposeResult;
-  try {
-    parsed = JSON.parse(raw) as DecomposeResult;
-  } catch {
-    throw new Error("Ollama 返回的 JSON 无法解析");
-  }
+  const parsed = parseLlmJson(raw) as DecomposeResult;
 
   return normalizeDecomposeResult(parsed, userPrompt);
+}
+
+/** @deprecated 使用 callLlmDecompose */
+export async function callOllamaDecompose(userPrompt: string): Promise<DecomposeResult> {
+  return callLlmDecompose(userPrompt);
 }
 
 export function normalizeDecomposeResult(
@@ -156,18 +143,22 @@ export async function analyzeWithComfyUI(input: {
   url: string;
   name: string;
 }): Promise<string> {
+  if (input.kind === "image") {
+    return analyzeImageWithComfy({ url: input.url, name: input.name });
+  }
+
   try {
     const health = await fetch(`${COMFYUI_BASE_URL}/system_stats`, {
       signal: AbortSignal.timeout(3000),
     });
     if (!health.ok) {
-      return `${input.kind === "video" ? "视频" : "图片"}参考「${input.name}」：ComfyUI 暂不可用，将结合文本创意推断视觉风格。`;
+      return `视频参考「${input.name}」：ComfyUI 暂不可用，将结合文本创意推断视觉风格。`;
     }
   } catch {
-    return `${input.kind === "video" ? "视频" : "图片"}参考「${input.name}」：无法连接 ComfyUI，将结合文本创意推断视觉风格。`;
+    return `视频参考「${input.name}」：无法连接 ComfyUI，将结合文本创意推断视觉风格。`;
   }
 
-  return `${input.kind === "video" ? "视频" : "图片"}参考「${input.name}」（${input.url}）：赛博/古风/写实等视觉元素待 ComfyUI workflow 深度分析；当前使用文件名与路径作为风格线索。`;
+  return `视频参考「${input.name}」（${input.url}）：已通过 ComfyUI 连通，可结合关键帧 workflow 分析视觉风格。`;
 }
 
 export function fallbackDecompose(input: {

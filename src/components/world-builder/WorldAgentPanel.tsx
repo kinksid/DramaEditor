@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Bot, CheckCircle2, Clock3, Loader2, Plus, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { suggestNodeChainApi } from "@/lib/generationClient";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
 type Props = {
@@ -21,17 +23,48 @@ const copy = {
     ["剧本确认", "等待确认", "waiting"],
   ],
   graph: [
-    ["故事板", "4 集 · 12 个节点", "done"],
+    ["故事板", "监听当前项目", "done"],
     ["节点检查器", "正在监听选择", "active"],
     ["预览播放器", "可以打开", "done"],
   ],
 } as const;
 
 export function WorldAgentPanel({ mode }: Props) {
-  const { episodes, nodes, generateAllMockVideos } = useWorldBuilderStore();
+  const {
+    episodes,
+    nodes,
+    setupDraft,
+    selectedEpisodeId,
+    generateAllMockVideos,
+    createSuggestedNodes,
+  } = useWorldBuilderStore();
+  const [loading, setLoading] = useState(false);
+  const [agentMessage, setAgentMessage] = useState<string | null>(null);
+
   const sceneCount = nodes.filter((node) => node.kind === "scene").length;
   const readySceneCount = nodes.filter((node) => node.kind === "scene" && node.data.status === "ready").length;
   const interactionCount = nodes.filter((node) => node.kind === "interaction").length;
+  const currentEpisode = episodes.find((item) => item.id === selectedEpisodeId);
+
+  const handleSuggestChain = async () => {
+    if (!setupDraft.script.trim()) {
+      setAgentMessage("请先在 Setup 中填写剧本，再请求建链建议。");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await suggestNodeChainApi({
+        script: setupDraft.script,
+        episodeTitle: currentEpisode?.title,
+      });
+      createSuggestedNodes(result.nodes);
+      setAgentMessage(result.summary);
+    } catch (error) {
+      setAgentMessage(error instanceof Error ? error.message : "建链建议失败");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <aside className="hidden h-screen w-[310px] shrink-0 border-l border-slate-200 bg-white p-5 xl:block">
@@ -40,8 +73,8 @@ export function WorldAgentPanel({ mode }: Props) {
           <Bot size={20} />
         </div>
         <div>
-          <h2 className="text-sm font-semibold">世界构建器</h2>
-          <p className="text-xs text-slate-500">本地模拟助手</p>
+          <h2 className="text-sm font-semibold">Canvas 助手</h2>
+          <p className="text-xs text-slate-500">只建节点，不自动跑生成</p>
         </div>
       </div>
       <div className="space-y-3">
@@ -67,14 +100,24 @@ export function WorldAgentPanel({ mode }: Props) {
       </div>
       <div className="mt-5 rounded-2xl bg-accent-soft p-4">
         <p className="text-sm leading-6 text-slate-700">
-          故事脚本、分镜大纲和每个节点的视频提示词已准备好。是否继续为所有视频节点生成模拟视频？
+          根据剧本建议 scene / interaction 节点链，手动触发生成视频。
         </p>
         <div className="mt-3 flex gap-2">
-          <button onClick={generateAllMockVideos} className="rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white">
-            生成视频
+          <button
+            onClick={handleSuggestChain}
+            disabled={loading}
+            className="rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {loading ? "分析中..." : "建链建议"}
           </button>
-          <button className="rounded-xl px-3 py-2 text-sm text-slate-500">稍后</button>
+          <button
+            onClick={generateAllMockVideos}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"
+          >
+            批量生成
+          </button>
         </div>
+        {agentMessage && <p className="mt-3 text-xs leading-5 text-slate-600">{agentMessage}</p>}
       </div>
       <div className="mt-4 space-y-2 text-sm">
         {[
@@ -96,12 +139,16 @@ export function WorldAgentPanel({ mode }: Props) {
         ))}
       </div>
       <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-        <p className="text-sm text-slate-500">继续构建...</p>
+        <p className="text-sm text-slate-500">Canvas Assistant</p>
         <div className="mt-4 flex items-center justify-between">
           <button className="grid size-8 place-items-center rounded-lg hover:bg-slate-100">
             <Plus size={16} />
           </button>
-          <button className="grid size-8 place-items-center rounded-lg bg-ink text-white">
+          <button
+            onClick={handleSuggestChain}
+            disabled={loading}
+            className="grid size-8 place-items-center rounded-lg bg-ink text-white disabled:opacity-60"
+          >
             <SendHorizontal size={15} />
           </button>
         </div>

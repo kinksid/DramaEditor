@@ -33,6 +33,7 @@ export default function AssetsPage() {
     addLocation, updateLocation, deleteLocation,
     updateNode, addSceneNode, addInteractionNode,
     generateAllMockVideos,
+    submitReferenceImageGeneration,
   } = useWorldBuilderStore();
 
   const scenes = nodes.filter((n) => n.kind === "scene");
@@ -82,6 +83,12 @@ export default function AssetsPage() {
     if (!intForm.title.trim() || !panel?.id) return;
     updateNode(panel.id, { title: intForm.title, instruction: intForm.instruction });
     setPanel(null);
+  };
+
+  const handleGenerateReference = async (entityType: "character" | "location", entity: Character | Location) => {
+    const prompt = `${entity.name}，${"role" in entity ? entity.role : ""} ${entity.description || "参考图"}`.trim();
+    const taskId = await submitReferenceImageGeneration(entityType, entity.id, prompt);
+    setNotice(taskId ? `已提交「${entity.name}」参考图生成任务` : `「${entity.name}」参考图生成失败`);
   };
 
   const handleImage = (file: File) => {
@@ -157,7 +164,8 @@ export default function AssetsPage() {
                   )}
                   {/* Overlay buttons */}
                   <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
-                    <button onClick={() => openCharPanel(c)} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                    <button onClick={() => void handleGenerateReference("character", c)} className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent" title="AI 生成参考图"><Wand2 size={14} /></button>
+                    <button onClick={() => openCharPanel(c)} className="ml-1 grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
                     <button onClick={() => { deleteCharacter(c.id); setNotice(`已删除「${c.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
                   </div>
                 </div>
@@ -187,7 +195,8 @@ export default function AssetsPage() {
                     <div className="flex h-full items-center justify-center text-white/40"><MapPin size={40} /></div>
                   )}
                   <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
-                    <button onClick={() => openLocPanel(l)} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                    <button onClick={() => void handleGenerateReference("location", l)} className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent" title="AI 生成参考图"><Wand2 size={14} /></button>
+                    <button onClick={() => openLocPanel(l)} className="ml-1 grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
                     <button onClick={() => { deleteLocation(l.id); setNotice(`已删除「${l.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
                   </div>
                 </div>

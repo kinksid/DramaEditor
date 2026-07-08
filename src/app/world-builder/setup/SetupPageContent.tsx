@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Wand2 } from "lucide-react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { cn } from "@/lib/utils";
 import { locationTypeLabels } from "@/lib/worldBuilderLabels";
@@ -31,6 +31,7 @@ export default function SetupPageContent() {
     ensureProjectLoaded,
     commitSetupToWorld,
     activeProjectId,
+    submitReferenceImageGeneration,
   } = useWorldBuilderStore();
 
   useEffect(() => {
@@ -115,6 +116,13 @@ export default function SetupPageContent() {
               onAdd={() => addCharacter({ name: "新角色", role: "配角", description: "描述角色的身份、动机和关系。", age: undefined })}
               onDelete={deleteCharacter}
               onUpdate={(id, patch) => updateCharacter(id, patch as Partial<Character>)}
+              onGenerateReference={(item) =>
+                submitReferenceImageGeneration(
+                  "character",
+                  item.id,
+                  `${item.name}，${(item as Character).role} ${item.description}`,
+                )
+              }
             />
             <EditableList
               title="地点"
@@ -123,6 +131,13 @@ export default function SetupPageContent() {
               onAdd={() => addLocation({ name: "新地点", type: "Temporary", description: "描述地点的视觉特征和剧情用途。" })}
               onDelete={deleteLocation}
               onUpdate={(id, patch) => updateLocation(id, patch as Partial<Location>)}
+              onGenerateReference={(item) =>
+                submitReferenceImageGeneration(
+                  "location",
+                  item.id,
+                  `${item.name}，${item.description}`,
+                )
+              }
             />
             <div className="lg:col-span-2">
               <Footer onBack={() => setStep(0)} onNext={() => setStep(2)} nextLabel="继续剧本确认" />
@@ -186,6 +201,7 @@ function EditableList({
   onAdd,
   onDelete,
   onUpdate,
+  onGenerateReference,
 }: {
   title: string;
   items: Array<Character | Location>;
@@ -193,6 +209,7 @@ function EditableList({
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, patch: Partial<Character> | Partial<Location>) => void;
+  onGenerateReference: (item: Character | Location) => void | Promise<string | null>;
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
@@ -221,8 +238,12 @@ function EditableList({
               <textarea className="min-h-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" value={item.description} onChange={(e) => onUpdate(item.id, { description: e.target.value })} />
             </div>
             <div className="mt-3 flex justify-between">
-              <button className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
-                <ImagePlus size={14} /> 参考图
+              <button
+                type="button"
+                onClick={() => void onGenerateReference(item)}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+              >
+                <Wand2 size={14} /> 生成参考图
               </button>
               <div className="flex gap-2">
                 <button className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500">

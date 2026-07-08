@@ -21,6 +21,7 @@ import { decomposeStory } from "@/lib/worldBuilderApi";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
+import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
 
 const sampleWorlds = [
   ...dramaPlayAssets.map((asset) => ({
@@ -103,6 +104,8 @@ export default function StudioHomePage() {
   const lastHiddenTitle = hiddenTitles.at(-1);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createWarning, setCreateWarning] = useState<string | null>(null);
+  const selectedLlmPresetId = useProviderSettingsStore((state) => state.selectedLlmPresetId);
 
   useEffect(() => {
     updateCreationSession({ prompt });
@@ -123,13 +126,38 @@ export default function StudioHomePage() {
   const handleCreate = async () => {
     setCreating(true);
     setCreateError(null);
+    setCreateWarning(null);
     updateCreationSession({ prompt });
     try {
-      const { result } = await decomposeStory({
-        prompt,
-        visualStyle: creationSession.visualStylePreset,
-        references: creationSession.references,
-      });
+      await useProviderSettingsStore.getState().loadFromServer();
+
+      const canReusePreview =
+        creationSession.lastDecompose &&
+        creationSession.prompt.trim() === prompt.trim();
+
+      let result = canReusePreview ? creationSession.lastDecompose : null;
+      let warning: string | undefined;
+      let source = canReusePreview ? "preview" : "";
+
+      if (!result) {
+        const response = await decomposeStory({
+          prompt,
+          visualStyle: creationSession.visualStylePreset,
+          references: creationSession.references,
+          llmPresetId: selectedLlmPresetId || undefined,
+        });
+        result = response.result;
+        warning = response.warning;
+        source = response.source;
+      }
+
+      if (source === "fallback") {
+        setCreateWarning(
+          warning ??
+            "LLM 不可用，仅填入原始描述。请在 Settings 选择可用的 LLM 预设，或确认 Ollama 已启动。",
+        );
+      }
+
       const projectId = createProjectFromSession({ decomposeResult: result });
       router.push(`/world-builder/setup?project=${projectId}`);
     } catch (error) {
@@ -192,6 +220,9 @@ export default function StudioHomePage() {
                   </div>
                   {createError && (
                     <p className="mt-2 text-left text-xs text-red-300">{createError}</p>
+                  )}
+                  {createWarning && (
+                    <p className="mt-2 text-left text-xs text-amber-200">{createWarning}</p>
                   )}
                   {creationSession.lastDecompose && (
                     <p className="mt-2 text-left text-xs text-white/50">

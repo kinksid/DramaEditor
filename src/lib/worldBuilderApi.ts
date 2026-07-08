@@ -70,6 +70,7 @@ export async function decomposeStory(input: {
   visualStyle?: string;
   references: CreationReference[];
   useFallback?: boolean;
+  llmPresetId?: string;
 }): Promise<{ result: DecomposeResult; source: string; warning?: string }> {
   const response = await fetch("/api/world-builder/decompose", {
     method: "POST",
@@ -78,6 +79,13 @@ export async function decomposeStory(input: {
   });
   return parseJson<{ result: DecomposeResult; source: string; warning?: string }>(response);
 }
+
+export {
+  submitVideoGenerationApi,
+  submitImageGenerationApi,
+  pollGenerationTaskApi,
+  suggestNodeChainApi,
+} from "@/lib/generationClient";
 
 export function filterDecomposePreview(
   result: DecomposeResult,

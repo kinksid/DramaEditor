@@ -34,6 +34,15 @@ export type Episode = {
   description?: string;
 };
 
+export type GenerationHistoryEntry = {
+  id: string;
+  kind: "image" | "video";
+  provider: string;
+  prompt: string;
+  url: string;
+  createdAt: string;
+};
+
 export type SceneNodeData = {
   id: string;
   episodeId: string;
@@ -42,6 +51,8 @@ export type SceneNodeData = {
   videoUrl?: string;
   firstFrameRef?: string;
   status: "empty" | "draft" | "generating" | "ready" | "failed";
+  generationHistory?: GenerationHistoryEntry[];
+  activeGenerationTaskId?: string;
 };
 
 export type InteractionOption = {
@@ -66,6 +77,8 @@ export type InteractionNodeData = {
   firstFrameRef?: string;
   lastFrameRef?: string;
   options: InteractionOption[];
+  generationHistory?: GenerationHistoryEntry[];
+  activeGenerationTaskId?: string;
 };
 
 export type EndingNodeData = {

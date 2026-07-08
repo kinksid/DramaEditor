@@ -5,6 +5,7 @@ import { ChevronDown, Loader2, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { decomposeStory, filterDecomposePreview } from "@/lib/worldBuilderApi";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
+import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
 import type { DecomposePreviewMode, DecomposeResult } from "@/types/worldBuilder";
 
 const MODE_OPTIONS: { id: DecomposePreviewMode; label: string }[] = [
@@ -21,6 +22,7 @@ type DecomposePreviewPanelProps = {
 
 export function DecomposePreviewPanel({ prompt, label = "自动拆解" }: DecomposePreviewPanelProps) {
   const { creationSession, setDecomposePreview } = useWorldBuilderStore();
+  const selectedLlmPresetId = useProviderSettingsStore((state) => state.selectedLlmPresetId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [mode, setMode] = useState<DecomposePreviewMode>("all");
@@ -40,6 +42,7 @@ export function DecomposePreviewPanel({ prompt, label = "自动拆解" }: Decomp
         prompt,
         visualStyle: creationSession.visualStylePreset,
         references: creationSession.references,
+        llmPresetId: selectedLlmPresetId || undefined,
       });
       setPreview(result);
       setWarning(apiWarning ?? null);

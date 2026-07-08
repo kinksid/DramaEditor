@@ -34,6 +34,9 @@ export function NodeEditModal({ open, onClose }: { open: boolean; onClose: () =>
     updateOption,
     addOption,
     deleteOption,
+    submitVideoGeneration,
+    submitSceneFirstFrame,
+    applyGenerationHistory,
   } = useWorldBuilderStore();
   const node = nodes.find((item) => item.id === selectedNodeId);
   const [tab, setTab] = useState<EditTab>("video");
@@ -70,17 +73,20 @@ export function NodeEditModal({ open, onClose }: { open: boolean; onClose: () =>
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (node.kind === "scene") {
-      updateNode(node.id, {
-        status: "ready",
-        videoUrl: node.data.videoUrl ?? `mock://video/${node.id}`,
-      });
+      await submitVideoGeneration(node.id);
     }
     if (node.kind === "interaction") {
       updateNode(node.id, {
         loopVideoUrl: node.data.loopVideoUrl ?? `mock://loop/${node.id}`,
       });
+    }
+  };
+
+  const handleGenerateFirstFrame = async () => {
+    if (node.kind === "scene") {
+      await submitSceneFirstFrame(node.id);
     }
   };
 
@@ -166,7 +172,13 @@ export function NodeEditModal({ open, onClose }: { open: boolean; onClose: () =>
           </section>
 
           {activeTab === "video" && (
-            <VideoGenerationEditor node={node} onUpdate={(patch) => updateNode(node.id, patch)} onGenerate={handleGenerate} />
+            <VideoGenerationEditor
+              node={node}
+              onUpdate={(patch) => updateNode(node.id, patch)}
+              onGenerate={handleGenerate}
+              onGenerateFirstFrame={handleGenerateFirstFrame}
+              onApplyHistory={(entryId) => applyGenerationHistory(node.id, entryId)}
+            />
           )}
 
           {activeTab === "interaction" && node.kind === "interaction" && (
@@ -316,21 +328,40 @@ function VideoGenerationEditor({
   node,
   onUpdate,
   onGenerate,
+  onGenerateFirstFrame,
+  onApplyHistory,
 }: {
   node: StoryNode;
   onUpdate: (patch: Partial<SceneNodeData>) => void;
-  onGenerate: () => void;
+  onGenerate: () => void | Promise<void>;
+  onGenerateFirstFrame: () => void | Promise<void>;
+  onApplyHistory: (entryId: string) => void;
 }) {
   const prompt = node.kind === "scene" ? node.data.prompt : node.kind === "interaction" ? node.data.instruction : node.data.description;
+  const history =
+    node.kind === "scene"
+      ? node.data.generationHistory
+      : node.kind === "interaction"
+        ? node.data.generationHistory
+        : undefined;
+  const isGenerating = node.kind === "scene" && node.data.status === "generating";
 
   return (
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs font-semibold tracking-[0.12em] text-ink">视频提示词</p>
-        <p className="text-xs text-slate-500">图片 0/9　视频 0/3　音频 0/3</p>
+        <p className="text-xs text-slate-500">
+          {isGenerating ? "生成中..." : node.kind === "scene" ? `状态 · ${node.data.status}` : "互动节点"}
+        </p>
       </div>
       <div className="rounded-2xl border border-slate-200 p-4">
-        <button className="grid size-14 place-items-center rounded-2xl border border-slate-200 text-2xl text-slate-400">
+        <button
+          type="button"
+          onClick={onGenerateFirstFrame}
+          disabled={node.kind !== "scene" || isGenerating}
+          className="grid size-14 place-items-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+          title="生成首帧"
+        >
           <ImagePlus size={22} />
         </button>
         <div className="my-4 border-t border-dashed border-slate-200" />
@@ -344,17 +375,37 @@ function VideoGenerationEditor({
         />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-            <span className="rounded-full border border-slate-200 px-3 py-2">全局参考</span>
-            <span className="rounded-full border border-slate-200 px-3 py-2">快速生成</span>
+            <span className="rounded-full border border-slate-200 px-3 py-2">角色参考已注入</span>
             <span className="rounded-full border border-slate-200 px-3 py-2">5s</span>
             <span className="rounded-full border border-slate-200 px-3 py-2">9:16</span>
-            <span className="rounded-full border border-slate-200 px-3 py-2">720p</span>
           </div>
-          <button onClick={onGenerate} className="grid size-10 place-items-center rounded-xl bg-ink text-white">
+          <button
+            onClick={() => void onGenerate()}
+            disabled={isGenerating}
+            className="grid size-10 place-items-center rounded-xl bg-ink text-white disabled:opacity-50"
+          >
             <ArrowUp size={17} />
           </button>
         </div>
       </div>
+      {history && history.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-ink">生成历史</p>
+          <div className="space-y-2">
+            {history.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onApplyHistory(entry.id)}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-left text-xs hover:bg-slate-50"
+              >
+                <span className="line-clamp-1">{entry.prompt}</span>
+                <span className="shrink-0 text-slate-400">{entry.kind} · {entry.provider}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

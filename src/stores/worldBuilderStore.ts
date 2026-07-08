@@ -21,6 +21,18 @@ import {
   syncProjectsFromWorkspace,
 } from "@/lib/worldBuilderProject";
 import { analyzeScript, buildStoryGraphFromAnalysis } from "@/lib/scriptAnalysis";
+import {
+  collectReferenceImageUrls,
+  applyCompletedTaskToState,
+  markNodeGenerating,
+  markNodeGenerationFailed,
+} from "@/lib/worldBuilderGeneration";
+import {
+  pollGenerationTaskApi,
+  submitImageGenerationApi,
+  submitVideoGenerationApi,
+  type PendingGenerationTask,
+} from "@/lib/generationClient";
 import type {
   Character,
   CreationReference,
@@ -62,6 +74,20 @@ type WorldBuilderState = {
   saveToLocal: () => void;
   resetWorld: () => void;
   generateAllMockVideos: () => void;
+  submitVideoGeneration: (nodeId: string) => Promise<string | null>;
+  submitReferenceImageGeneration: (
+    entityType: "character" | "location",
+    entityId: string,
+    prompt: string,
+  ) => Promise<string | null>;
+  submitSceneFirstFrame: (nodeId: string) => Promise<string | null>;
+  pollGenerationTasks: () => Promise<void>;
+  resetStaleGenerationStates: () => void;
+  applyGenerationHistory: (nodeId: string, entryId: string) => void;
+  createSuggestedNodes: (
+    suggestions: Array<{ kind: string; title: string; promptOrInstruction?: string }>,
+  ) => void;
+  pendingGenerationTasks: PendingGenerationTask[];
   validateStory: () => StoryValidationIssue[];
   publishStory: () => StoryValidationIssue[];
   updateWorld: (world: Partial<World>) => void;
@@ -338,21 +364,271 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           activeProjectId: seedProject.id,
         };
       }),
-      generateAllMockVideos: () =>
+      generateAllMockVideos: () => {
+        const scenes = get().nodes.filter((node) => node.kind === "scene");
+        void (async () => {
+          for (const scene of scenes) {
+            if (scene.kind !== "scene") continue;
+            if (scene.data.status === "ready" && scene.data.videoUrl) continue;
+            await get().submitVideoGeneration(scene.id);
+          }
+        })();
+      },
+      pendingGenerationTasks: [],
+      submitVideoGeneration: async (nodeId) => {
+        const state = get();
+        const node = state.nodes.find((item) => item.id === nodeId && item.kind === "scene");
+        if (!node || node.kind !== "scene") return null;
+        if (!node.data.prompt.trim()) return null;
+
+        const referenceImageUrls = collectReferenceImageUrls(state.characters, state.locations);
+        try {
+          const { taskId } = await submitVideoGenerationApi({
+            nodeId,
+            prompt: node.data.prompt,
+            style: state.setupDraft.visualStyle,
+            duration: 5,
+            aspectRatio: "9:16",
+            firstFrameRef: node.data.firstFrameRef,
+            referenceImageUrls,
+          });
+          const task: PendingGenerationTask = {
+            taskId,
+            kind: "video",
+            nodeId,
+            targetField: "videoUrl",
+            prompt: node.data.prompt,
+          };
+          set((current) => ({
+            nodes: markNodeGenerating(current.nodes, nodeId, taskId),
+            pendingGenerationTasks: [...current.pendingGenerationTasks, task],
+          }));
+          return taskId;
+        } catch {
+          set((current) => ({ nodes: markNodeGenerationFailed(current.nodes, nodeId) }));
+          return null;
+        }
+      },
+      submitReferenceImageGeneration: async (entityType, entityId, prompt) => {
+        const state = get();
+        const entity =
+          entityType === "character"
+            ? state.characters.find((item) => item.id === entityId)
+            : state.locations.find((item) => item.id === entityId);
+        if (!entity || !prompt.trim()) return null;
+
+        try {
+          const { taskId } = await submitImageGenerationApi({
+            prompt,
+            style: state.setupDraft.visualStyle,
+            targetField: "referenceImage",
+            targetEntityId: entityId,
+          });
+          const task: PendingGenerationTask = {
+            taskId,
+            kind: "image",
+            targetField: "referenceImage",
+            targetEntityId: entityId,
+            entityType,
+            prompt,
+          };
+          set((current) => ({
+            pendingGenerationTasks: [...current.pendingGenerationTasks, task],
+          }));
+          return taskId;
+        } catch {
+          return null;
+        }
+      },
+      submitSceneFirstFrame: async (nodeId) => {
+        const state = get();
+        const node = state.nodes.find((item) => item.id === nodeId && item.kind === "scene");
+        if (!node || node.kind !== "scene" || !node.data.prompt.trim()) return null;
+
+        const referenceImageUrls = collectReferenceImageUrls(state.characters, state.locations);
+        try {
+          const { taskId } = await submitImageGenerationApi({
+            nodeId,
+            prompt: node.data.prompt,
+            style: state.setupDraft.visualStyle,
+            referenceImageUrl: referenceImageUrls[0],
+            targetField: "firstFrameRef",
+          });
+          const task: PendingGenerationTask = {
+            taskId,
+            kind: "image",
+            nodeId,
+            targetField: "firstFrameRef",
+            prompt: node.data.prompt,
+          };
+          set((current) => ({
+            nodes: markNodeGenerating(current.nodes, nodeId, taskId),
+            pendingGenerationTasks: [...current.pendingGenerationTasks, task],
+          }));
+          return taskId;
+        } catch {
+          return null;
+        }
+      },
+      pollGenerationTasks: async () => {
+        const pending = get().pendingGenerationTasks;
+        if (pending.length === 0) {
+          return;
+        }
+
+        const remaining: PendingGenerationTask[] = [];
+        let nodes = get().nodes;
+        let characters = get().characters;
+        let locations = get().locations;
+
+        for (const task of pending) {
+          try {
+            const result = await pollGenerationTaskApi(task.taskId);
+            if (result.status === "completed") {
+              const url = result.resultUrl ?? result.videoUrl ?? result.imageUrl;
+              if (url) {
+                const applied = applyCompletedTaskToState(
+                  { nodes, characters, locations },
+                  task,
+                  url,
+                );
+                nodes = applied.nodes;
+                characters = applied.characters;
+                locations = applied.locations;
+                continue;
+              }
+              if (task.nodeId) {
+                nodes = markNodeGenerationFailed(nodes, task.nodeId);
+              }
+              continue;
+            }
+            if (result.status === "failed") {
+              if (task.nodeId) {
+                nodes = markNodeGenerationFailed(nodes, task.nodeId);
+              }
+              continue;
+            }
+            remaining.push(task);
+          } catch {
+            remaining.push(task);
+          }
+        }
+
+        set({ nodes, characters, locations, pendingGenerationTasks: remaining, lastSavedAt: new Date().toISOString() });
+      },
+      resetStaleGenerationStates: () =>
+        set((state) => ({
+          pendingGenerationTasks: [],
+          nodes: state.nodes.map((node) => {
+            if (node.kind === "scene" && (node.data.status === "generating" || node.data.activeGenerationTaskId)) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  status: node.data.videoUrl ? "ready" : "draft",
+                  activeGenerationTaskId: undefined,
+                },
+              };
+            }
+            if (node.kind === "interaction" && node.data.activeGenerationTaskId) {
+              return {
+                ...node,
+                data: { ...node.data, activeGenerationTaskId: undefined },
+              };
+            }
+            return node;
+          }),
+        })),
+      applyGenerationHistory: (nodeId, entryId) => {
         set((state) => ({
           nodes: state.nodes.map((node) => {
-            if (node.kind !== "scene") return node;
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: "ready",
-                videoUrl: node.data.videoUrl ?? `mock://video/${node.id}`,
-              },
-            };
+            if (node.id !== nodeId) return node;
+            const history =
+              node.kind === "scene"
+                ? node.data.generationHistory
+                : node.kind === "interaction"
+                  ? node.data.generationHistory
+                  : undefined;
+            const entry = history?.find((item) => item.id === entryId);
+            if (!entry) return node;
+            if (node.kind === "scene") {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  videoUrl: entry.kind === "video" ? entry.url : node.data.videoUrl,
+                  firstFrameRef: entry.kind === "image" ? entry.url : node.data.firstFrameRef,
+                  status: entry.kind === "video" ? "ready" : node.data.status,
+                },
+              };
+            }
+            if (node.kind === "interaction") {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  loopVideoUrl: entry.url,
+                },
+              };
+            }
+            return node;
           }),
-          lastSavedAt: new Date().toISOString(),
-        })),
+        }));
+      },
+      createSuggestedNodes: (suggestions) => {
+        const episodeId = get().selectedEpisodeId || get().episodes[0]?.id;
+        if (!episodeId) return;
+
+        let lastNodeId: string | undefined;
+        suggestions.forEach((suggestion, index) => {
+          if (suggestion.kind === "scene") {
+            get().addSceneNode(episodeId);
+            const createdId = get().selectedNodeId;
+            const created = get().nodes.find((node) => node.id === createdId);
+            if (created?.kind === "scene") {
+              get().updateNode(created.id, {
+                title: suggestion.title,
+                prompt: suggestion.promptOrInstruction ?? suggestion.title,
+              });
+              if (lastNodeId) {
+                get().connectNodes(lastNodeId, created.id, "继续");
+              }
+              lastNodeId = created.id;
+            }
+          } else if (suggestion.kind === "interaction") {
+            get().addInteractionNode(episodeId);
+            const createdId = get().selectedNodeId;
+            const created = get().nodes.find((node) => node.id === createdId);
+            if (created?.kind === "interaction") {
+              get().updateNode(created.id, {
+                title: suggestion.title,
+                instruction: suggestion.promptOrInstruction ?? suggestion.title,
+              });
+              if (lastNodeId) {
+                get().connectNodes(lastNodeId, created.id, "互动");
+              }
+              lastNodeId = created.id;
+            }
+          } else if (suggestion.kind === "ending") {
+            get().addEndingNode(episodeId);
+            const createdId = get().selectedNodeId;
+            const created = get().nodes.find((node) => node.id === createdId);
+            if (created?.kind === "ending") {
+              get().updateNode(created.id, {
+                title: suggestion.title,
+                description: suggestion.promptOrInstruction ?? suggestion.title,
+              });
+              if (lastNodeId) {
+                get().connectNodes(lastNodeId, created.id, "结局", "ending");
+              }
+              lastNodeId = created.id;
+            }
+          }
+          if (index === suggestions.length - 1) {
+            get().selectNode(lastNodeId);
+          }
+        });
+      },
       validateStory: () => {
         const state = get();
         const issues: StoryValidationIssue[] = [];
