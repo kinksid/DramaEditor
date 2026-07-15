@@ -1,22 +1,57 @@
 import type { ProviderConfig } from "../types";
+import type { LlmTaskProfile } from "./taskProfiles";
 import { requestJson } from "./fetchRetry";
+import { resolveOllamaContent } from "./parseResponse";
 
-export async function ollamaChatJson(
+export type OllamaChatInput = {
+  system: string;
+  user: string;
+  images?: string[];
+  think?: boolean;
+  format?: "json" | null;
+  options?: LlmTaskProfile["options"];
+  model?: string;
+};
+
+export type OllamaChatResult = {
+  content: string;
+  thinking?: string;
+  raw: string;
+};
+
+export async function ollamaChat(
   config: ProviderConfig["llm"],
-  input: { system: string; user: string; model?: string; think?: boolean },
-): Promise<string> {
+  input: OllamaChatInput,
+): Promise<OllamaChatResult> {
+  const userMessage: Record<string, unknown> = {
+    role: "user",
+    content: input.user,
+  };
+  if (input.images?.length) {
+    userMessage.images = input.images;
+  }
+
   const body: Record<string, unknown> = {
     model: input.model ?? config.model,
     stream: false,
-    format: "json",
     messages: [
       { role: "system", content: input.system },
-      { role: "user", content: input.user },
+      userMessage,
     ],
   };
 
-  if (input.think === false || config.think === false) {
+  if (input.format === "json") {
+    body.format = "json";
+  }
+
+  if (input.think !== undefined) {
+    body.think = input.think;
+  } else if (config.think === false) {
     body.think = false;
+  }
+
+  if (input.options && Object.keys(input.options).length > 0) {
+    body.options = input.options;
   }
 
   const baseUrl = config.baseUrl.replace(/\/v1$/, "").replace(/\/$/, "");
@@ -29,29 +64,45 @@ export async function ollamaChatJson(
       timeoutMs: 10000,
     });
   } catch {
-    // 预热失败不阻断，后续 chat 仍会重试。
+    // 预热失败不阻断
   }
 
-  const { status, data } = await requestJson<{ message?: { content?: string } }>(
-    `${baseUrl}/api/chat`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      label: `Ollama chat (${config.model})`,
-      retries: 4,
-      delayMs: 1500,
-      timeoutMs: 180000,
-    },
-  );
+  const { status, data } = await requestJson<{
+    message?: { content?: string; thinking?: string };
+  }>(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    label: `Ollama chat (${config.model})`,
+    retries: 4,
+    delayMs: 1500,
+    timeoutMs: 180000,
+  });
 
   if (status < 200 || status >= 300) {
     throw new Error(`Ollama 请求失败 (${status})`);
   }
 
-  const raw = data.message?.content?.trim();
-  if (!raw) throw new Error("Ollama 返回空内容");
-  return raw;
+  const resolved = resolveOllamaContent(data.message ?? {});
+  if (!resolved.content) throw new Error("Ollama 返回空内容");
+  return resolved;
+}
+
+/** @deprecated 使用 ollamaChat */
+export async function ollamaChatJson(
+  config: ProviderConfig["llm"],
+  input: { system: string; user: string; model?: string; think?: boolean; format?: "json" | null; options?: LlmTaskProfile["options"]; images?: string[] },
+): Promise<string> {
+  const result = await ollamaChat(config, {
+    system: input.system,
+    user: input.user,
+    model: input.model,
+    think: input.think,
+    format: input.format ?? "json",
+    options: input.options,
+    images: input.images,
+  });
+  return result.content;
 }
 
 export async function testOllamaConnection(config: ProviderConfig["llm"]): Promise<string> {

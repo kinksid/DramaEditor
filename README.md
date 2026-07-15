@@ -33,8 +33,9 @@
 ### Settings (`/world-builder/settings`)
 
 - **LLM**：从预设下拉选择接入点（局域网 Qwen3.6 / 本机 Ollama / OpenAI 云端）
+- **LLM 任务提示词**：为拆解、建链、参考图分析、文生图扩写分别配置 System 与提示词定义
 - **图像 / 视频**：切换 ComfyUI / Seedance 供应商，配置 workflow 路径
-- 连接测试、API Key 本地持久化
+- 连接测试、单任务测试、恢复默认、API Key 本地持久化
 
 ## 技术栈
 
@@ -101,6 +102,18 @@ ENABLE_MOCK_GENERATION=true
 
 **用户选择**：打开 Settings → LLM Tab，从下拉列表选择接入点。选择会持久化到 localStorage，刷新后自动恢复。
 
+**LLM 任务提示词**（Settings → LLM 任务提示词）：
+
+| 任务 ID | 用途 | 输出 |
+|---------|------|------|
+| `decompose` | Home 创意拆解 | JSON |
+| `suggest_chain` | Canvas 建链建议 | JSON |
+| `reference_analyze` | 参考图视觉分析 | 文本 |
+| `txt2img_prompt` | 文生图前英文扩写（可开关） | 文本 |
+| `health_check` | 连接测试 | JSON |
+
+提示词定义占位符：`#` = 主输入（custom_prompt），`@` = 次要输入。配置见 [`config/llm-task-profiles.json`](config/llm-task-profiles.json)。
+
 **使用该 LLM 的 API**：
 
 - `POST /api/world-builder/decompose` — Home 创意拆解（支持 `llmPresetId`）
@@ -121,7 +134,8 @@ ENABLE_MOCK_GENERATION=true
 
 ```
 config/
-└── llm-presets.json           # LLM 接入预设
+├── llm-presets.json           # LLM 接入预设
+└── llm-task-profiles.json     # LLM 任务 system / 提示词定义
 workflows/                     # ComfyUI workflow 模板
 src/
 ├── app/
@@ -154,6 +168,8 @@ src/
 | `npm run lint` | ESLint |
 | `npm run inspect:hourly` | Playwright 功能巡检 |
 | `node scripts/testProviderApis.mjs` | Provider API 冒烟测试（8 项） |
+| `node scripts/testLlmTaskProfiles.mjs` | LLM 任务配置 API 测试 |
+| `npm run test:unit` | preset / response 单元测试 |
 | `npx tsx scripts/testLlmBootstrap.mjs` | LLM 预设探测诊断 |
 | `npx tsx scripts/testDecompose.mjs` | 完整拆解链路测试 |
 

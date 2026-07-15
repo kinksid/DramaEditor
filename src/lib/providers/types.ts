@@ -2,6 +2,33 @@ export type LlmProviderId = "ollama" | "openai";
 export type ImageProviderId = "comfyui" | "seedance";
 export type VideoProviderId = "comfyui" | "seedance" | "mock";
 
+export type LlmTaskId =
+  | "decompose"
+  | "suggest_chain"
+  | "reference_analyze"
+  | "txt2img_prompt"
+  | "health_check";
+
+export type LlmTaskProfile = {
+  id: LlmTaskId;
+  label: string;
+  description: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  presetMode: "direct" | "template";
+  responseFormat: "json" | "text";
+  think: boolean;
+  enabled?: boolean;
+  options: {
+    temperature?: number;
+    top_k?: number;
+    top_p?: number;
+    min_p?: number;
+    num_predict?: number;
+    seed?: number;
+  };
+};
+
 export type LlmPresetPublic = {
   id: string;
   label: string;
@@ -37,6 +64,7 @@ export type ProviderConfig = {
     model: string;
     apiKey: string;
     think?: boolean;
+    taskProfiles?: Partial<Record<LlmTaskId, LlmTaskProfile>>;
   };
   image: {
     provider: ImageProviderId;
@@ -44,6 +72,13 @@ export type ProviderConfig = {
     apiKey: string;
     comfyWorkflowTxt2Img: string;
     comfyWorkflowImg2Img: string;
+    /** 文生图 Z-Image workflow 参数（FluxResolution + 宽高 Int） */
+    comfyZimageAspectRatio: string;
+    comfyZimageWidth: number;
+    comfyZimageHeight: number;
+    /** 角色设定专用 ComfyUI（可与场景图像分离，如远程机器） */
+    comfyCharacterBaseUrl: string;
+    comfyWorkflowCharacter: string;
   };
   video: {
     provider: VideoProviderId;
@@ -56,10 +91,11 @@ export type ProviderConfig = {
 };
 
 export type PublicProviderConfig = {
-  llm: Omit<ProviderConfig["llm"], "apiKey"> & {
+  llm: Omit<ProviderConfig["llm"], "apiKey" | "taskProfiles"> & {
     hasApiKey: boolean;
     presetId?: string | null;
     presets?: LlmPresetPublic[];
+    taskProfiles?: LlmTaskProfile[];
   };
   image: Omit<ProviderConfig["image"], "apiKey"> & { hasApiKey: boolean };
   video: Omit<ProviderConfig["video"], "apiKey"> & { hasApiKey: boolean };
@@ -72,6 +108,7 @@ export type ProviderConfigPatch = {
   video?: Partial<ProviderConfig["video"]>;
   enableMockGeneration?: boolean;
   llmPresetId?: string;
+  llmTaskProfiles?: Partial<Record<LlmTaskId, LlmTaskProfile>>;
 };
 
 export type ImageGenerateInput = {
@@ -80,7 +117,9 @@ export type ImageGenerateInput = {
   referenceImageUrl?: string;
   width?: number;
   height?: number;
+  aspectRatio?: string;
   style?: string;
+  seed?: number;
 };
 
 export type VideoGenerateInput = {

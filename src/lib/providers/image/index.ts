@@ -5,7 +5,12 @@ import { submitSeedanceImageTask } from "./seedance";
 
 export async function submitImageGeneration(
   input: ImageGenerateInput,
-  meta?: { nodeId?: string; targetField?: string; targetEntityId?: string },
+  meta?: {
+    nodeId?: string;
+    targetField?: string;
+    targetEntityId?: string;
+    entityType?: "character" | "location";
+  },
 ) {
   const config = getProviderConfig();
   if (config.image.provider === "seedance") {
@@ -14,5 +19,5 @@ export async function submitImageGeneration(
   return submitComfyImageTask(input, meta);
 }
 
-export { analyzeImageWithComfy, testComfyImageConnection } from "./comfyui";
+export { analyzeImageWithComfy, testComfyCharacterConnection, testComfyImageConnection } from "./comfyui";
 export { testSeedanceImageConnection } from "./seedance";

@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Download, Eye, EyeOff, Key, Loader2, RotateCcw, Smartphone, Zap } from "lucide-react";
+import { Check, Download, Eye, EyeOff, Key, Loader2, RotateCcw, Smartphone, XCircle, Zap } from "lucide-react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { PublicProviderConfig } from "@/lib/providers/types";
+import { LlmTaskProfilesPanel } from "@/components/world-builder/LlmTaskProfilesPanel";
 
 type ProviderTab = "llm" | "image" | "video";
+type ActionFeedback = { message: string; kind: "success" | "error" } | null;
+
+function isSuccessMessage(message: string) {
+  return /成功|正常|已保存|已恢复|已导出|已复制|完成|连接正常|执行成功/.test(message);
+}
+
+function isZimageWorkflowPath(workflowPath: string) {
+  return workflowPath.replace(/\\/g, "/").includes("文生图Zimage");
+}
 
 export default function SettingsPage() {
   const { t } = useI18n();
@@ -26,6 +36,7 @@ export default function SettingsPage() {
     loadFromServer,
     saveToServer,
     testProvider,
+    llmTaskProfiles,
   } = useProviderSettingsStore();
 
   const [showAdvancedLlm, setShowAdvancedLlm] = useState(false);
@@ -37,11 +48,31 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingCharacter, setTestingCharacter] = useState(false);
   const [bundleId, setBundleId] = useState("com.dramaplay.app");
   const [entryMode, setEntryMode] = useState("episode-list");
   const [videoStrategy, setVideoStrategy] = useState("remote");
-  const [notice, setNotice] = useState<string | null>(null);
+  const [providerFeedback, setProviderFeedback] = useState<ActionFeedback>(null);
+  const [characterFeedback, setCharacterFeedback] = useState<ActionFeedback>(null);
+  const [llmFeedback, setLlmFeedback] = useState<ActionFeedback>(null);
+  const [dataFeedback, setDataFeedback] = useState<ActionFeedback>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [zimageAspectRatios, setZimageAspectRatios] = useState<string[]>([]);
+  const [zimageOptionsSource, setZimageOptionsSource] = useState<string>("");
+  const [loadingZimageOptions, setLoadingZimageOptions] = useState(false);
+
+  const setScopedNotice = (
+    scope: "provider" | "character" | "llm" | "data",
+    message: string,
+    kind?: "success" | "error",
+  ) => {
+    const resolvedKind = kind ?? (isSuccessMessage(message) ? "success" : "error");
+    const feedback = { message, kind: resolvedKind };
+    if (scope === "provider") setProviderFeedback(feedback);
+    else if (scope === "character") setCharacterFeedback(feedback);
+    else if (scope === "llm") setLlmFeedback(feedback);
+    else setDataFeedback(feedback);
+  };
 
   useEffect(() => {
     loadFromServer()
@@ -52,13 +83,51 @@ export default function SettingsPage() {
           setSelectedLlmPresetId(current.llm.presetId);
         }
       })
-      .catch((error) => setNotice(error instanceof Error ? error.message : "加载配置失败"))
+      .catch((error) =>
+        setScopedNotice("provider", error instanceof Error ? error.message : "加载配置失败", "error"),
+      )
       .finally(() => setLoading(false));
   }, [loadFromServer, setSelectedLlmPresetId]);
 
   useEffect(() => {
     if (config && !draft) setDraft(config);
   }, [config, draft]);
+
+  useEffect(() => {
+    if (tab !== "image" || !draft?.image.baseUrl) return;
+    if (!isZimageWorkflowPath(draft.image.comfyWorkflowTxt2Img)) {
+      setZimageAspectRatios([]);
+      setZimageOptionsSource("");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      baseUrl: draft.image.baseUrl,
+      workflow: draft.image.comfyWorkflowTxt2Img,
+    });
+    setLoadingZimageOptions(true);
+    fetch(`/api/world-builder/providers/comfy/zimage-options?${params}`)
+      .then(async (response) => {
+        const data = (await response.json()) as {
+          supported?: boolean;
+          aspectRatios?: string[];
+          source?: string;
+        };
+        if (!data.supported || !data.aspectRatios?.length) return;
+        const ratios = [...data.aspectRatios];
+        const current = draft.image.comfyZimageAspectRatio;
+        if (current && !ratios.includes(current)) {
+          ratios.unshift(current);
+        }
+        setZimageAspectRatios(ratios);
+        setZimageOptionsSource(data.source ?? "");
+      })
+      .catch(() => {
+        setZimageAspectRatios([]);
+        setZimageOptionsSource("");
+      })
+      .finally(() => setLoadingZimageOptions(false));
+  }, [tab, draft?.image.baseUrl, draft?.image.comfyWorkflowTxt2Img, draft?.image.comfyZimageAspectRatio]);
 
   const downloadAppJson = () => {
     const blob = new Blob([exportAppJson()], { type: "application/json" });
@@ -68,7 +137,7 @@ export default function SettingsPage() {
     a.download = "drama-play-app-story.json";
     a.click();
     URL.revokeObjectURL(url);
-    setNotice(t("settings.noticeExported"));
+    setScopedNotice("data", t("settings.noticeExported"));
   };
 
   const downloadBackup = () => {
@@ -79,7 +148,7 @@ export default function SettingsPage() {
     a.download = "drama-editor-production-backup.json";
     a.click();
     URL.revokeObjectURL(url);
-    setNotice(t("settings.noticeBackup"));
+    setScopedNotice("data", t("settings.noticeBackup"));
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -98,11 +167,17 @@ export default function SettingsPage() {
     try {
       const saved = await saveToServer({
         llmPresetId: selectedLlmPresetId || undefined,
+        llmTaskProfiles,
         image: {
           provider: draft.image.provider,
           baseUrl: draft.image.baseUrl,
           comfyWorkflowTxt2Img: draft.image.comfyWorkflowTxt2Img,
           comfyWorkflowImg2Img: draft.image.comfyWorkflowImg2Img,
+          comfyZimageAspectRatio: draft.image.comfyZimageAspectRatio,
+          comfyZimageWidth: draft.image.comfyZimageWidth,
+          comfyZimageHeight: draft.image.comfyZimageHeight,
+          comfyCharacterBaseUrl: draft.image.comfyCharacterBaseUrl,
+          comfyWorkflowCharacter: draft.image.comfyWorkflowCharacter,
         },
         video: {
           provider: draft.video.provider,
@@ -113,9 +188,9 @@ export default function SettingsPage() {
         enableMockGeneration: draft.enableMockGeneration,
       });
       setDraft(saved);
-      setNotice("供应商配置已保存");
+      setScopedNotice("provider", "供应商配置已保存", "success");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "保存失败");
+      setScopedNotice("provider", error instanceof Error ? error.message : "保存失败", "error");
     } finally {
       setSaving(false);
     }
@@ -138,15 +213,46 @@ export default function SettingsPage() {
 
   const activeLlmPreset = draft?.llm.presets?.find((item) => item.id === selectedLlmPresetId);
 
-  const handleTest = async () => {
-    setTesting(true);
+  const handleTest = async (imageEndpoint?: "general" | "character") => {
+    const feedbackScope = imageEndpoint === "character" ? "character" : "provider";
+    if (imageEndpoint === "character") {
+      setTestingCharacter(true);
+      setCharacterFeedback(null);
+    } else {
+      setTesting(true);
+      setProviderFeedback(null);
+    }
     try {
-      const message = await testProvider(tab);
-      setNotice(message);
+      const result = await testProvider(tab, {
+        imageEndpoint,
+        imageConfig:
+          tab === "image" && draft
+            ? {
+                provider: draft.image.provider,
+                baseUrl: draft.image.baseUrl,
+                comfyWorkflowTxt2Img: draft.image.comfyWorkflowTxt2Img,
+                comfyWorkflowImg2Img: draft.image.comfyWorkflowImg2Img,
+                comfyZimageAspectRatio: draft.image.comfyZimageAspectRatio,
+                comfyZimageWidth: draft.image.comfyZimageWidth,
+                comfyZimageHeight: draft.image.comfyZimageHeight,
+                comfyCharacterBaseUrl: draft.image.comfyCharacterBaseUrl,
+                comfyWorkflowCharacter: draft.image.comfyWorkflowCharacter,
+              }
+            : undefined,
+      });
+      setScopedNotice(feedbackScope, result.message, "success");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "连接测试失败");
+      setScopedNotice(
+        feedbackScope,
+        error instanceof Error ? error.message : "连接测试失败",
+        "error",
+      );
     } finally {
-      setTesting(false);
+      if (imageEndpoint === "character") {
+        setTestingCharacter(false);
+      } else {
+        setTesting(false);
+      }
     }
   };
 
@@ -223,10 +329,15 @@ export default function SettingsPage() {
                           <p className="mt-1 text-xs text-red-600">{activeLlmPreset.error}</p>
                         )}
                         <p className="mt-1 text-xs text-slate-500">
-                          用于：创意拆解、Canvas 建链建议
+                          用于：创意拆解、Canvas 建链、参考图分析、文生图扩写
                         </p>
                       </div>
                     )}
+                    <LlmTaskProfilesPanel
+                      profiles={draft.llm.taskProfiles ?? []}
+                      onFeedback={(feedback) => setLlmFeedback(feedback)}
+                    />
+                    {llmFeedback && <InlineFeedback feedback={llmFeedback} />}
                     <button
                       type="button"
                       onClick={() => setShowAdvancedLlm(!showAdvancedLlm)}
@@ -260,25 +371,134 @@ export default function SettingsPage() {
                         })
                       }
                     />
-                    <TextField
-                      label="Base URL"
-                      value={draft.image.baseUrl}
-                      onChange={(value) => updateDraft({ image: { ...draft.image, baseUrl: value } })}
-                    />
-                    <TextField
-                      label="ComfyUI txt2img workflow"
-                      value={draft.image.comfyWorkflowTxt2Img}
-                      onChange={(value) =>
-                        updateDraft({ image: { ...draft.image, comfyWorkflowTxt2Img: value } })
-                      }
-                    />
-                    <TextField
-                      label="ComfyUI img2img workflow"
-                      value={draft.image.comfyWorkflowImg2Img}
-                      onChange={(value) =>
-                        updateDraft({ image: { ...draft.image, comfyWorkflowImg2Img: value } })
-                      }
-                    />
+
+                    {draft.image.provider === "comfyui" && (
+                      <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-800">场景图像（本机）</h3>
+                          <p className="mt-1 text-xs text-slate-500">
+                            用于场景首帧、地点参考图等常规 txt2img / img2img 生成。
+                          </p>
+                        </div>
+                        <TextField
+                          label="Base URL"
+                          value={draft.image.baseUrl}
+                          onChange={(value) => updateDraft({ image: { ...draft.image, baseUrl: value } })}
+                        />
+                        <TextField
+                          label="ComfyUI txt2img workflow"
+                          value={draft.image.comfyWorkflowTxt2Img}
+                          onChange={(value) =>
+                            updateDraft({ image: { ...draft.image, comfyWorkflowTxt2Img: value } })
+                          }
+                        />
+                        <TextField
+                          label="ComfyUI img2img workflow"
+                          value={draft.image.comfyWorkflowImg2Img}
+                          onChange={(value) =>
+                            updateDraft({ image: { ...draft.image, comfyWorkflowImg2Img: value } })
+                          }
+                        />
+
+                        {isZimageWorkflowPath(draft.image.comfyWorkflowTxt2Img) && (
+                          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-slate-800">Z-Image 文生图参数</h4>
+                              <p className="mt-1 text-xs text-slate-500">
+                                对应 workflow 节点：Text(30) · FluxResolution(24) · Int 宽(4) · Int 高(29)
+                                {loadingZimageOptions && " · 正在从 ComfyUI 读取比例预设…"}
+                                {!loadingZimageOptions && zimageOptionsSource && (
+                                  <> · 比例列表来源：{zimageOptionsSource === "comfyui" ? "ComfyUI 节点" : "本地预设"}</>
+                                )}
+                              </p>
+                            </div>
+                            <SelectField
+                              label="FluxResolution · aspect_ratio"
+                              value={draft.image.comfyZimageAspectRatio}
+                              options={
+                                zimageAspectRatios.length > 0
+                                  ? zimageAspectRatios.map((ratio) => ({ value: ratio, label: ratio }))
+                                  : [
+                                      {
+                                        value: draft.image.comfyZimageAspectRatio,
+                                        label: draft.image.comfyZimageAspectRatio,
+                                      },
+                                    ]
+                              }
+                              onChange={(value) =>
+                                updateDraft({ image: { ...draft.image, comfyZimageAspectRatio: value } })
+                              }
+                            />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <NumberField
+                                label="Int · 宽（节点 4）"
+                                value={draft.image.comfyZimageWidth}
+                                onChange={(value) =>
+                                  updateDraft({ image: { ...draft.image, comfyZimageWidth: value } })
+                                }
+                              />
+                              <NumberField
+                                label="Int · 高（节点 29）"
+                                value={draft.image.comfyZimageHeight}
+                                onChange={(value) =>
+                                  updateDraft({ image: { ...draft.image, comfyZimageHeight: value } })
+                                }
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {draft.image.provider === "comfyui" && (
+                      <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                        <div>
+                          <h3 className="text-sm font-semibold text-indigo-900">角色设定工作流（远程）</h3>
+                          <p className="mt-1 text-xs text-indigo-700/80">
+                            角色三视图参考图走独立 ComfyUI 实例与工作流，可与本机场景图像分开部署。
+                          </p>
+                        </div>
+                        <TextField
+                          label="角色设定 Base URL"
+                          value={draft.image.comfyCharacterBaseUrl}
+                          onChange={(value) =>
+                            updateDraft({ image: { ...draft.image, comfyCharacterBaseUrl: value } })
+                          }
+                        />
+                        <TextField
+                          label="角色设定 workflow"
+                          value={draft.image.comfyWorkflowCharacter}
+                          onChange={(value) =>
+                            updateDraft({ image: { ...draft.image, comfyWorkflowCharacter: value } })
+                          }
+                        />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleTest("character")}
+                            disabled={testingCharacter}
+                            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-900 hover:bg-indigo-50 disabled:opacity-60"
+                          >
+                            {testingCharacter ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Zap size={16} />
+                            )}
+                            测试角色设定连接
+                          </button>
+                          {characterFeedback && <InlineFeedback feedback={characterFeedback} compact />}
+                        </div>
+                      </div>
+                    )}
+
+                    {draft.image.provider === "seedance" && (
+                      <TextField
+                        label="Base URL"
+                        value={draft.image.baseUrl}
+                        onChange={(value) => updateDraft({ image: { ...draft.image, baseUrl: value } })}
+                      />
+                    )}
+
                     <SecretField
                       label="API Key"
                       value={imageApiKey}
@@ -344,23 +564,26 @@ export default function SettingsPage() {
                   </>
                 )}
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <button
-                    onClick={handleSaveProviders}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                    保存配置
-                  </button>
-                  <button
-                    onClick={handleTest}
-                    disabled={testing}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    {testing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                    测试连接
-                  </button>
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={handleSaveProviders}
+                      disabled={saving}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                      保存配置
+                    </button>
+                    <button
+                      onClick={() => handleTest()}
+                      disabled={testing}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      {testing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                      测试连接
+                    </button>
+                  </div>
+                  {providerFeedback && <InlineFeedback feedback={providerFeedback} />}
                 </div>
               </>
             )}
@@ -431,9 +654,9 @@ export default function SettingsPage() {
                 <RotateCcw size={16} /> {t("settings.resetProject")}
               </button>
             </div>
-            {notice && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
-                <Check size={16} /> {notice}
+            {dataFeedback && (
+              <div className="mt-4">
+                <InlineFeedback feedback={dataFeedback} />
               </div>
             )}
             {copied && (
@@ -445,6 +668,55 @@ export default function SettingsPage() {
         </section>
       </div>
     </WorldBuilderLayout>
+  );
+}
+
+function InlineFeedback({
+  feedback,
+  compact = false,
+}: {
+  feedback: ActionFeedback;
+  compact?: boolean;
+}) {
+  if (!feedback) return null;
+  const isSuccess = feedback.kind === "success";
+  return (
+    <div
+      className={cn(
+        "inline-flex max-w-full items-start gap-2 rounded-xl border px-4 py-2.5 text-sm",
+        compact ? "flex-1 min-w-[12rem]" : "w-full",
+        isSuccess
+          ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+          : "border-red-100 bg-red-50 text-red-700",
+      )}
+    >
+      {isSuccess ? <Check size={16} className="mt-0.5 shrink-0" /> : <XCircle size={16} className="mt-0.5 shrink-0" />}
+      <span className="break-words">{feedback.message}</span>
+    </div>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label>
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <input
+        type="number"
+        min={64}
+        step={8}
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm"
+      />
+    </label>
   );
 }
 

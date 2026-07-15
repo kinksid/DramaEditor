@@ -1,15 +1,103 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
-export async function comfyHealthCheck(baseUrl: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/system_stats`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    return response.ok;
-  } catch {
-    return false;
+export type ComfyImageOutput = {
+  filename: string;
+  subfolder?: string;
+  type?: string;
+};
+
+export type ComfyHistoryEntry = {
+  outputs?: Record<string, { images?: ComfyImageOutput[] }>;
+  status?: {
+    status_str?: string;
+    messages?: unknown[];
+  };
+};
+
+export function buildComfyViewUrl(baseUrl: string, image: ComfyImageOutput): string {
+  const query = new URLSearchParams({
+    filename: image.filename,
+    subfolder: image.subfolder ?? "",
+    type: image.type ?? "output",
+  });
+  return `${baseUrl.replace(/\/$/, "")}/view?${query.toString()}`;
+}
+
+export type ComfyHealthResult = {
+  ok: boolean;
+  baseUrl: string;
+  statusCode?: number;
+  error?: string;
+};
+
+function normalizeComfyBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/$/, "");
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `http://${trimmed}`;
+}
+
+function describeFetchError(baseUrl: string, error: unknown): string {
+  if (error instanceof Error) {
+    const cause = error.cause as { code?: string } | undefined;
+    const code = cause?.code ?? (error as NodeJS.ErrnoException).code;
+    if (code === "ECONNREFUSED") {
+      return `无法连接 ${baseUrl}（连接被拒绝）。请确认 ComfyUI 已启动、已开启 --listen，且 IP/端口正确。`;
+    }
+    if (code === "ENOTFOUND") {
+      return `无法解析主机 ${baseUrl}，请检查 Base URL 是否填写正确。`;
+    }
+    if (code === "ETIMEDOUT" || error.name === "TimeoutError" || /timed out/i.test(error.message)) {
+      return `连接 ${baseUrl} 超时。请确认局域网可达、防火墙已放行 TCP 8188，且 Comfy Desktop 允许外部访问。`;
+    }
+    if (/fetch failed/i.test(error.message)) {
+      return `无法访问 ${baseUrl}。请确认 ComfyUI 在线且本机能 ping 通该地址。`;
+    }
+    return `${baseUrl}：${error.message}`;
   }
+  return `无法连接 ${baseUrl}`;
+}
+
+export async function comfyHealthCheckDetailed(
+  baseUrl: string,
+  timeoutMs = 12_000,
+): Promise<ComfyHealthResult> {
+  const normalized = normalizeComfyBaseUrl(baseUrl);
+  if (!normalized) {
+    return { ok: false, baseUrl: baseUrl.trim(), error: "Base URL 为空" };
+  }
+
+  const endpoints = ["/system_stats", "/queue"];
+  let lastError: string | undefined;
+  let lastStatus: number | undefined;
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(`${normalized}${endpoint}`, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      lastStatus = response.status;
+      if (response.ok) {
+        return { ok: true, baseUrl: normalized, statusCode: response.status };
+      }
+      lastError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastError = describeFetchError(normalized, error);
+    }
+  }
+
+  return {
+    ok: false,
+    baseUrl: normalized,
+    statusCode: lastStatus,
+    error: lastError ?? `无法访问 ${normalized}`,
+  };
+}
+
+export async function comfyHealthCheck(baseUrl: string, timeoutMs = 12_000): Promise<boolean> {
+  const result = await comfyHealthCheckDetailed(baseUrl, timeoutMs);
+  return result.ok;
 }
 
 export async function loadWorkflowTemplate(relativePath: string): Promise<Record<string, unknown>> {
@@ -53,11 +141,18 @@ export function injectImageFilename(workflow: Record<string, unknown>, filename:
   return next;
 }
 
-export async function submitComfyPrompt(baseUrl: string, workflow: Record<string, unknown>) {
+export async function submitComfyPrompt(
+  baseUrl: string,
+  workflow: Record<string, unknown>,
+  clientId?: string,
+) {
   const response = await fetch(`${baseUrl.replace(/\/$/, "")}/prompt`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: workflow }),
+    body: JSON.stringify({
+      prompt: workflow,
+      ...(clientId ? { client_id: clientId } : {}),
+    }),
   });
   if (!response.ok) {
     const text = await response.text();
@@ -69,32 +164,63 @@ export async function submitComfyPrompt(baseUrl: string, workflow: Record<string
 }
 
 export async function pollComfyHistory(baseUrl: string, promptId: string, timeoutMs = 120000) {
+  const entry = await pollComfyHistoryEntry(baseUrl, promptId, { timeoutMs });
+  const images = entry.outputs
+    ? Object.values(entry.outputs).flatMap((output) => output.images ?? [])
+    : [];
+  if (images.length === 0) {
+    throw new Error("ComfyUI 未返回图像输出");
+  }
+  return buildComfyViewUrl(baseUrl, images[0]);
+}
+
+export async function pollComfyHistoryEntry(
+  baseUrl: string,
+  promptId: string,
+  options?: {
+    timeoutMs?: number;
+    pollIntervalMs?: number;
+    outputNodeId?: string;
+    onTick?: (elapsedMs: number) => void;
+  },
+): Promise<ComfyHistoryEntry> {
+  const timeoutMs = options?.timeoutMs ?? 120_000;
+  const pollIntervalMs = options?.pollIntervalMs ?? 1500;
   const started = Date.now();
+
   while (Date.now() - started < timeoutMs) {
+    options?.onTick?.(Date.now() - started);
+
     const response = await fetch(`${baseUrl.replace(/\/$/, "")}/history/${promptId}`);
     if (!response.ok) {
-      await sleep(1500);
+      await sleep(pollIntervalMs);
       continue;
     }
-    const history = (await response.json()) as Record<
-      string,
-      { outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }> }
-    >;
+
+    const history = (await response.json()) as Record<string, ComfyHistoryEntry>;
     const entry = history[promptId];
-    const images = entry?.outputs
-      ? Object.values(entry.outputs).flatMap((output) => output.images ?? [])
-      : [];
-    if (images.length > 0) {
-      const image = images[0];
-      const query = new URLSearchParams({
-        filename: image.filename,
-        subfolder: image.subfolder ?? "",
-        type: image.type ?? "output",
-      });
-      return `${baseUrl.replace(/\/$/, "")}/view?${query.toString()}`;
+    if (!entry) {
+      await sleep(pollIntervalMs);
+      continue;
     }
-    await sleep(1500);
+
+    if (entry.status?.status_str === "error") {
+      const detail = JSON.stringify(entry.status.messages ?? []).slice(0, 500);
+      throw new Error(`ComfyUI 执行失败: ${detail}`);
+    }
+
+    const outputs = entry.outputs ?? {};
+    const targetImages = options?.outputNodeId
+      ? (outputs[options.outputNodeId]?.images ?? [])
+      : Object.values(outputs).flatMap((output) => output.images ?? []);
+
+    if (targetImages.length > 0) {
+      return entry;
+    }
+
+    await sleep(pollIntervalMs);
   }
+
   throw new Error("ComfyUI 生成超时");
 }
 

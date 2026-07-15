@@ -36,7 +36,13 @@ await test("GET providers/config", async () => {
   const { status, json } = await req("GET", "/api/world-builder/providers/config");
   if (status !== 200) throw new Error(`status ${status}`);
   if (!json.llm?.provider) throw new Error("missing llm.provider");
-  return { llm: json.llm.provider, video: json.video.provider, mock: json.enableMockGeneration };
+  if (!json.llm?.taskProfiles?.length) throw new Error("missing llm.taskProfiles");
+  return {
+    llm: json.llm.provider,
+    video: json.video.provider,
+    mock: json.enableMockGeneration,
+    taskCount: json.llm.taskProfiles.length,
+  };
 });
 
 await test("PUT providers/config video=mock", async () => {
@@ -119,9 +125,12 @@ await test("POST agent suggest-chain fallback tolerant", async () => {
   return { status, hasNodes: Array.isArray(json.nodes), error: json.error };
 });
 
-await test("POST providers/test llm", async () => {
-  const { status, json } = await req("POST", "/api/world-builder/providers/test", { target: "llm" });
-  return { status, message: json.message, error: json.error };
+await test("POST providers/test llm health_check", async () => {
+  const { status, json } = await req("POST", "/api/world-builder/providers/test", {
+    target: "llm",
+    llmTaskId: "health_check",
+  });
+  return { status, message: json.message, content: json.content?.slice(0, 60), error: json.error };
 });
 
 const failed = results.filter((r) => !r.ok);

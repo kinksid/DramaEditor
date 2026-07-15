@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Sidebar } from "@/components/world-builder/Sidebar";
 import { WorldAgentPanel } from "@/components/world-builder/WorldAgentPanel";
+import { useProjectSync } from "@/hooks/useProjectSync";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
 
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function WorldBuilderLayout({ children, agentMode = "world" }: Props) {
+  useProjectSync();
   const pendingGenerationTasks = useWorldBuilderStore((state) => state.pendingGenerationTasks);
   const pollGenerationTasks = useWorldBuilderStore((state) => state.pollGenerationTasks);
   const hasHydrated = useWorldBuilderStore((state) => state.hasHydrated);

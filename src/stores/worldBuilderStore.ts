@@ -20,6 +20,12 @@ import {
   projectToWorkspace,
   syncProjectsFromWorkspace,
 } from "@/lib/worldBuilderProject";
+import {
+  getOrCreateSyncClientId,
+  pullSharedState,
+  pushSharedState,
+} from "@/lib/worldBuilderSyncClient";
+import type { SharedWorldBuilderState } from "@/types/worldBuilderSync";
 import { analyzeScript, buildStoryGraphFromAnalysis } from "@/lib/scriptAnalysis";
 import {
   collectReferenceImageUrls,
@@ -56,7 +62,7 @@ import type {
 
 const STORE_VERSION = 6;
 
-type WorldBuilderState = {
+export type WorldBuilderState = {
   world: World;
   characters: Character[];
   locations: Location[];
@@ -143,10 +149,19 @@ type WorldBuilderState = {
   setDecomposePreview: (result: DecomposeResult) => void;
   createProjectFromSession: (options?: { decomposeResult?: DecomposeResult }) => string;
   switchProject: (id: string) => void;
+  deleteProject: (id: string) => void;
   listProjects: () => WorldProject[];
   commitSetupToWorld: () => void;
   generateStoryGraphFromScript: (options?: { force?: boolean }) => boolean;
   ensureProjectLoaded: (projectId?: string) => boolean;
+  serverRevision: number;
+  syncClientId: string;
+  syncInitialized: boolean;
+  _remoteApplying: boolean;
+  initServerSync: () => Promise<void>;
+  pullFromServer: () => Promise<void>;
+  schedulePush: () => void;
+  pushToServer: (force?: boolean) => Promise<void>;
 };
 
 type PersistedWorldBuilderState = Pick<
@@ -269,6 +284,8 @@ const workspaceSlice = (state: WorldBuilderState) => ({
 });
 
 const MAX_HISTORY = 50;
+const PUSH_DEBOUNCE_MS = 1500;
+let pushDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 type HistorySnapshot = Pick<
   WorldBuilderState,
@@ -302,6 +319,10 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       activeProjectId: seedProject.id,
       creationSession: emptyCreationSession(),
       hasHydrated: false,
+      serverRevision: 0,
+      syncClientId: "",
+      syncInitialized: false,
+      _remoteApplying: false,
       historyIndex: -1,
       historyLength: 0,
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
@@ -423,6 +444,7 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             style: state.setupDraft.visualStyle,
             targetField: "referenceImage",
             targetEntityId: entityId,
+            entityType,
           });
           const task: PendingGenerationTask = {
             taskId,
@@ -1412,6 +1434,37 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           ...projectToWorkspace(project),
         });
       },
+      deleteProject: (id) => {
+        const state = get();
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        const nextProjects = syncedProjects.filter((item) => item.id !== id);
+        if (nextProjects.length === syncedProjects.length) return;
+
+        if (state.activeProjectId === id) {
+          const fallback = nextProjects[0];
+          if (fallback) {
+            set({
+              projects: nextProjects,
+              activeProjectId: fallback.id,
+              ...projectToWorkspace(fallback),
+            });
+          } else {
+            const blank = buildBlankProject(state.creationSession);
+            set({
+              projects: [],
+              activeProjectId: "",
+              ...projectToWorkspace(blank),
+            });
+          }
+          return;
+        }
+
+        set({ projects: nextProjects });
+      },
       listProjects: () => {
         const state = get();
         const synced = syncProjectsFromWorkspace(
@@ -1505,6 +1558,211 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
         if (!project) return false;
         get().switchProject(targetId);
         return true;
+      },
+      initServerSync: async () => {
+        if (get().syncInitialized) return;
+        const clientId = getOrCreateSyncClientId();
+        set({ syncClientId: clientId });
+
+        const applySharedState = (shared: SharedWorldBuilderState) => {
+          const state = get();
+          const activeId = shared.activeProjectId || shared.projects[0]?.id || "";
+          const project =
+            shared.projects.find((item) => item.id === activeId) ?? shared.projects[0];
+
+          if (!project) {
+            set({
+              _remoteApplying: true,
+              projects: structuredClone(shared.projects),
+              activeProjectId: activeId,
+              creationSession: structuredClone(shared.creationSession),
+              serverRevision: shared.revision,
+            });
+            queueMicrotask(() => set({ _remoteApplying: false }));
+            return;
+          }
+
+          const workspace = projectToWorkspace(project);
+          const selectedNodeId =
+            state.selectedNodeId && workspace.nodes.some((node) => node.id === state.selectedNodeId)
+              ? state.selectedNodeId
+              : undefined;
+          const selectedEpisodeId = workspace.episodes.some(
+            (episode) => episode.id === state.selectedEpisodeId,
+          )
+            ? state.selectedEpisodeId
+            : workspace.selectedEpisodeId;
+
+          set({
+            _remoteApplying: true,
+            projects: structuredClone(shared.projects),
+            activeProjectId: activeId,
+            creationSession: structuredClone(shared.creationSession),
+            serverRevision: shared.revision,
+            ...workspace,
+            selectedNodeId,
+            selectedEpisodeId,
+          });
+          queueMicrotask(() => set({ _remoteApplying: false }));
+        };
+
+        try {
+          const result = await pullSharedState(get().serverRevision);
+          const local = get();
+
+          if (result.status === "updated") {
+            const server = result.state;
+            if (server.revision === 0 && local.projects.length > 0) {
+              await get().pushToServer(true);
+            } else if (server.revision > 0) {
+              applySharedState(server);
+            }
+          } else if (local.projects.length > 0 && local.serverRevision === 0) {
+            await get().pushToServer(true);
+          }
+        } catch (error) {
+          console.warn("[sync] init failed", error);
+        }
+
+        set({ syncInitialized: true });
+      },
+      pullFromServer: async () => {
+        if (!get().syncInitialized || get()._remoteApplying) return;
+
+        const applySharedState = (shared: SharedWorldBuilderState) => {
+          const state = get();
+          const activeId = shared.activeProjectId || shared.projects[0]?.id || "";
+          const project =
+            shared.projects.find((item) => item.id === activeId) ?? shared.projects[0];
+
+          if (!project) {
+            set({
+              _remoteApplying: true,
+              projects: structuredClone(shared.projects),
+              activeProjectId: activeId,
+              creationSession: structuredClone(shared.creationSession),
+              serverRevision: shared.revision,
+            });
+            queueMicrotask(() => set({ _remoteApplying: false }));
+            return;
+          }
+
+          const workspace = projectToWorkspace(project);
+          const selectedNodeId =
+            state.selectedNodeId && workspace.nodes.some((node) => node.id === state.selectedNodeId)
+              ? state.selectedNodeId
+              : undefined;
+          const selectedEpisodeId = workspace.episodes.some(
+            (episode) => episode.id === state.selectedEpisodeId,
+          )
+            ? state.selectedEpisodeId
+            : workspace.selectedEpisodeId;
+
+          set({
+            _remoteApplying: true,
+            projects: structuredClone(shared.projects),
+            activeProjectId: activeId,
+            creationSession: structuredClone(shared.creationSession),
+            serverRevision: shared.revision,
+            ...workspace,
+            selectedNodeId,
+            selectedEpisodeId,
+          });
+          queueMicrotask(() => set({ _remoteApplying: false }));
+        };
+
+        try {
+          const result = await pullSharedState(get().serverRevision);
+          if (result.status !== "updated") return;
+          const server = result.state;
+          if (server.revision === get().serverRevision) return;
+          applySharedState(server);
+        } catch (error) {
+          console.warn("[sync] pull failed", error);
+        }
+      },
+      schedulePush: () => {
+        if (!get().syncInitialized || get()._remoteApplying) return;
+        if (pushDebounceTimer) clearTimeout(pushDebounceTimer);
+        pushDebounceTimer = setTimeout(() => {
+          pushDebounceTimer = null;
+          void get().pushToServer();
+        }, PUSH_DEBOUNCE_MS);
+      },
+      pushToServer: async (force = false) => {
+        const state = get();
+        if (!state.syncInitialized) return;
+        if (state._remoteApplying && !force) return;
+
+        const clientId = state.syncClientId || getOrCreateSyncClientId();
+        const projects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+
+        const applySharedState = (shared: SharedWorldBuilderState) => {
+          const current = get();
+          const activeId = shared.activeProjectId || shared.projects[0]?.id || "";
+          const project =
+            shared.projects.find((item) => item.id === activeId) ?? shared.projects[0];
+
+          if (!project) {
+            set({
+              _remoteApplying: true,
+              projects: structuredClone(shared.projects),
+              activeProjectId: activeId,
+              creationSession: structuredClone(shared.creationSession),
+              serverRevision: shared.revision,
+              syncClientId: clientId,
+            });
+            queueMicrotask(() => set({ _remoteApplying: false }));
+            return;
+          }
+
+          const workspace = projectToWorkspace(project);
+          const selectedNodeId =
+            current.selectedNodeId &&
+            workspace.nodes.some((node) => node.id === current.selectedNodeId)
+              ? current.selectedNodeId
+              : undefined;
+          const selectedEpisodeId = workspace.episodes.some(
+            (episode) => episode.id === current.selectedEpisodeId,
+          )
+            ? current.selectedEpisodeId
+            : workspace.selectedEpisodeId;
+
+          set({
+            _remoteApplying: true,
+            projects: structuredClone(shared.projects),
+            activeProjectId: activeId,
+            creationSession: structuredClone(shared.creationSession),
+            serverRevision: shared.revision,
+            syncClientId: clientId,
+            ...workspace,
+            selectedNodeId,
+            selectedEpisodeId,
+          });
+          queueMicrotask(() => set({ _remoteApplying: false }));
+        };
+
+        try {
+          const result = await pushSharedState({
+            expectedRevision: state.serverRevision,
+            clientId,
+            activeProjectId: state.activeProjectId,
+            projects,
+            creationSession: state.creationSession,
+          });
+
+          if (result.ok) {
+            set({ serverRevision: result.state.revision, syncClientId: clientId });
+          } else {
+            applySharedState(result.conflict);
+          }
+        } catch (error) {
+          console.warn("[sync] push failed", error);
+        }
       },
       importStoryJson: (jsonStr) => {
         try {
@@ -1623,21 +1881,33 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           // Update setupDraft script if available
           const script = parsed.setupDraft?.script || parsed.script || "";
 
-          set({
-            episodes: importedEpisodes.length > 0 ? importedEpisodes : state.episodes,
-            nodes: withAutoLayout(
-              importedEpisodes.length > 0 ? importedEpisodes : state.episodes,
-              importedNodes.length > 0 ? importedNodes : state.nodes,
-            ),
-            edges: importedEdges.length > 0 ? importedEdges : state.edges,
-            selectedEpisodeId: importedEpisodes[0]?.id ?? state.selectedEpisodeId,
-            setupDraft: {
-              ...state.setupDraft,
-              script: script || state.setupDraft.script,
-              worldTitle: parsed.world?.title ?? state.setupDraft.worldTitle,
-              worldDescription: parsed.world?.description ?? state.setupDraft.worldDescription,
-            },
-            lastSavedAt: new Date().toISOString(),
+          set((current) => {
+            const nextState = {
+              ...current,
+              episodes: importedEpisodes.length > 0 ? importedEpisodes : current.episodes,
+              nodes: withAutoLayout(
+                importedEpisodes.length > 0 ? importedEpisodes : current.episodes,
+                importedNodes.length > 0 ? importedNodes : current.nodes,
+              ),
+              edges: importedEdges.length > 0 ? importedEdges : current.edges,
+              selectedEpisodeId: importedEpisodes[0]?.id ?? current.selectedEpisodeId,
+              setupDraft: {
+                ...current.setupDraft,
+                script: script || current.setupDraft.script,
+                worldTitle: parsed.world?.title ?? current.setupDraft.worldTitle,
+                worldDescription:
+                  parsed.world?.description ?? current.setupDraft.worldDescription,
+              },
+              lastSavedAt: new Date().toISOString(),
+            };
+            return {
+              ...nextState,
+              projects: syncProjectsFromWorkspace(
+                current.projects,
+                current.activeProjectId,
+                workspaceSlice(nextState),
+              ),
+            };
           });
 
           return {

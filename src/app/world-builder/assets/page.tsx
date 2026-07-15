@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import {
   Camera, Film, ImagePlus, MapPin, MousePointerClick,
-  PenLine, Plus, Search, Trash2, Upload, UserRound, Wand2, X,
+  PenLine, Plus, Search, Trash2, Upload, UserRound, Wand2, X, ZoomIn,
 } from "lucide-react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { cn } from "@/lib/utils";
 import { locationTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
+import { uploadReference } from "@/lib/worldBuilderApi";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Character, InteractionNodeData, Location, SceneNodeData, StoryNode } from "@/types/worldBuilder";
 import type { ReactNode } from "react";
@@ -49,6 +50,9 @@ export default function AssetsPage() {
   const [locForm, setLocForm] = useState<Location>({ id: "", name: "", type: "Master", description: "" });
   const [videoForm, setVideoForm] = useState<{ id: string; title: string; prompt: string; videoUrl: string; status: SceneNodeData["status"] }>({ id: "", title: "", prompt: "", videoUrl: "", status: "empty" });
   const [intForm, setIntForm] = useState<{ id: string; title: string; instruction: string }>({ id: "", title: "", instruction: "" });
+  const [preview, setPreview] = useState<{ src: string; alt: string; kind?: "image" | "video" } | null>(null);
+  const cardUploadTargetRef = useRef<{ type: "character" | "location"; id: string } | null>(null);
+  const cardFileInputRef = useRef<HTMLInputElement>(null);
 
   const openCharPanel = (c?: Character) => { setCharForm(c ?? { id: "", name: "", role: "", description: "" }); setPanel({ mode: "char", id: c?.id }); };
   const openLocPanel = (l?: Location) => { setLocForm(l ?? { id: "", name: "", type: "Master", description: "" }); setPanel({ mode: "loc", id: l?.id }); };
@@ -101,6 +105,62 @@ export default function AssetsPage() {
     r.readAsDataURL(file);
   };
 
+  const triggerCardUpload = (type: "character" | "location", id: string) => {
+    cardUploadTargetRef.current = { type, id };
+    cardFileInputRef.current?.click();
+  };
+
+  const applyReferenceImage = (
+    type: "character" | "location",
+    id: string,
+    referenceImage: string,
+    name: string,
+  ) => {
+    if (type === "character") updateCharacter(id, { referenceImage });
+    else updateLocation(id, { referenceImage });
+    setNotice(`已更新「${name}」参考图`);
+  };
+
+  const handleCardImageUpload = async (file: File) => {
+    const target = cardUploadTargetRef.current;
+    if (!target) return;
+
+    const entity =
+      target.type === "character"
+        ? characters.find((item) => item.id === target.id)
+        : locations.find((item) => item.id === target.id);
+    const entityName = entity?.name ?? "素材";
+
+    try {
+      const uploaded = await uploadReference(file, "assets");
+      if (uploaded.kind === "image") {
+        applyReferenceImage(target.type, target.id, uploaded.url, entityName);
+        return;
+      }
+    } catch {
+      /* fallback to local data URL */
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      applyReferenceImage(target.type, target.id, reader.result, entityName);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePreviewAreaClick = (
+    referenceImage: string | undefined,
+    alt: string,
+    uploadTarget?: { type: "character" | "location"; id: string },
+  ) => {
+    if (referenceImage) {
+      setPreview({ src: referenceImage, alt, kind: "image" });
+      return;
+    }
+    if (uploadTarget) triggerCardUpload(uploadTarget.type, uploadTarget.id);
+  };
+
   /* Filters */
   const filteredChars = characters.filter((c) => `${c.name} ${c.role} ${c.description}`.toLowerCase().includes(query.toLowerCase()));
   const filteredLocs = locations.filter((l) => `${l.name} ${l.description}`.toLowerCase().includes(query.toLowerCase()));
@@ -109,6 +169,17 @@ export default function AssetsPage() {
 
   return (
     <WorldBuilderLayout>
+      <input
+        ref={cardFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleCardImageUpload(file);
+          e.target.value = "";
+        }}
+      />
       <div className="mx-auto max-w-7xl px-6 py-6">
         {/* Header card with dot-matrix */}
         <section className="relative overflow-hidden rounded-[28px] border border-pink-100 bg-white p-6 shadow-soft">
@@ -156,19 +227,54 @@ export default function AssetsPage() {
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredChars.map((c) => (
               <article key={c.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
-                <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
-                  {c.referenceImage ? (
-                    <img src={c.referenceImage} alt={c.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-white/40"><Camera size={40} /></div>
-                  )}
-                  {/* Overlay buttons */}
-                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
-                    <button onClick={() => void handleGenerateReference("character", c)} className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent" title="AI 生成参考图"><Wand2 size={14} /></button>
-                    <button onClick={() => openCharPanel(c)} className="ml-1 grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
-                    <button onClick={() => { deleteCharacter(c.id); setNotice(`已删除「${c.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
-                  </div>
-                </div>
+                <AssetPreviewFrame
+                  imageUrl={c.referenceImage}
+                  alt={c.name}
+                  placeholder={<Camera size={40} />}
+                  emptyHint="点击上传参考图"
+                  filledHint="点击预览"
+                  onAreaClick={() =>
+                    handlePreviewAreaClick(c.referenceImage, c.name, {
+                      type: "character",
+                      id: c.id,
+                    })
+                  }
+                >
+                  <AssetCardActions>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleGenerateReference("character", c);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent"
+                      title="AI 生成参考图"
+                    >
+                      <Wand2 size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openCharPanel(c);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"
+                    >
+                      <PenLine size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteCharacter(c.id);
+                        setNotice(`已删除「${c.name}」`);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </AssetCardActions>
+                </AssetPreviewFrame>
                 <div className="p-4">
                   <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{c.role || "未设定"}</span>
                   <h3 className="mt-2 text-lg font-semibold">{c.name}</h3>
@@ -188,18 +294,55 @@ export default function AssetsPage() {
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredLocs.map((l) => (
               <article key={l.id} className="group overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-soft hover:shadow-md hover:border-pink-300 transition-all">
-                <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d_48%,#5a3d6e)]">
-                  {l.referenceImage ? (
-                    <img src={l.referenceImage} alt={l.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-white/40"><MapPin size={40} /></div>
-                  )}
-                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
-                    <button onClick={() => void handleGenerateReference("location", l)} className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent" title="AI 生成参考图"><Wand2 size={14} /></button>
-                    <button onClick={() => openLocPanel(l)} className="ml-1 grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
-                    <button onClick={() => { deleteLocation(l.id); setNotice(`已删除「${l.name}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
-                  </div>
-                </div>
+                <AssetPreviewFrame
+                  imageUrl={l.referenceImage}
+                  alt={l.name}
+                  gradient="bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d_48%,#5a3d6e)]"
+                  placeholder={<MapPin size={40} />}
+                  emptyHint="点击上传参考图"
+                  filledHint="点击预览"
+                  onAreaClick={() =>
+                    handlePreviewAreaClick(l.referenceImage, l.name, {
+                      type: "location",
+                      id: l.id,
+                    })
+                  }
+                >
+                  <AssetCardActions>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleGenerateReference("location", l);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent"
+                      title="AI 生成参考图"
+                    >
+                      <Wand2 size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLocPanel(l);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"
+                    >
+                      <PenLine size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteLocation(l.id);
+                        setNotice(`已删除「${l.name}」`);
+                      }}
+                      className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </AssetCardActions>
+                </AssetPreviewFrame>
                 <div className="p-4">
                   <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{locationTypeLabels[l.type]}</span>
                   <h3 className="mt-2 text-lg font-semibold">{l.name}</h3>
@@ -226,9 +369,11 @@ export default function AssetsPage() {
                   )}
                   <span className={cn("absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                     s.data.status === "ready" ? "bg-emerald-500/90 text-white" : s.data.status === "generating" ? "bg-blue-500/90 text-white" : "bg-white/90 text-slate-700")}>{statusLabels[s.data.status]}</span>
-                  <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 to-transparent">
-                    <button onClick={() => openVideoPanel(s as StoryNode & { kind: "scene" })} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
-                    <button onClick={() => { useWorldBuilderStore.getState().deleteNode(s.id); setNotice(`已删除「${s.data.title}」`); }} className="ml-1 grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
+                  <div className="absolute bottom-0 right-0 z-10 p-3 opacity-0 transition group-hover:opacity-100">
+                    <AssetCardActions>
+                      <button onClick={() => openVideoPanel(s as StoryNode & { kind: "scene" })} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
+                      <button onClick={() => { useWorldBuilderStore.getState().deleteNode(s.id); setNotice(`已删除「${s.data.title}」`); }} className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
+                    </AssetCardActions>
                   </div>
                 </div>
                 <div className="p-4">
@@ -288,6 +433,42 @@ export default function AssetsPage() {
           <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-emerald-700 shadow-soft" onClick={() => setNotice(null)}>{notice}</div>
         )}
       </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-6 backdrop-blur-sm"
+          onClick={() => setPreview(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            className="absolute right-6 top-6 grid size-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            aria-label="关闭预览"
+          >
+            <X size={20} />
+          </button>
+          <div
+            className="relative max-h-[90vh] max-w-5xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {preview.kind === "video" ? (
+              <video
+                src={preview.src}
+                controls
+                autoPlay
+                className="max-h-[90vh] max-w-full rounded-2xl shadow-2xl"
+              />
+            ) : (
+              <img
+                src={preview.src}
+                alt={preview.alt}
+                className="max-h-[90vh] max-w-full rounded-2xl object-contain shadow-2xl"
+              />
+            )}
+            <p className="mt-3 text-center text-sm text-white/80">{preview.alt}</p>
+          </div>
+        </div>
+      )}
 
       {/* === Slide-in Edit Panel === */}
       {panel && (
@@ -397,5 +578,71 @@ export default function AssetsPage() {
         </>
       )}
     </WorldBuilderLayout>
+  );
+}
+
+function AssetCardActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex gap-1 rounded-xl bg-gradient-to-t from-black/40 to-transparent p-1">
+      {children}
+    </div>
+  );
+}
+
+function AssetPreviewFrame({
+  imageUrl,
+  alt,
+  placeholder,
+  emptyHint,
+  filledHint,
+  onAreaClick,
+  gradient = "bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]",
+  aspectClass = "aspect-[4/3]",
+  children,
+}: {
+  imageUrl?: string;
+  alt: string;
+  placeholder: ReactNode;
+  emptyHint: string;
+  filledHint: string;
+  onAreaClick: () => void;
+  gradient?: string;
+  aspectClass?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={cn("relative overflow-hidden", aspectClass, gradient)}>
+      <button
+        type="button"
+        onClick={onAreaClick}
+        title={imageUrl ? filledHint : emptyHint}
+        className="group/preview relative z-0 block h-full w-full cursor-pointer text-left"
+      >
+        {imageUrl ? (
+          <>
+            <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover/preview:bg-black/20 group-hover/preview:opacity-100">
+              <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white">
+                <ZoomIn size={14} /> {filledHint}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex h-full items-center justify-center text-white/40">{placeholder}</div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover/preview:bg-black/15 group-hover/preview:opacity-100">
+              <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white">
+                <Upload size={14} /> {emptyHint}
+              </span>
+            </div>
+          </>
+        )}
+      </button>
+      {children && (
+        <div className="absolute bottom-0 right-0 z-10 p-3 opacity-0 transition group-hover:opacity-100">
+          {children}
+        </div>
+      )}
+    </div>
   );
 }

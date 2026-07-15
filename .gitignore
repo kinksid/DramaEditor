@@ -9,4 +9,5 @@ dist
 
 .cursor/
 public/uploads
+data/
 .DS_Store

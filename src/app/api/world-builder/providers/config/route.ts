@@ -16,7 +16,7 @@ export async function GET() {
     await bootstrapLlmPresets();
   }
   const config = getProviderConfig();
-  return NextResponse.json(toPublicProviderConfig(config));
+  return NextResponse.json(await toPublicProviderConfig(config));
 }
 
 export async function PUT(request: Request) {
@@ -27,13 +27,24 @@ export async function PUT(request: Request) {
       await applyLlmPreset(patch.llmPresetId);
     }
 
-    const { llmPresetId: _llmPresetId, ...rest } = patch;
-    if (rest.llm || rest.image || rest.video || rest.enableMockGeneration !== undefined) {
-      setRuntimeProviderConfig(rest);
+    const { llmPresetId: _llmPresetId, llmTaskProfiles, ...rest } = patch;
+    const configPatch: ProviderConfigPatch = { ...rest };
+    if (llmTaskProfiles) {
+      configPatch.llmTaskProfiles = llmTaskProfiles;
+    }
+
+    if (
+      configPatch.llm ||
+      configPatch.image ||
+      configPatch.video ||
+      configPatch.enableMockGeneration !== undefined ||
+      configPatch.llmTaskProfiles
+    ) {
+      setRuntimeProviderConfig(configPatch);
     }
 
     const config = getProviderConfig();
-    return NextResponse.json(toPublicProviderConfig(config));
+    return NextResponse.json(await toPublicProviderConfig(config));
   } catch (error) {
     const message = error instanceof Error ? error.message : "保存配置失败";
     return NextResponse.json({ error: message }, { status: 500 });

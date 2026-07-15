@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   buildDecomposeUserPrompt,
   callLlmDecompose,
+  collectReferenceImagesBase64,
   fallbackDecompose,
 } from "@/lib/worldBuilderServer";
 import { getProviderConfig } from "@/lib/providers/config";
@@ -37,7 +38,8 @@ export async function POST(request: Request) {
 
     try {
       await ensureActiveLlmPreset(body.llmPresetId ?? null);
-      const result = await callLlmDecompose(userPrompt);
+      const images = await collectReferenceImagesBase64(references);
+      const result = await callLlmDecompose(userPrompt, { images });
       const provider = getProviderConfig().llm.provider;
       return NextResponse.json({ result, source: provider });
     } catch (llmError) {

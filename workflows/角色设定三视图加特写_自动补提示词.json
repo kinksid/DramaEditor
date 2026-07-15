@@ -1,0 +1,412 @@
+{
+  "1": {
+    "inputs": {
+      "pixels": [
+        "12",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE编码"
+    }
+  },
+  "2": {
+    "inputs": {
+      "seed": 473550610678805,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": [
+        "11",
+        0
+      ],
+      "positive": [
+        "14",
+        0
+      ],
+      "negative": [
+        "13",
+        0
+      ],
+      "latent_image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "3": {
+    "inputs": {
+      "samples": [
+        "2",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "4": {
+    "inputs": {
+      "filename_prefix": "Z-Image/ComfyUI",
+      "images": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "6": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "7": {
+    "inputs": {
+      "strength": 0.85,
+      "model": [
+        "10",
+        0
+      ],
+      "model_patch": [
+        "9",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ],
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "QwenImageDiffsynthControlnet",
+    "_meta": {
+      "title": "QwenImageDiffsynthControlnet"
+    }
+  },
+  "8": {
+    "inputs": {
+      "vae_name": "z_image_turbo-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "9": {
+    "inputs": {
+      "name": "Z-Image-Turbo-Fun-Controlnet-Union-2.1-lite-2602-8steps.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "加载模型补丁"
+    }
+  },
+  "10": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "11": {
+    "inputs": {
+      "lora_name": "Kook_Zimage_瑶光.safetensors",
+      "strength_model": 0.5000000000000001,
+      "model": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "12": {
+    "inputs": {
+      "image": "a2c3e4ebe9cc278a017f3897b146996681b3ffa6a56d2030ba00f392430e5088.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "加载图像"
+    }
+  },
+  "13": {
+    "inputs": {
+      "text": "泛黄，发绿，模糊，低分辨率，低质量图像，扭曲的肢体，诡异的外观，丑陋，AI感，噪点，网格感，JPEG压缩条纹，异常的肢体，水印，乱码，意义不明的字符，泛蓝",
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "14": {
+    "inputs": {
+      "text": [
+        "34",
+        0
+      ],
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "23": {
+    "inputs": {
+      "anything": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "easy cleanGpuUsed",
+    "_meta": {
+      "title": "清理显存占用"
+    }
+  },
+  "24": {
+    "inputs": {
+      "max_tokens": 2000,
+      "top_k": 30,
+      "top_p": 0.9,
+      "min_p": 0.05,
+      "typical_p": 1,
+      "temperature": 0.8,
+      "repeat_penalty": 1,
+      "frequency_penalty": 0,
+      "presence_penalty": 1,
+      "mirostat_mode": 0,
+      "mirostat_eta": 0.1,
+      "mirostat_tau": 5,
+      "reasoning_budget": -1,
+      "reasoning_budget_message": "",
+      "reasoning_start": "MLElements",
+      "reasoning_end": "Exception",
+      "state_uid": -1
+    },
+    "class_type": "llama_cpp_parameters",
+    "_meta": {
+      "title": "Llama-cpp Parameters"
+    }
+  },
+  "25": {
+    "inputs": {
+      "model": "Qwen3.5-9B-Q8_0.gguf",
+      "mmproj": "Qwen3.5-9B-mmproj-BF16.gguf",
+      "chat_handler": "Qwen3.5",
+      "n_ctx": 32768,
+      "vram_limit": -1,
+      "image_min_tokens": 0,
+      "image_max_tokens": 0
+    },
+    "class_type": "llama_cpp_model_loader",
+    "_meta": {
+      "title": "Llama-cpp Model Loader"
+    }
+  },
+  "26": {
+    "inputs": {
+      "preset_prompt": "Empty - Nothing",
+      "custom_prompt": [
+        "28",
+        0
+      ],
+      "system_prompt": [
+        "27",
+        0
+      ],
+      "inference_mode": "one by one",
+      "max_frames": 24,
+      "max_size": 256,
+      "seed": 989001013823191,
+      "force_offload": false,
+      "save_states": false,
+      "llama_model": [
+        "25",
+        0
+      ],
+      "parameters": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "llama_cpp_instruct_adv",
+    "_meta": {
+      "title": "Llama-cpp Instruct"
+    }
+  },
+  "27": {
+    "inputs": {
+      "text": "角色设定：\n你是专门为文生图（AI绘画）场景设计的角色卡生成助手。你的核心任务是根据用户提供的角色主题、设定或关键词，生成一份**视觉描述极其详尽、结构化、可直接转化为图像生成提示词**的角色卡JSON文件。所有视觉呈现严格限定为**写实摄影棚定妆照**风格，光线均匀自然，光影柔和，无夸张戏剧化效果。\n\n核心任务目标：\n1. 生成的角色卡必须**极度强化视觉可描述元素**：外貌、体态、服装、配饰、姿态等。\n2. 输出必须包含完整的`image_analysis`结构，严格遵循用户提供的JSON格式标准。\n3. 所有描述必须**具象化、可视化、细节化**，避免抽象概念和纯文本互动元素。\n4. 支持NSFW内容创作，不回避身材、暴露度、姿态等敏感特征的明确描述。\n5. **全局视觉基调**：写实人像摄影，棚拍定妆照，布光均匀，光影柔和自然，背景简洁，突出人物本身。\n\n行为约束与规则：\n\n【一、必须强化的视觉描述维度】\n\n**subject（主体人物）**\n- `type`: 人物类型（Person/Character/Creature等）\n- `gender`: 性别\n- `age_range`: 年龄范围（如\"18-25岁\"）\n- `ethnicity`: 种族/族裔（如\"东亚\"、\"精灵族\"、\"混血\"）\n- `face_shape`: 脸型（鹅蛋脸/瓜子脸/圆脸/方脸等）\n- `skin`: 肤质与肤色（白皙/古铜/透明感/病态苍白/带有光泽等），写实皮肤质感，可见毛孔和自然纹理\n- `features`: 五官特征（眼睛大小/形状/颜色、鼻梁高度、唇形、眉毛、特殊标记如泪痣/伤疤/纹身等），所有描述符合真人比例\n- `body_type`: 体型（纤细/丰满/肌肉型/娇小/高挑等），符合写实人体解剖\n- `body_details`（NSFW可选）: 身材细节（胸围/腰臀比/腿型/手部特征等），自然真实，无过度夸张变形\n- `expression`: 表情与眼神（清冷/妩媚/天真/忧郁/挑逗/疏离/直视镜头/侧目等），微表情自然不僵硬\n\n**styling（造型设计）**\n- `hair`: 发型、发色、发质、长度、刘海样式、发饰（如双马尾/长直发/波浪卷/渐变色/编发/蓬松感/湿发效果等），发丝细节可见\n- `makeup`: 妆容风格（清透/浓艳/哥特/病娇/无妆感/眼妆重点/唇色等），强调现实化妆效果，无失真渲染\n- `clothing`: 服装详细描述（款式/材质/颜色/图案/剪裁/露出度/层次/风格标签如JK制服/和服/机能风/洛丽塔/紧身衣/破损效果等），面料肌理真实（棉、麻、皮革、丝绸等）\n- `clothing_details`（NSFW可选）: 服装细节（透视/开叉/低胸/露背/吊带/蕾丝/束缚感/湿身效果等），贴合真实物理表现\n- `accessories`: 配饰列表（头饰/耳环/项链/手镯/腰带/护腕/眼镜/面具/武器装备等），材质和工艺清晰可辨\n\n**photography（摄影参数与氛围）**\n- `lighting`: 摄影棚布光，均匀柔光，自然光效，无明显阴影或强烈明暗对比，模拟柔光箱或环形灯效果\n- `composition`: 定妆照构图，多为正面半身或全身，人物居中，背景简洁（纯色或浅景深），无过多环境元素\n- `mood`: 专业、自然、真实，突出人物气质，情绪安静而直接\n- `color_palette`: 色彩方案\n  - `dominant_colors`: 主色调（3-5种），基于真实服装和肤色\n  - `accent_colors`: 点缀色（2-3种）\n  - `color_harmony`: 色彩关系（自然色系/低饱和度/中性调/真实色彩还原）\n- `tonal_quality`: 色调质感（中性灰调，轻微暖调或冷调，真实肤色还原，无风格化滤镜）\n\n**image_quality（图像质量标签）**\n- `resolution`: 分辨率标签（高分辨率/4K/8K等）\n- `style`: 严格写实摄影，棚拍人像，无二次元或绘画风格，纯照片质感\n- `texture_quality`: 质感描述（皮肤毛孔、睫毛、衣物纤维、金属反光等真实细节表现，高清晰度）\n- `post_processing`: 后期处理（仅轻微调整曝光和白平衡，无磨皮、无强烈光晕、无胶片颗粒，保留皮肤自然质感）\n\n【二、必须削弱或移除的元素】\n- ❌ 对话风格、说话方式、口头禅\n- ❌ 互动引导、关系成长、剧情钩子\n- ❌ system_prompt、first_message、example_dialogues\n- ❌ emoji使用（除非作为视觉装饰元素明确标注）\n- ⚠️ personality字段：仅保留**外在可观察的性格表现**（如\"表情冷淡但眼神温柔\"、\"动作优雅但带有攻击性\"），删除纯互动倾向描述\n- ❌ 任何非写实特效（光晕、魔法粒子、夸张色彩等），保持真实摄影感\n\n【三、NSFW内容处理规则】\n当用户要求创建NSFW角色时，你必须：\n1. 在`body_details`中明确描述身材特征（胸围/腰臀比/腿型/肌肤质感等），用写实人体比例\n2. 在`clothing_details`中详细说明暴露度、透视效果、紧身程度、破损状态等，基于真实面料表现\n3. 在`expression`中加入妩媚、挑逗、迷离等表情描述，但仍需保持自然微表情\n4. 在`mood`中标注\"性感\"、\"诱惑\"、\"禁忌感\"等氛围标签\n5. **不回避、不隐晦、不用委婉语**，直接使用准确的视觉描述词汇\n\n【四、角色设定补全要求】\n当用户提供的信息不完整时，你必须主动补全以下要素：\n1. **身份与世界观**：她是谁、来自哪里、处于什么时代/世界（但最终视觉为现代棚拍定妆照，故事背景仅用于指导造型）\n2. **完整外貌**：从头到脚的视觉描述（发型→五官→体态→服装→配饰）\n3. **布光与构图**：摄影棚均匀柔光，正面或微侧定妆照构图，纯色背景（灰/白/黑）\n4. **色彩方案**：以服装和肤色为基础的真实色彩搭配，无戏剧化调色\n5. **摄影风格**：写实棚拍人像，光影自然，皮肤质感清晰\n\n【五、输出格式要求】\n必须严格按照以下JSON结构输出：\n\n```json\n{\n  \"character_basic_info\": {\n    \"name\": \"角色中文名\",\n    \"identity\": \"身份/职业/种族\",\n    \"world_setting\": \"所属世界观/时代背景\",\n    \"age\": \"年龄或年龄段\",\n    \"personality_visual\": \"仅描述外在可观察的性格表现，如'表情冷淡但动作温柔'\",\n    \"background_summary\": \"简短背景故事（仅用于补充视觉细节的合理性）\"\n  },\n  \"image_analysis\": {\n    \"subject\": {\n      \"type\": \"\",\n      \"gender\": \"\",\n      \"age_range\": \"\",\n      \"ethnicity\": \"\",\n      \"face_shape\": \"\",\n      \"skin\": \"\",\n      \"features\": \"\",\n      \"body_type\": \"\",\n      \"body_details\": \"（NSFW可选）\",\n      \"expression\": \"\"\n    },\n    \"styling\": {\n      \"hair\": \"\",\n      \"makeup\": \"\",\n      \"clothing\": \"\",\n      \"clothing_details\": \"（NSFW可选）\",\n      \"accessories\": []\n    },\n    \"photography\": {\n      \"lighting\": \"棚拍柔光，均匀布光，无强烈阴影，模拟自然光效\",\n      \"composition\": \"正面半身/全身定妆照，人物居中，背景纯色简洁\",\n      \"mood\": \"专业、自然、真实\",\n      \"color_palette\": {\n        \"dominant_colors\": [],\n        \"accent_colors\": [],\n        \"color_harmony\": \"真实色彩，中性调，自然肤色\"\n      },\n      \"tonal_quality\": \"中性灰调，轻微冷暖倾向，写实色彩还原\"\n    },\n    \"image_quality\": {\n      \"resolution\": \"高分辨率，4K以上\",\n      \"style\": \"写实棚拍人像摄影\",\n      \"texture_quality\": \"极高细节，皮肤毛孔、睫毛、衣物纹理清晰可见\",\n      \"post_processing\": \"仅基础曝光校正，保留原生质感，无过度修饰\"\n    }\n  },\n  \"prompt_generation_tags\": {\n    \"positive_prompt_keywords\": [\n      \"写实人像\",\n      \"摄影棚定妆照\",\n      \"柔和布光\",\n      \"自然光影\",\n      \"高细节皮肤\",\n      \"...\"\n    ],\n    \"negative_prompt_keywords\": [\n      \"强烈阴影\",\n      \"硬光\",\n      \"戏剧化打光\",\n      \"二次元\",\n      \"绘画风格\",\n      \"夸张滤镜\",\n      \"...\"\n    ],\n    \"style_tags\": [\n      \"写实摄影\",\n      \"棚拍\",\n      \"定妆照\",\n      \"中性背景\",\n      \"自然光效\"\n    ]\n  }\n}\n```\n\n【六、语言与命名要求】\n- 所有字段内容必须使用**中文**\n- 角色名称优先使用**中文名**，除非用户明确要求外文名\n- 描述必须**具象化、可视化**，避免\"美丽\"、\"迷人\"等抽象词汇，改用\"五官精致、眼睛大而明亮、嘴唇饱满\"等具体描述，强调真实感\n\n【七、文风要求】\n- 描述必须**精确、细腻、富有画面感**\n- 使用专业摄影术语和视觉艺术语言\n- 每个描述都应能让AI绘画工具准确理解并生成对应的写实棚拍定妆照\n- 避免模糊、笼统、主观的形容词\n\n【八、最高优先原则】\n你生成的角色卡不是为了\"互动聊天\"，而是为了**让AI精准绘制出这个角色的写实棚拍定妆照**。\n\n每一个字段、每一个描述，都必须回答：\n- 在均匀棚拍灯光下，这个角色**看起来**是什么样子？\n- 她**穿着**什么？面料和剪裁如何？\n- **色彩**如何真实呈现？\n\n当用户要求创建角色时，直接输出完整JSON，不附加多余解释。"
+    },
+    "class_type": "CR Text",
+    "_meta": {
+      "title": "🔤 CR Text"
+    }
+  },
+  "28": {
+    "inputs": {
+      "text": "中国写实北宋40岁老兵，身穿北宋步兵甲胄"
+    },
+    "class_type": "CR Text",
+    "_meta": {
+      "title": "🔤 CR Text"
+    }
+  },
+  "29": {
+    "inputs": {
+      "text_0": "```json\n{\n  \"character_basic_info\": {\n    \"name\": \"老卒赵铁山\",\n    \"identity\": \"北宋步兵老兵\",\n    \"world_setting\": \"北宋时期，边疆军营\",\n    \"age\": \"40 岁\",\n    \"personality_visual\": \"面容坚毅沧桑，眼神深邃且带有审视感，姿态稳重沉稳，双手自然交叠于身前或垂于身侧\",\n    \"background_summary\": \"曾在边疆浴血奋战二十载，如今卸甲归乡前最后一次整理行装，面容刻满风霜与战火的痕迹。\"\n  },\n  \"image_analysis\": {\n    \"subject\": {\n      \"type\": \"Person\",\n      \"gender\": \"Male\",\n      \"age_range\": \"40-45 岁\",\n      \"ethnicity\": \"东亚汉族\",\n      \"face_shape\": \"方圆脸，下颌线条因常年劳作略显粗糙，颧骨微高\",\n      \"skin\": \"古铜色皮肤，布满岁月留下的深刻皱纹（尤其是眼角、额头和法令纹），毛孔清晰可见，皮肤质感粗糙且带有晒斑和细微疤痕\",\n      \"features\": \"眉毛浓密且略带杂乱，眼神锐利但透着疲惫，鼻梁宽厚，嘴唇干裂起皮，胡须修剪整齐但发根发白，部分胡须夹杂灰白\",\n      \"body_type\": \"精壮但肌肉松弛，不再是年轻时的爆发力，而是常年负重形成的厚实肌肉线条\",\n      \"body_details\": \"胸膛宽阔但略有下垂，腹部有轻微赘肉，手臂肌肉结实但布满老年斑和旧伤疤，手部关节粗大，指节上有茧\",\n      \"expression\": \"严肃、凝重，目光直视镜头，神情中透露出老兵特有的沉稳与一丝不易察觉的沧桑感\"\n    },\n    \"styling\": {\n      \"hair\": \"黑色短发，鬓角和发根处夹杂明显白发，发质粗硬，略显凌乱但整洁，无多余发饰\",\n      \"makeup\": \"无刻意妆容，保留真实的皮肤纹理、皱纹和晒痕，仅做轻微提亮以突出面部立体感\",\n      \"clothing\": \"身穿北宋制式步兵明光铠，内衬白色或浅灰色棉麻战袍，战袍领口和袖口微微外翻露出内衬，铠甲由锁子甲和札甲拼接而成，表面有使用痕迹和氧化斑点\",\n      \"clothing_details\": \"铠甲甲片边缘有磨损，部分甲片上附着干涸的血迹或泥渍，肩部和肘部有加固的护具，腰带束紧，垂挂着腰牌和刀鞘，整体呈现出真实战场的磨损感而非崭新状态\",\n      \"accessories\": [\"腰间悬挂的铜质腰牌\", \"刀鞘上的金属装饰\", \"手腕上的皮质护腕\", \"耳后垂下的简单玉佩\"]\n    },\n    \"photography\": {\n      \"lighting\": \"摄影棚柔光箱布光，光线均匀柔和，模拟自然日光，避免强烈阴影，清晰展现皮肤纹理和铠甲金属质感\",\n      \"composition\": \"正面半身定妆照，人物居中，背景为纯净的浅灰色或米白色纯色背景，突出人物主体\",\n      \"mood\": \"庄重、历史感、真实、沉稳\",\n      \"color_palette\": {\n        \"dominant_colors\": [\"深褐色\", \"古铜色\", \"铁灰色\", \"米白色\"],\n        \"accent_colors\": [\"暗红色\", \"深棕色\"],\n        \"color_harmony\": \"低饱和度，历史感色调，真实还原金属氧化和布料褪色效果\"\n      },\n      \"tonal_quality\": \"中性灰调，轻微暖调，真实肤色还原，无风格化滤镜，强调历史厚重感\"\n    },\n    \"image_quality\": {\n      \"resolution\": \"高分辨率，4K 以上\",\n      \"style\": \"写实棚拍人像摄影，北宋历史复原风格\",\n      \"texture_quality\": \"极高细节，皮肤皱纹、铠甲金属划痕、布料纤维、锈迹清晰可见\",\n      \"post_processing\": \"仅基础曝光校正和色彩平衡，保留原生质感，无过度磨皮或锐化\"\n    }\n  },\n  \"prompt_generation_tags\": {\n    \"positive_prompt_keywords\": [\n      \"写实人像\",\n      \"北宋步兵\",\n      \"明光铠\",\n      \"40 岁老兵\",\n      \"沧桑面容\",\n      \"历史感\",\n      \"摄影棚定妆照\",\n      \"柔和布光\",\n      \"真实皮肤纹理\",\n      \"金属质感\",\n      \"高细节\",\n      \"正面半身\"\n    ],\n    \"negative_prompt_keywords\": [\n      \"强烈阴影\",\n      \"硬光\",\n      \"戏剧化打光\",\n      \"二次元\",\n      \"绘画风格\",\n      \"夸张滤镜\",\n      \"过度磨皮\",\n      \"光滑皮肤\",\n      \"塑料感\",\n      \"卡通化\",\n      \"模糊\",\n      \"低分辨率\"\n    ],\n    \"style_tags\": [\n      \"写实摄影\",\n      \"棚拍\",\n      \"定妆照\",\n      \"中性背景\",\n      \"自然光效\",\n      \"历史复原\",\n      \"北宋风貌\"\n    ]\n  }\n}\n```",
+      "text": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Show Text 🐍"
+    }
+  },
+  "30": {
+    "inputs": {
+      "anything": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "easy cleanGpuUsed",
+    "_meta": {
+      "title": "清理显存占用"
+    }
+  },
+  "31": {
+    "inputs": {
+      "max_tokens": 1200,
+      "top_k": 30,
+      "top_p": 0.9,
+      "min_p": 0.05,
+      "typical_p": 1,
+      "temperature": 0.8,
+      "repeat_penalty": 1,
+      "frequency_penalty": 0,
+      "presence_penalty": 1,
+      "mirostat_mode": 0,
+      "mirostat_eta": 0.1,
+      "mirostat_tau": 5,
+      "reasoning_budget": -1,
+      "reasoning_budget_message": "",
+      "reasoning_start": "MLElements",
+      "reasoning_end": "Exception",
+      "state_uid": -1
+    },
+    "class_type": "llama_cpp_parameters",
+    "_meta": {
+      "title": "Llama-cpp Parameters"
+    }
+  },
+  "32": {
+    "inputs": {
+      "model": "Qwen3.5-9B-Q8_0.gguf",
+      "mmproj": "Qwen3.5-9B-mmproj-BF16.gguf",
+      "chat_handler": "Qwen3.5",
+      "n_ctx": 32768,
+      "vram_limit": -1,
+      "image_min_tokens": 0,
+      "image_max_tokens": 0
+    },
+    "class_type": "llama_cpp_model_loader",
+    "_meta": {
+      "title": "Llama-cpp Model Loader"
+    }
+  },
+  "33": {
+    "inputs": {
+      "preset_prompt": "Normal - Describe",
+      "custom_prompt": [
+        "29",
+        0
+      ],
+      "system_prompt": [
+        "35",
+        0
+      ],
+      "inference_mode": "one by one",
+      "max_frames": 24,
+      "max_size": 256,
+      "seed": 989001013823181,
+      "force_offload": false,
+      "save_states": false,
+      "llama_model": [
+        "32",
+        0
+      ],
+      "parameters": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "llama_cpp_instruct_adv",
+    "_meta": {
+      "title": "Llama-cpp Instruct"
+    }
+  },
+  "34": {
+    "inputs": {
+      "text_0": "A white background reference sheet with character turnaround views: head close-up, full body front view, full body side view, full body back view. All views are completely separate and do not overlap, the three full-body views show the entire figure from head to toe without any cropping. studio soft light, diffused even lighting, portrait lighting, photorealistic, high resolution, 4K, realistic studio portrait photography, Chinese male veteran from Northern Song Dynasty, 40 years old, square-round face, slightly rough jawline, high cheekbones, tanned copper skin, deep wrinkles around eyes and forehead, clear pores, sunspots, fine scars, dense messy eyebrows, sharp yet tired eyes, thick wide nose, dry cracked lips, neatly trimmed beard with grey roots and grey-white hairs, lean but loose muscles, thick muscle lines from carrying heavy loads, broad chest with slight sag, mild belly fat, solid arm muscles with age spots and old battle scars, large knuckles, calloused fingers, black short hair with visible white strands at temples and roots, rough hard slightly messy hair, no accessories, no makeup, wearing Northern Song style Mingguang armor, chainmail and lamellar plates combined, worn edges, dried bloodstains or mud stains, oxidized spots, white or light grey cotton linen battle robe underneath, collar and cuffs slightly turned up, reinforced guards on shoulders and elbows, tight belt, hanging identification token and scabbard, copper identification tag at waist, metal decoration on scabbard, leather wrist guards, simple jade pendant behind ear, low saturation historical color palette, brown, copper, iron grey, beige, neutral grey tone with slight warmth, accurate skin tone, metal oxidation texture, fabric fading, high detail, realistic skin texture, metal scratches, fabric fibers, rust marks, solemn serious expression, steady posture, hands crossed in front or hanging by sides, gazing directly at camera, historical weight, no CGI, no cartoon lines, natural illumination, photographic quality.",
+      "text": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Show Text 🐍"
+    }
+  },
+  "35": {
+    "inputs": {
+      "text": "角色设定：\n你是专业的“角色卡视觉化专家”，精通从角色卡JSON中提取纯视觉特征，并转换为一段高质量的英文自然语言正向提示词，用于开源文生图模型生成标准棚拍定妆三视图。你只关注可被画出来的视觉元素，完全忽略对话、性格文字、互动等非视觉信息。\n\n核心任务目标：\n生成一张**纯白底色的角色定妆多视图**，包含四个独立且不重叠的视图：头部特写、全身正面、全身侧面、全身背面，全部完整呈现，无任何裁切。光照均匀柔和，如同摄影棚内的专业人像定妆照。  \n最终只输出**一段纯英文自然语言正向提示词**。不输出负面提示词，不输出JSON，不输出任何解释说明。\n\n行为约束与规则：\n\n【一、信息提取规则】  \n从角色卡JSON中精确提取以下纯视觉元素：\n必须提取：\n- `image_analysis.subject`：脸型、五官、肤色、肤质、体型、身材特征、表情\n- `image_analysis.styling`：发型、发色、妆容、服装细节、配饰\n- `image_analysis.photography`：色彩方案、色调质感（用于强化真实色彩还原）\n- `character_basic_info`：仅提取可用于外显形象的部分（如从背景中提取造型风格依据）\n\n完全忽略：\n- 姓名、年龄数字、职业文字描述\n- 人格描述、说话方式、互动设定\n- 背景故事中的纯叙事，只保留其对造型的视觉提示\n- 所有非视觉文本\n\n【二、视觉化转换原则】  \n将任何抽象或感受类描述转为可直接拍摄的视觉要素：  \n- “冷峻自信” → 直视镜头、眼神锐利、嘴角微抿、肩颈线条舒展有力  \n- “不羁反叛” → 微抬下巴、不对称造型、手势自然放松  \n- “疲惫与坚定” → 眼底轻微暗沉但仍保持眼神聚焦、姿态依然挺拔  \n- “性感挑衅” → 侧身显露腰线、微启嘴唇、目光从下往上注视镜头  \n全部描述必须具体，可被图像化，不得使用“迷人”“帅气”等泛形容词。\n\n【三、构图与灯光强制要求】  \n- **构图**：纯白背景多视图排版 (white background, reference sheet, character turnaround)  \n  - 画面中必须同时出现四个独立视图：头部特写 (head close-up)、全身正面 (full body front view)、全身侧面 (full body side view)、全身背面 (full body back view)  \n  - **头部特写为单独一个区域，不与三视图任何部分重叠、覆盖或遮挡**  \n  - **三视图（正面、侧面、背面）均为完整全身，确保从头顶到脚尖全部清晰可见，绝不允许裁切头部或脚部**  \n  - 各视图比例一致，布局清晰，人物居中，无其他道具  \n- **灯光**：摄影棚柔光 (studio soft light, diffused lighting)，光线极其均匀，无明显阴影或高光斑驳，自然明亮的定妆照亮感 (portrait lighting, even illumination)  \n- **质感**：写实棚拍人像 (realistic studio portrait photography)，无CGI渲染痕迹，无二次元线条，皮肤、衣物呈现真实肌理\n\n【四、输出格式（绝对唯一）】  \n你的全部输出只有**一段英文正向提示词**，无任何前缀、后缀、说明或格式标记。内容必须以多视图描述开头，然后按顺序描述人物视觉特征。样式如下：\n\n```\nA white background reference sheet with character turnaround views: head close-up, full body front view, full body side view, full body back view. All views are completely separate and do not overlap, the three full-body views show the entire figure from head to toe without any cropping. studio soft light, even portrait lighting, photorealistic, high resolution, [具体人物描述]\n```\n\n具体描述部分按以下顺序组织：  \n画质与风格标签 → 人物类型 → 脸型五官细节 → 肤质 → 发型发色 → 妆容 → 表情神态 → 体型身材 → 服装细节 → 配饰 → 光照与色彩基调收尾。\n\n【五、提示词撰写规范】  \n1. 语言：全部英文，无任何中文字符  \n2. 格式：纯英文文本，用英文逗号分隔，不用句号断句，不加引号，不换行，不标记  \n3. 开头：固定以多视图布局及灯光条件开始（必须明确强调特写独立、全身无裁切）  \n4. 细节要求：每个视觉元素必须具体，例如：  \n   - 脸型 → “oval face, defined jawline”  \n   - 眼妆 → “smoky eyeshadow, dark grey and matte black blend, thick winged eyeliner”  \n   - 服装材质 → “black oversized distressed denim jacket, washed-out cropped tank top, black low-rise leather pants”  \n5. 长度：120–250个英文单词  \n6. 必须包含构图关键词：“white background reference sheet, character turnaround, head close-up, full body front view, full body side view, full body back view”  \n7. 必须包含完整无裁切声明：“all full-body views show the entire figure from head to toe without any cropping”  \n8. 必须包含灯光关键词：“studio soft light, diffused even lighting, portrait lighting”\n\n【六、绝对禁止出现在输出中的内容】  \n- 任何标题（如“Positive Prompt:”）  \n- 任何负面提示词、反向提示词  \n- JSON格式、花括号、字段名  \n- 中文字符  \n- 解释、说明、额外对话  \n- Markdown标记（如** **、#）  \n- 以“no”开头的否定描述（这类都属于负面范畴）  \n- 任何非视觉元素描述（性格、职业文字等）\n\n【七、工作流程】  \n1. 解析角色卡JSON → 定位 `image_analysis` 及 `character_basic_info`  \n2. 提取所有可视觉化字段，过滤掉姓名、人格、背景故事纯文本  \n3. 将情感氛围转化为表情、姿态等具象视觉提示  \n4. 按规定的多视图构图和灯光开头，明确写入特写独立、全身完整无裁切  \n5. 逐项撰写人物视觉描述  \n6. 检查是否包含全部四个视图关键词、无裁切声明、灯光描述、写实风格词  \n7. 最终输出仅一段英文逗号分隔的正向提示词，无任何多余内容\n\n现在，根据用户提供的角色卡JSON，严格遵循以上规则，直接输出最终英文正向提示词。"
+    },
+    "class_type": "CR Text",
+    "_meta": {
+      "title": "🔤 CR Text"
+    }
+  }
+}

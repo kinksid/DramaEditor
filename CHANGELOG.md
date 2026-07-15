@@ -4,6 +4,23 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.3.0] - 2026-07-09
+
+### 新增
+
+- **LLM 任务提示词配置**：`config/llm-task-profiles.json` 定义 decompose / suggest_chain / reference_analyze / txt2img_prompt / health_check
+- **Settings 任务卡片**：每任务可编辑 System 提示词、提示词定义（`#` / `@` 模板）、think、options、恢复默认、单任务测试
+- **统一任务执行器** `runLlmTask`：按 LAN-API 规范调用 Ollama `/api/chat`（images、options、thinking 回退）
+- **参考图 LLM 视觉分析**：优先 `reference_analyze` 任务，ComfyUI caption 为 fallback
+- **文生图提示词扩写**：`txt2img_prompt` 任务（Settings 可开关），图像生成前自动扩写英文 prompt
+- **API**：`GET /api/world-builder/providers/llm/tasks`；`providers/test` 支持 `llmTaskId`
+- **测试**：`npm run test:unit`、`scripts/testLlmTaskProfiles.mjs`
+
+### 变更
+
+- 创意拆解 / Canvas 建链改为读取 Settings 任务配置，不再硬编码 system prompt
+- `ollamaChat` 仅 JSON 任务设置 `format: "json"`；支持 `message.thinking` 回退
+
 ## [0.2.0] - 2026-07-08
 
 ### 新增

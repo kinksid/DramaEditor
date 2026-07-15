@@ -47,6 +47,7 @@ export async function submitImageGenerationApi(
     nodeId?: string;
     targetField?: PendingGenerationTask["targetField"];
     targetEntityId?: string;
+    entityType?: "character" | "location";
   },
 ): Promise<{ taskId: string }> {
   const response = await fetch("/api/world-builder/generate/image", {

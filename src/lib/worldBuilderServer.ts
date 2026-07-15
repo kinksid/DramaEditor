@@ -1,10 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
+import { readFile } from "fs/promises";
 import path from "path";
-import { v4 as uuidv4 } from "uuid";
 import type { CreationReference, DecomposeResult } from "@/types/worldBuilder";
-import { getProviderConfig } from "@/lib/providers/config";
-import { llmChatJson } from "@/lib/providers/llm";
-import { parseLlmJson } from "@/lib/providers/llm/parseJson";
+import { runLlmTask, runLlmTaskJson } from "@/lib/providers/llm/resolveTask";
 import { analyzeImageWithComfy } from "@/lib/providers/image/comfyui";
 
 export const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
@@ -14,6 +11,7 @@ export const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "public/uploads";
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export async function ensureUploadDir(scope = "session") {
+  const { mkdir } = await import("fs/promises");
   const dir = path.join(process.cwd(), UPLOAD_DIR, scope);
   await mkdir(dir, { recursive: true });
   return dir;
@@ -23,6 +21,8 @@ export async function saveUploadedFile(
   file: File,
   scope = "session",
 ): Promise<{ id: string; url: string; name: string; mimeType: string }> {
+  const { mkdir, writeFile } = await import("fs/promises");
+  const { v4: uuidv4 } = await import("uuid");
   if (file.size > MAX_UPLOAD_BYTES) {
     throw new Error(`文件过大，最大支持 ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB`);
   }
@@ -45,28 +45,28 @@ export function referenceKindFromMime(mimeType: string, filename: string): Creat
   return "text";
 }
 
-const DECOMPOSE_SYSTEM_PROMPT = `你是互动短剧世界构建助手。根据用户提供的创意描述和参考素材，输出严格的 JSON，用于填充世界设定、角色地点和剧本文本。
-
-输出 JSON schema:
-{
-  "worldview": {
-    "worldTitle": "string",
-    "genre": "string，逗号分隔",
-    "tags": "string，逗号分隔",
-    "tone": "string",
-    "visualStyle": "string",
-    "worldDescription": "string，200-500字"
-  },
-  "characters": [
-    { "name": "string", "role": "string", "description": "string", "age": number可选 }
-  ],
-  "locations": [
-    { "name": "string", "type": "Establishing|Master|Temporary", "description": "string" }
-  ],
-  "script": "string，完整剧本文本，含场次"
+export async function readUploadAsBase64(url: string): Promise<string | null> {
+  if (!url.startsWith("/uploads/")) return null;
+  try {
+    const filePath = path.join(process.cwd(), "public", url.replace(/^\//, ""));
+    const buffer = await readFile(filePath);
+    return buffer.toString("base64");
+  } catch {
+    return null;
+  }
 }
 
-只输出 JSON，不要 markdown 代码块。`;
+export async function collectReferenceImagesBase64(
+  references: Array<Pick<CreationReference, "kind" | "url">>,
+): Promise<string[]> {
+  const images: string[] = [];
+  for (const ref of references) {
+    if (ref.kind !== "image" || !ref.url) continue;
+    const base64 = await readUploadAsBase64(ref.url);
+    if (base64) images.push(base64);
+  }
+  return images;
+}
 
 export function buildDecomposeUserPrompt(input: {
   prompt: string;
@@ -92,16 +92,15 @@ export function buildDecomposeUserPrompt(input: {
     .join("\n\n");
 }
 
-export async function callLlmDecompose(userPrompt: string): Promise<DecomposeResult> {
-  const config = getProviderConfig();
-  const raw = await llmChatJson(config, {
-    system: DECOMPOSE_SYSTEM_PROMPT,
-    user: userPrompt,
+export async function callLlmDecompose(
+  userPrompt: string,
+  options?: { images?: string[] },
+): Promise<DecomposeResult> {
+  const { data } = await runLlmTaskJson<DecomposeResult>("decompose", {
+    custom: userPrompt,
+    images: options?.images,
   });
-
-  const parsed = parseLlmJson(raw) as DecomposeResult;
-
-  return normalizeDecomposeResult(parsed, userPrompt);
+  return normalizeDecomposeResult(data, userPrompt);
 }
 
 /** @deprecated 使用 callLlmDecompose */
@@ -138,12 +137,33 @@ export function normalizeDecomposeResult(
   };
 }
 
+export async function analyzeReferenceWithLlm(input: {
+  url: string;
+  name: string;
+}): Promise<string | null> {
+  const base64 = await readUploadAsBase64(input.url);
+  if (!base64) return null;
+  const result = await runLlmTask("reference_analyze", {
+    custom: input.name,
+    images: [base64],
+  });
+  return result.content;
+}
+
 export async function analyzeWithComfyUI(input: {
   kind: "image" | "video";
   url: string;
   name: string;
 }): Promise<string> {
   if (input.kind === "image") {
+    try {
+      const llmSummary = await analyzeReferenceWithLlm({ url: input.url, name: input.name });
+      if (llmSummary) {
+        return `图片参考「${input.name}」：${llmSummary}`;
+      }
+    } catch {
+      // fallback to ComfyUI caption
+    }
     return analyzeImageWithComfy({ url: input.url, name: input.name });
   }
 
@@ -159,6 +179,11 @@ export async function analyzeWithComfyUI(input: {
   }
 
   return `视频参考「${input.name}」（${input.url}）：已通过 ComfyUI 连通，可结合关键帧 workflow 分析视觉风格。`;
+}
+
+export async function expandTxt2ImgPrompt(prompt: string): Promise<string> {
+  const result = await runLlmTask("txt2img_prompt", { custom: prompt });
+  return result.content.trim() || prompt;
 }
 
 export function fallbackDecompose(input: {
