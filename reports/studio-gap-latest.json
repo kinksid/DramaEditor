@@ -45,7 +45,7 @@
       "area": "feature_flow",
       "route": "/worlds|/worlds/:worldId/*|/stories/:storyId",
       "gap": "Studio 公共路由别名 rewrite 缺失",
-      "evidence": "next.config.ts 已为 worlds、worlds 动态子路径和 stories 动态参数配置 rewrite；待运行回归验证",
+      "evidence": "生产构建通过；本地回归中 /worlds 与 /stories/the-memory-thief 均返回 200，三个 world 详情别名与对应本地目标一致返回 404，底层详情路由缺失由 G-STUDIO-03 单独跟踪",
       "suggestedFix": "保留 rewrites，并在底层详情路由落地后覆盖全部动态路径回归",
       "status": "fixed"
     },
