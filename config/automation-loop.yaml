@@ -1,0 +1,69 @@
+automation:
+  interval_cron: "*/5 * * * *"
+  timezone: Asia/Shanghai
+  max_items_per_run: 1
+  early_exit_if_no_high: true
+  branch: cursor/studio-pixel-ia-alignment-52ca
+  repo: kinksid/DramaEditor
+  phases: [inspect, list, modify, debug, review, verify, commit]
+
+references:
+  studio:
+    url: https://studio.dreem-world.ai/
+    role: primary_pixel_and_ia
+    p0_routes:
+      - /worlds
+      - /worlds/:worldId/characters
+      - /worlds/:worldId/locations
+      - /worlds/:worldId/storylines
+      - /stories/:storyId
+  studio_marketing:
+    url: https://www.dreem-world.ai/
+    role: public_brand_support
+  tapnow_canvas:
+    url: https://app.tapnow.ai/
+    role: canvas_interaction_supplement
+  taptv:
+    url: https://app.tapnow.ai/home/taptv
+    role: local_shell_only
+
+confirmed_decisions:
+  login: lightweight_referral_code_shell
+  ai_generate: provider_decompose
+  missing_key_gap: G13
+  theme: cinematic_charcoal_rose
+  fonts: Public Sans / Instrument Serif
+  C1: bottom_generation_task_bar_and_node_floating_toolbar
+  C2: inspector_full_dark
+  C3: worlds_no_forced_sample_project_split
+  C4: taptv_local_shell_only
+
+feedback:
+  gate: reports/studio-gap-latest.json
+  baseline: reports/studio-pixel-baseline.md
+  fix_log: fixes/fix_log.json
+  error_glob: errors/error_*.json
+  auto_resolve:
+    priorities: [high]
+    require_status: open
+    max_per_run: 1
+    require_verify: true
+
+verify:
+  always:
+    - npm run typecheck
+  when_ui_changed:
+    - npm run inspect:hourly
+  route_regression:
+    - /world-builder/worlds
+    - /world-builder/worlds/[worldId]/characters
+    - /world-builder/worlds/[worldId]/locations
+    - /world-builder/worlds/[worldId]/storylines
+    - /world-builder/stories/[storyId]
+
+rules:
+  - Studio 登录墙无证据时只写 gap，不臆造控件
+  - 每轮最多修复一条 high/open
+  - 主题不得回潮粉紫
+  - 密钥不得进入仓库
+  - 无 high/open 且 typecheck 通过时心跳退出，禁止空提交
