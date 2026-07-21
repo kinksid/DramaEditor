@@ -1,5 +1,5 @@
-# DramaEditor 15-minute optimization loop — DUAL TARGET
-# 云端（GitHub Cursor Automation）+ 本机（/Volumes/YANG/DramaEditor）都跑。
+# DramaEditor 15-minute loop — DUAL TARGET + dual reference
+# Studio 功能对齐 + TapNow/TapTV UI/UX
 # 流程：Inspect → Review → Debug → Fix → Verify → Commit
 
 automation:
@@ -18,6 +18,20 @@ automation:
     - verify
     - commit
 
+references:
+  studio:
+    url: https://studio.dreem-world.ai/
+    role: feature_flow
+    support: https://www.dreem-world.ai/
+  tapnow_canvas:
+    url: https://app.tapnow.ai/
+    role: ux_workspace
+    notes: left asset dock, drag-to-canvas, dark shell, select/dblclick
+  taptv:
+    url: https://app.tapnow.ai/home/taptv
+    role: ux_inspire_remix
+    notes: browse public canvases, remix/clone workflows; local shell only unless confirmed
+
 targets:
   cloud_github:
     enabled: true
@@ -30,8 +44,8 @@ targets:
     enabled: true
     role: "拉取云端结果 + 本机验证/心跳"
     root: /Volumes/YANG/DramaEditor
-    sync_from_github: true   # git pull --ff-only
-    sync_to_github: false    # 本机默认不 push（避免双端抢推）
+    sync_from_github: true
+    sync_to_github: false
     runner: scripts/runLocalLoop.mjs
     heartbeat: logs/automation_heartbeat.log
 
@@ -62,11 +76,12 @@ drama_editor:
       - npm run typecheck
     when_ui_changed:
       - npm run inspect:hourly
-  reference: https://studio.dreem-world.ai/
+  reference_primary: https://studio.dreem-world.ai/
+  reference_ux: https://app.tapnow.ai/home/taptv
 
 rules:
-  - 云端：每轮必须 Review + Debug；可 commit/push 到 automation/hourly-inspection
-  - 无 high/open 且验证通过 → 心跳式总结后退出（可含 review 通过说明）
-  - 本机：pull 吸收云端提交，跑验证，写心跳；默认不 push
-  - 两边都以 reports/studio-gap-latest.json 为门禁
-  - Review/Debug 发现的明确错误可升为 high 并计入本轮 3 项配额
+  - 云端：每轮必须对照 Studio 功能 + TapNow/TapTV UX；可 commit/push 到 automation/hourly-inspection
+  - TapTV：默认可补本地灵感/Remix 壳；真实社交/发布需人工确认
+  - 无 high/open 且验证通过 → 心跳总结后退出
+  - 本机：pull + 验证 + 心跳；默认不 push
+  - 门禁文件：reports/studio-gap-latest.json

@@ -1,74 +1,98 @@
 {
-  "schemaVersion": 1,
-  "updatedAt": "2026-07-21 17:30:00 Asia/Shanghai",
+  "schemaVersion": 2,
+  "updatedAt": "2026-07-21 18:15:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
-  "reference": "https://studio.dreem-world.ai/",
-  "referenceProduct": "Dreem Creator Studio",
+  "references": {
+    "studio": "https://studio.dreem-world.ai/",
+    "studioMarketing": "https://www.dreem-world.ai/",
+    "taptv": "https://app.tapnow.ai/home/taptv",
+    "tapnowCanvas": "https://app.tapnow.ai/"
+  },
+  "referenceProduct": "Dreem Creator Studio + TapNow/TapTV UX",
   "gate": {
     "autoResolvePriorities": ["high"],
     "maxItemsPerRun": 3,
     "earlyExitIfNoHigh": true,
     "syncToGithub": true,
     "targets": ["cloud_github", "local_volume"],
-    "localRoot": "/Volumes/YANG/DramaEditor",
-    "automationStatus": "stopped"
+    "localRoot": "/Volumes/YANG/DramaEditor"
   },
   "confirmedDecisions": {
     "login": "lightweight_ui_shell",
-    "aiGenerate": "real_api_via_settings_proxy",
+    "aiGenerate": "provider_decompose_primary",
     "consumerChat": "editor_config_entry_placeholder",
-    "theme": "cinematic_charcoal_rose"
+    "theme": "cinematic_charcoal_rose",
+    "workspaceUx": "tapnow_dock_drag_dark_shell",
+    "taptv": "local_inspire_shell_only_until_confirmed"
   },
+  "pendingUserConfirm": [
+    {
+      "id": "C1",
+      "question": "是否本轮做 TapNow 式「底部生成历史任务条」与「节点旁浮动工具条」？"
+    },
+    {
+      "id": "C2",
+      "question": "右侧 Inspector 是否全面改暗色 TapNow 面板？"
+    },
+    {
+      "id": "C3",
+      "question": "世界库示例卡与真实项目是否强制分区展示？"
+    },
+    {
+      "id": "C4",
+      "question": "TapTV：仅本地灵感/Remix 壳，还是后续要接真实发布/关注社区？"
+    }
+  ],
   "gaps": [
-    {
-      "id": "G8",
-      "priority": "high",
-      "area": "visual_ia",
-      "route": "theme",
-      "gap": "全局仍偏粉紫默认审美；需调为电影感炭黑+玫瑰",
-      "evidence": "globals.css + tailwind branch colors updated",
-      "suggestedFix": "Done — charcoal/rose tokens; legacy pink utilities remapped",
-      "status": "fixed"
-    },
-    {
-      "id": "G10",
-      "priority": "high",
-      "area": "feature_flow",
-      "route": "/login",
-      "gap": "缺少 Studio 风格轻量登录/推荐码壳",
-      "evidence": "src/app/login/page.tsx",
-      "suggestedFix": "Done — referral code local session shell",
-      "status": "fixed"
-    },
-    {
-      "id": "G11",
-      "priority": "high",
-      "area": "feature_flow",
-      "route": "/api/studio/generate-world",
-      "gap": "自动拆解/创建未接真实 API；需代理 + Settings 凭证",
-      "evidence": "route + studioApi + home wiring + settings persist",
-      "suggestedFix": "Done — proxy POST {base}/worlds/generate",
-      "status": "fixed"
-    },
-    {
-      "id": "G12",
-      "priority": "medium",
-      "area": "feature_flow",
-      "route": "/world-builder",
-      "gap": "角色对话/关系/记忆配置入口缺失（编辑器占位）",
-      "evidence": "Character.chat + WorldTabs editor",
-      "suggestedFix": "Done — editor config fields exportable with character",
-      "status": "fixed"
-    },
     {
       "id": "G13",
       "priority": "high",
       "area": "integration",
       "route": "settings.api",
-      "gap": "真实 API Key 稍后由人工提供；默认 Base=https://api.dramaplay.dev/v1，路径 POST /worlds/generate，鉴权 Bearer",
-      "evidence": "settings persist + /api/studio/generate-world; user deferred key",
-      "suggestedFix": "When key arrives: set Settings or STUDIO_API_KEY; confirm base/path if different",
+      "gap": "真实 API Key 稍后由人工提供",
+      "evidence": "user deferred key",
+      "suggestedFix": "Set Settings or STUDIO_API_KEY when provided",
+      "status": "open"
+    },
+    {
+      "id": "G14",
+      "priority": "high",
+      "area": "ux_taptv",
+      "route": "/world-builder/inspire",
+      "gap": "缺少 TapTV 风格灵感画布浏览 + Remix 入口（本地壳）",
+      "evidence": "src/app/world-builder/inspire/page.tsx + sidebar 灵感",
+      "suggestedFix": "Done — local TapTV shell with Remix to setup",
+      "status": "fixed"
+    },
+    {
+      "id": "G15",
+      "priority": "medium",
+      "area": "ux_tapnow",
+      "route": "/world-builder/story-graph",
+      "gap": "缺底部生成历史任务条 / 节点旁浮动工具条（待确认 C1）",
+      "evidence": "GraphToolbar is top-only",
+      "suggestedFix": "Await C1 confirmation",
+      "status": "open"
+    },
+    {
+      "id": "G16",
+      "priority": "medium",
+      "area": "ux_tapnow",
+      "route": "InspectorPanel",
+      "gap": "Inspector 仍偏浅色页面态（待确认 C2）",
+      "evidence": "src/components/story-graph/InspectorPanel.tsx",
+      "suggestedFix": "Await C2 confirmation",
+      "status": "open"
+    },
+    {
+      "id": "G17",
+      "priority": "low",
+      "area": "ux_tapnow",
+      "route": "/world-builder/worlds",
+      "gap": "示例世界与真实项目仍可能混排（待确认 C3）",
+      "evidence": "worlds/page.tsx merges sampleCards",
+      "suggestedFix": "Await C3 confirmation",
       "status": "open"
     }
   ]

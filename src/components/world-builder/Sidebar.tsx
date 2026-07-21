@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Film, Gift, Globe, Home, Map, Moon, Settings, Smartphone, Sparkles, Sun, UserRound } from "lucide-react";
+import { Clapperboard, Film, Gift, Globe, Home, Map, Moon, Settings, Smartphone, Sparkles, Sun, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -21,6 +21,7 @@ export function Sidebar() {
 
   const items = [
     { label: t("nav.home"), href: "/world-builder/home", icon: Home },
+    { label: "灵感", href: "/world-builder/inspire", icon: Clapperboard },
     { label: t("nav.worlds"), href: "/world-builder/worlds", icon: Sparkles },
     {
       label: t("nav.storyGraph"),
