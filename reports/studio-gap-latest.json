@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-07-21 18:40:00 Asia/Shanghai",
+  "sourceRepo": "kinksid/DramaEditor",
+  "branch": "cursor/studio-pixel-ia-alignment-957f",
+  "references": {
+    "studio": "https://studio.dreem-world.ai/",
+    "studioMarketing": "https://www.dreem-world.ai/"
+  },
+  "confirmedDecisions": {
+    "login": "lightweight_referral_code_shell",
+    "aiGenerate": "provider_decompose_primary",
+    "theme": "cinematic_charcoal_rose",
+    "C1": "generation_task_bar_and_node_floating_toolbar",
+    "C2": "inspector_full_dark",
+    "C3": "worlds_no_forced_sample_project_split",
+    "C4": "taptv_local_shell_only"
+  },
+  "gaps": [
+    {
+      "id": "G-P0-01",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/worlds · /worlds/:worldId/{characters,locations,storylines} · /stories/:storyId",
+      "gap": "Studio 的 P0 公共路径缺少本地别名，世界卡片也未进入带 worldId 和路由化资料标签的详情页。",
+      "evidence": "检查前 next.config.ts 无 rewrites，src/app/world-builder/worlds/[worldId] 不存在，世界卡片直接进入 setup/story-graph。Studio SPA 公开抓取仅确认产品壳标题，详情控件依据任务给定 P0 IA，不扩展未证实功能。",
+      "suggestedFix": "增加 worlds/stories rewrites、worldId 详情路由和 characters/locations/storylines 路由标签，并复用现有 WorldHero/WorldTabs 已确认能力。",
+      "status": "fixed"
+    },
+    {
+      "id": "G13",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "settings.api",
+      "gap": "真实 AI Provider API Key 尚未由人工提供。",
+      "evidence": "已确认决策要求无 Key 时仅记录 G13；仓库检查未使用或写入任何密钥。",
+      "suggestedFix": "人工提供后通过 Settings 或部署环境变量配置，不得提交明文密钥。",
+      "status": "open"
+    },
+    {
+      "id": "G-P0-02",
+      "priority": "medium",
+      "area": "visual_ia",
+      "route": "/world-builder/worlds · /world-builder/worlds/[worldId] · /world-builder/stories/[storyId]",
+      "gap": "缺少可复核的 Studio 登录后页面截图，无法确认精确字号、间距和组件状态的像素差。",
+      "evidence": "2026-07-21 Web 抓取 Studio 根页和 /worlds 均只返回“Dreem Creator Studio”SPA 壳；未获得登录后 DOM 或截图。",
+      "suggestedFix": "取得可访问会话或人工基准截图后，按 studio-pixel-baseline.md 逐视口补充测量，不臆造控件。",
+      "status": "open"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+automation:
+  interval_cron: "*/5 * * * *"
+  timezone: Asia/Shanghai
+  max_high_items_per_run: 1
+  branch: cursor/studio-pixel-ia-alignment-957f
+  base_branch: main
+  phases: [inspect, list, modify, debug, review, verify, commit]
+
+references:
+  studio:
+    url: https://studio.dreem-world.ai/
+    role: pixel_and_information_architecture_primary
+  studio_marketing:
+    url: https://www.dreem-world.ai/
+    role: public_supporting_evidence
+  taptv:
+    role: canvas_interaction_supplement_only
+
+confirmed_decisions:
+  login: lightweight_referral_code_shell
+  ai_generate: provider_decompose_primary
+  theme: cinematic_charcoal_rose
+  C1: generation_task_bar_and_node_floating_toolbar
+  C2: inspector_full_dark
+  C3: worlds_no_forced_sample_project_split
+  C4: taptv_local_shell_only
+
+feedback:
+  gate: reports/studio-gap-latest.json
+  pixel_baseline: reports/studio-pixel-baseline.md
+  fix_log: fixes/fix_log.json
+  error_glob: errors/error_*.json
+
+verify:
+  always: npm run typecheck
+  ui_changed: npm run inspect:hourly
+
+rules:
+  - 每轮最多修复一条 priority=high 且 status=open 的缺口
+  - Studio 登录墙无可复核证据时只记录 gap，不臆造控件
+  - P0 顺序为 worlds、world detail tabs、stories
+  - 不提交密钥，不推翻 C1-C4

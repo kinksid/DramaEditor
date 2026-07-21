@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { Plus, Route } from "lucide-react";
 import { CharacterCard } from "@/components/world-builder/CharacterCard";
 import { LocationCard } from "@/components/world-builder/LocationCard";
@@ -18,6 +18,12 @@ const tabLabels: Record<Tab, string> = {
   Storylines: "故事线",
 };
 
+const tabSegments: Record<Tab, string> = {
+  Characters: "characters",
+  Locations: "locations",
+  Storylines: "storylines",
+};
+
 const emptyCharacter: Omit<Character, "id"> = {
   name: "",
   age: undefined,
@@ -31,8 +37,18 @@ const emptyLocation: Omit<Location, "id"> = {
   description: "",
 };
 
-export function WorldTabs() {
-  const [tab, setTab] = useState<Tab>("Characters");
+export function WorldTabs({
+  worldId,
+  activeTab,
+}: {
+  worldId?: string;
+  activeTab?: Lowercase<Tab>;
+} = {}) {
+  const [localTab, setLocalTab] = useState<Tab>("Characters");
+  const tab =
+    (Object.keys(tabSegments) as Tab[]).find(
+      (item) => tabSegments[item] === activeTab,
+    ) ?? localTab;
   const [characterDraft, setCharacterDraft] = useState<Character | Omit<Character, "id"> | null>(null);
   const [locationDraft, setLocationDraft] = useState<Location | Omit<Location, "id"> | null>(null);
   const {
@@ -65,18 +81,31 @@ export function WorldTabs() {
     <section className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-soft">
-          {(["Characters", "Locations", "Storylines"] as Tab[]).map((item) => (
-            <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={cn(
-                "rounded-xl px-4 py-2 text-sm font-medium text-slate-500 transition",
-                tab === item && "bg-ink text-white",
-              )}
-            >
-              {tabLabels[item]}
-            </button>
-          ))}
+          {(Object.keys(tabLabels) as Tab[]).map((item) => {
+            const className = cn(
+              "rounded-xl px-4 py-2 text-sm font-medium text-slate-500 transition",
+              tab === item && "bg-ink text-white",
+            );
+            return worldId ? (
+              <Link
+                key={item}
+                href={`/world-builder/worlds/${worldId}/${tabSegments[item]}`}
+                className={className}
+                aria-current={tab === item ? "page" : undefined}
+              >
+                {tabLabels[item]}
+              </Link>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setLocalTab(item)}
+                className={className}
+              >
+                {tabLabels[item]}
+              </button>
+            );
+          })}
         </div>
         {tab === "Characters" && (
           <button onClick={() => setCharacterDraft(emptyCharacter)} className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">
