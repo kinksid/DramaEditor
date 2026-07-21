@@ -1,0 +1,100 @@
+{
+  "generatedAt": "2026-07-21T11:17:25.419Z",
+  "message": "locator.inputValue: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('label').filter({ hasText: '标题' }).locator('input').first()\n",
+  "inspectionErrors": [
+    {
+      "module": "inspection_runtime",
+      "message": "locator.inputValue: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('label').filter({ hasText: '标题' }).locator('input').first()\n"
+    }
+  ],
+  "inspectionFixes": [
+    {
+      "module": "剧本编辑器",
+      "action": "refresh_page",
+      "status": "failed",
+      "message": "locator.inputValue: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('label').filter({ hasText: '标题' }).locator('input').first()\n"
+    },
+    {
+      "module": "剧本编辑器",
+      "action": "reload_route",
+      "status": "failed",
+      "message": "locator.inputValue: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('label').filter({ hasText: '标题' }).locator('input').first()\n"
+    },
+    {
+      "module": "剧本编辑器",
+      "action": "clear_local_cache_and_reload",
+      "status": "failed",
+      "message": "locator.inputValue: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator('label').filter({ hasText: '标题' }).locator('input').first()\n"
+    }
+  ],
+  "inspectionResults": [],
+  "inspectionPerformance": [
+    {
+      "name": "home",
+      "route": "/world-builder/home",
+      "wallClockMs": 694,
+      "attempt": 1,
+      "domContentLoadedMs": 264,
+      "loadEventMs": 499,
+      "transferSize": 9821
+    },
+    {
+      "name": "world_builder",
+      "route": "/world-builder",
+      "wallClockMs": 1274,
+      "attempt": 1,
+      "domContentLoadedMs": 845,
+      "loadEventMs": 1178,
+      "transferSize": 8295
+    },
+    {
+      "name": "story_project",
+      "route": "/world-builder/stories/the-memory-thief",
+      "wallClockMs": 1201,
+      "attempt": 1,
+      "domContentLoadedMs": 789,
+      "loadEventMs": 1191,
+      "transferSize": 4384
+    },
+    {
+      "name": "story_graph",
+      "route": "/world-builder/story-graph",
+      "wallClockMs": 1680,
+      "attempt": 1,
+      "domContentLoadedMs": 1231,
+      "loadEventMs": 1585,
+      "transferSize": 10451
+    },
+    {
+      "name": "app_preview",
+      "route": "/world-builder/app-preview",
+      "wallClockMs": 1028,
+      "attempt": 1,
+      "domContentLoadedMs": 593,
+      "loadEventMs": 920,
+      "transferSize": 8535
+    },
+    {
+      "name": "settings",
+      "route": "/world-builder/settings",
+      "wallClockMs": 1430,
+      "attempt": 1,
+      "domContentLoadedMs": 1005,
+      "loadEventMs": 1372,
+      "transferSize": 7053
+    }
+  ],
+  "inspectionDiscovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
+    "remoteEntryUrl": null,
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "seed world id",
+    "storyRouteSource": "hard-coded story route in app links",
+    "notes": [
+      "No remote login credentials were found in repository files, env files, or test fixtures.",
+      "No external DramaEditor Editor URL was found; local Next.js route was used for offline inspection.",
+      "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
+    ]
+  }
+}

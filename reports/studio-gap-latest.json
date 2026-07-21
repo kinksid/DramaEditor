@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "updatedAt": "2026-07-21 19:05:00 Asia/Shanghai",
+  "updatedAt": "2026-07-21 19:18:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "cursor/studio-pixel-ia-alignment-604e",
   "references": {
@@ -8,6 +8,22 @@
     "studioMarketing": "https://www.dreem-world.ai/"
   },
   "evidenceBoundary": "Studio P0 路由当前仅公开 SPA 标题；没有认证截图时不推断登录后控件和精确尺寸。",
+  "verification": {
+    "typecheck": "passed",
+    "inspectHourly": {
+      "status": "failed_after_route_traversal",
+      "evidence": "六个核心路由均首次导航成功；既有剧本编辑器检查在等待“标题”输入框时超时，详见 errors/error_2026-07-21_19-17-25.json。"
+    },
+    "manualRouteRegression": {
+      "status": "passed",
+      "routes": [
+        "/world-builder/stories/world-neon-tokyo-noir",
+        "/world-builder/stories/the-memory-thief",
+        "/world-builder/stories/nonexistent-id",
+        "/world-builder/worlds"
+      ]
+    }
+  },
   "gaps": [
     {
       "id": "G-STUDIO-01",
