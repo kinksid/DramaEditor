@@ -26,7 +26,7 @@ import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { StoryNode } from "@/types/worldBuilder";
 
 export default function AppPreviewPage() {
-  const { world, episodes, nodes, edges, exportAppJson, generateAllMockVideos, updateNode, selectedNodeId } = useWorldBuilderStore();
+  const { world, episodes, nodes, edges, activeProjectId, exportAppJson, generateAllMockVideos, updateNode, selectedNodeId } = useWorldBuilderStore();
   const [episodeId, setEpisodeId] = useState(episodes[0]?.id ?? "");
   const episodeNodes = useMemo(() => nodes.filter((node) => node.data.episodeId === episodeId), [episodeId, nodes]);
   const firstPlayable = episodeNodes.find((node) => node.kind === "scene") ?? episodeNodes[0];
@@ -72,7 +72,7 @@ export default function AppPreviewPage() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Link href="/world-builder/stories/the-memory-thief" className="hover:text-ink-strong">记忆盗贼</Link>
+                <Link href={`/world-builder/stories/${activeProjectId}`} className="hover:text-ink-strong">{world.title}</Link>
                 <span>/</span><span>App 预览</span>
               </div>
               <h1 className="mt-2 text-3xl font-semibold">iOS 互动播放验收</h1>

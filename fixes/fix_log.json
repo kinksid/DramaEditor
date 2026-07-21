@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T11:05:00.360Z",
+    "timestampLocal": "2026-07-21 19:05:00 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-pixel-ia-alignment",
+    "fixes": [
+      {
+        "id": "G-STUDIO-05",
+        "status": "fixed",
+        "action": "Bound the story detail route to storyId, replaced hard-coded seed labels, preserved project context in edit links, and added loading/not-found states.",
+        "result": "Each story URL now resolves its own WorldProject context; the existing seed alias remains compatible."
+      }
+    ]
   }
 ]

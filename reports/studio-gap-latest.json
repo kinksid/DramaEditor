@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-07-21 19:05:00 Asia/Shanghai",
+  "sourceRepo": "kinksid/DramaEditor",
+  "branch": "cursor/studio-pixel-ia-alignment-604e",
+  "references": {
+    "studio": "https://studio.dreem-world.ai/",
+    "studioMarketing": "https://www.dreem-world.ai/"
+  },
+  "evidenceBoundary": "Studio P0 路由当前仅公开 SPA 标题；没有认证截图时不推断登录后控件和精确尺寸。",
+  "gaps": [
+    {
+      "id": "G-STUDIO-01",
+      "priority": "high",
+      "area": "ui_studio",
+      "route": "global",
+      "gap": "全局仍为旧粉紫亮色主题，且未加载已确认的 Public Sans / Instrument Serif。",
+      "evidence": "当前 globals.css 仍使用 #fdf5fa、#2d1b3d、#d9468a，src 中没有 Public Sans 或 Instrument Serif 字体声明。",
+      "suggestedFix": "切换到炭黑 + 玫瑰令牌并加载已确认字体，不扩展未证实组件。",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-02",
+      "priority": "high",
+      "area": "visual_ia",
+      "route": "/world-builder/worlds",
+      "gap": "世界列表仍是旧亮色营销卡片布局；Studio 登录后的精确网格、间距和组件态尚未补证。",
+      "evidence": "本地 page.tsx 使用白卡、28px hero 和三列卡片；Studio /worlds 公开抓取仅返回 SPA 标题。",
+      "suggestedFix": "获得认证截图后按基线逐项收敛列表密度、卡片比例、字号和状态。",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-03",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/worlds/[worldId]/characters|locations|storylines",
+      "gap": "P0 世界详情及 characters、locations、storylines 参数化子路由不存在。",
+      "evidence": "当前 src/app/world-builder/worlds 下仅有列表 page.tsx。",
+      "suggestedFix": "新增共享详情壳和三个参数化标签页，绑定 worldId。",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-04",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/worlds|/worlds/:worldId/*|/stories/:storyId",
+      "gap": "Studio 公共路由别名 rewrite 缺失。",
+      "evidence": "当前 next.config.ts 为空配置。",
+      "suggestedFix": "新增保留动态参数的 rewrites 并做路由回归。",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-05",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/stories/[storyId]",
+      "gap": "故事详情页此前未读取 storyId，标题与编辑链接固定到默认示例上下文。",
+      "evidence": "本轮已用 storyId 加载对应 WorldProject，动态显示世界标题与副标题，并在故事图和设置链接中保留项目参数；兼容现有 the-memory-thief 种子别名。",
+      "suggestedFix": "保持 storyId 为故事项目上下文来源，并为未知项目显示明确错误态。",
+      "status": "fixed"
+    },
+    {
+      "id": "G13",
+      "priority": "medium",
+      "area": "feature_flow",
+      "route": "settings.api",
+      "gap": "真实 AI Provider Key 尚未由人工提供。",
+      "evidence": "本轮未发现可用 Key，且禁止密钥入仓。",
+      "suggestedFix": "人工通过运行环境或 Settings 提供 Key；继续使用 Provider / decompose 流程。",
+      "status": "open"
+    }
+  ]
+}

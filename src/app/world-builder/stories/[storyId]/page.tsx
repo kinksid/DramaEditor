@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -27,6 +28,7 @@ import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 const tabs = ["总览", "剧集", "角色", "地点", "App 数据"] as const;
 
 export default function StoryProjectPage() {
+  const { storyId } = useParams<{ storyId: string }>();
   const {
     world,
     characters,
@@ -34,6 +36,9 @@ export default function StoryProjectPage() {
     episodes,
     nodes,
     edges,
+    activeProjectId,
+    hasHydrated,
+    ensureProjectLoaded,
     resetWorld,
     generateAllMockVideos,
     validateStory,
@@ -41,12 +46,22 @@ export default function StoryProjectPage() {
     exportAppJson,
   } = useWorldBuilderStore();
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("总览");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const resolvedProjectId =
+    storyId === "the-memory-thief" ? "world-neon-tokyo-noir" : storyId;
   const issues = useMemo(() => validateStory(), [validateStory, nodes, edges, episodes]);
   const readyScenes = nodes.filter((node) => node.kind === "scene" && node.data.status === "ready").length;
   const sceneCount = nodes.filter((node) => node.kind === "scene").length;
   const interactionCount = nodes.filter((node) => node.kind === "interaction").length;
   const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const warningCount = issues.filter((issue) => issue.severity === "warning").length;
+  const projectQuery = `?project=${encodeURIComponent(resolvedProjectId)}`;
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    const loaded = ensureProjectLoaded(resolvedProjectId);
+    setLoadError(loaded ? null : "未找到对应故事项目，请从世界库重新进入。");
+  }, [ensureProjectLoaded, hasHydrated, resolvedProjectId]);
 
   const downloadAppJson = () => {
     const blob = new Blob([exportAppJson()], { type: "application/json" });
@@ -57,6 +72,33 @@ export default function StoryProjectPage() {
     anchor.click();
     URL.revokeObjectURL(url);
   };
+
+  if (!hasHydrated || (!loadError && activeProjectId !== resolvedProjectId)) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-stage text-sm text-slate-500">
+        加载故事项目...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <WorldBuilderLayout agentMode="none">
+        <main className="grid min-h-screen place-items-center bg-stage p-6">
+          <div className="max-w-md rounded-3xl border border-red-100 bg-white p-6 text-center shadow-soft">
+            <h1 className="text-xl font-semibold text-ink-strong">故事项目不可用</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-500">{loadError}</p>
+            <Link
+              href="/world-builder/worlds"
+              className="mt-5 inline-flex rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white"
+            >
+              返回世界库
+            </Link>
+          </div>
+        </main>
+      </WorldBuilderLayout>
+    );
+  }
 
   return (
     <WorldBuilderLayout agentMode="none">
@@ -69,9 +111,7 @@ export default function StoryProjectPage() {
                 <div className="flex items-center gap-2 text-sm text-white/70">
                   <Link href="/world-builder/home" className="hover:text-white">创作工作台</Link>
                   <span>/</span>
-                  <span>{world.title}</span>
-                  <span>/</span>
-                  <span className="text-white">记忆盗贼</span>
+                  <span className="text-white">{world.title}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -90,8 +130,10 @@ export default function StoryProjectPage() {
               </div>
 
               <div className="max-w-3xl">
-                <p className="text-xs font-semibold tracking-[0.18em] text-white/55">霓虹东京迷案世界</p>
-                <h1 className="mt-3 text-5xl font-semibold tracking-normal">记忆盗贼</h1>
+                <p className="text-xs font-semibold tracking-[0.18em] text-white/55">
+                  {world.subtitle || "互动故事项目"}
+                </p>
+                <h1 className="mt-3 text-5xl font-semibold tracking-normal">{world.title}</h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">
                   {world.description}
                 </p>
@@ -131,10 +173,10 @@ export default function StoryProjectPage() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/world-builder/story-graph" className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-glow hover:bg-accent-deep">
+                  <Link href={`/world-builder/story-graph${projectQuery}`} className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-glow hover:bg-accent-deep">
                     <GitBranch size={16} /> 继续编辑故事图
                   </Link>
-                  <Link href="/world-builder/setup" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium">
+                  <Link href={`/world-builder/setup${projectQuery}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium">
                     <Settings2 size={16} /> 世界设置
                   </Link>
                 </div>
@@ -142,7 +184,7 @@ export default function StoryProjectPage() {
 
               {activeTab === "总览" && (
                 <div className="grid gap-4 md:grid-cols-3">
-                  <StudioAction href="/world-builder/story-graph" icon={GitBranch} title="无限故事画布" description="按集整理视频、互动、结局节点，拖拽连接分支。" />
+                  <StudioAction href={`/world-builder/story-graph${projectQuery}`} icon={GitBranch} title="无限故事画布" description="按集整理视频、互动、结局节点，拖拽连接分支。" />
                   <StudioAction href="/world-builder" icon={LayoutDashboard} title="世界资料库" description="编辑角色、地点、故事线，作为 App 内容源。" />
                   <StudioAction href="/world-builder/app-preview" icon={MonitorPlay} title="竖屏预览" description="用模拟视频快速检查互动播放路径。" />
                 </div>
@@ -154,7 +196,7 @@ export default function StoryProjectPage() {
                     const episodeNodes = nodes.filter((node) => node.data.episodeId === episode.id);
                     return (
                       <Link
-                        href="/world-builder/story-graph"
+                        href={`/world-builder/story-graph${projectQuery}`}
                         key={episode.id}
                         className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-pink-200 hover:bg-accent-soft/40"
                       >
@@ -240,7 +282,7 @@ export default function StoryProjectPage() {
                 <h2 className="font-semibold">制作工具</h2>
                 <div className="mt-3 grid gap-2">
                   <ToolButton href="/world-builder/app-preview" icon={Play} label="打开预览播放器" />
-                  <ToolButton href="/world-builder/story-graph" icon={Film} label="批量生成模拟视频" onClick={generateAllMockVideos} />
+                  <ToolButton href={`/world-builder/story-graph${projectQuery}`} icon={Film} label="批量生成模拟视频" onClick={generateAllMockVideos} />
                   <ToolButton href="/world-builder" icon={Users} label="管理角色地点" />
                   <ToolButton href="/world-builder/settings" icon={Smartphone} label="App 导出设置" />
                 </div>
