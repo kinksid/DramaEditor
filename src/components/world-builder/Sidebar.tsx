@@ -23,7 +23,7 @@ export function Sidebar() {
     { label: t("nav.home"), href: "/world-builder/home", icon: Home },
     { label: t("nav.worlds"), href: "/world-builder/worlds", icon: Sparkles },
     {
-      label: "故事线",
+      label: t("nav.storyGraph"),
       href: activeProjectId
         ? `/world-builder/story-graph?project=${activeProjectId}`
         : "/world-builder/story-graph",
@@ -52,7 +52,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-[78px] shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar px-3 py-5">
       <Link href="/world-builder/home" className="mb-8 grid size-11 place-items-center rounded-2xl overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="DramaEditor" className="h-full w-full object-contain" />
+        <img src="/logo.png" alt="Dreem Creator Studio" className="h-full w-full object-contain" />
       </Link>
       <nav className="flex w-full flex-1 flex-col gap-2">
         {items.map((item) => {
@@ -66,7 +66,7 @@ export function Sidebar() {
               className={cn(
                 "grid size-12 place-items-center rounded-2xl text-slate-400 transition",
                 active && "bg-accent-soft text-accent",
-                !active && "hover:bg-pink-50 hover:text-accent",
+                !active && "hover:bg-accent-soft hover:text-accent",
               )}
             >
               <Icon size={21} />
@@ -76,7 +76,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom area: SD 2.0, Settings, Language, User */}
-      <div className="mt-auto flex w-full flex-col items-center gap-2 border-t border-pink-100 pt-4">
+      <div className="mt-auto flex w-full flex-col items-center gap-2 border-t border-sidebar-border pt-4">
         {bottomItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -88,7 +88,7 @@ export function Sidebar() {
               className={cn(
                 "grid size-11 place-items-center rounded-2xl text-slate-400 transition",
                 active && "bg-accent-soft text-accent",
-                !active && "hover:bg-pink-50 hover:text-accent",
+                !active && "hover:bg-accent-soft hover:text-accent",
               )}
             >
               <Icon size={19} />
@@ -99,7 +99,7 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           title={theme === "light" ? "切换暗黑模式" : "Switch to Light"}
-          className="grid size-11 place-items-center rounded-2xl text-slate-400 hover:bg-pink-50 hover:text-accent transition"
+          className="grid size-11 place-items-center rounded-2xl text-slate-400 hover:bg-accent-soft hover:text-accent transition"
         >
           {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
         </button>
@@ -107,7 +107,7 @@ export function Sidebar() {
         <button
           onClick={toggleLanguage}
           title={language === "zh" ? "English" : "中文"}
-          className="grid size-11 place-items-center rounded-2xl text-slate-400 hover:bg-pink-50 hover:text-accent transition"
+          className="grid size-11 place-items-center rounded-2xl text-slate-400 hover:bg-accent-soft hover:text-accent transition"
         >
           <Globe size={18} />
           <span className="text-[9px] font-bold mt-0.5">{language === "zh" ? "EN" : "中"}</span>
@@ -116,7 +116,7 @@ export function Sidebar() {
         <div className="relative">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="grid size-11 place-items-center rounded-2xl hover:bg-pink-50 transition"
+            className="grid size-11 place-items-center rounded-2xl hover:bg-accent-soft transition"
             title="User"
           >
             <div className="grid size-8 place-items-center rounded-full bg-accent-soft text-accent">
@@ -126,13 +126,21 @@ export function Sidebar() {
           {userMenuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 z-50 mb-2 w-44 rounded-2xl border border-pink-100 bg-white p-2 shadow-soft">
-                <div className="rounded-xl bg-pink-50 px-3 py-2 text-xs text-accent font-medium">
+              <div className="absolute bottom-full left-0 z-50 mb-2 w-44 rounded-2xl border border-card-border bg-white p-2 shadow-soft">
+                <div className="rounded-xl bg-accent-soft px-3 py-2 text-xs text-accent font-medium">
                   Creator
                 </div>
                 <Link
+                  href="/login"
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-600 hover:bg-accent-soft"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <UserRound size={14} />
+                  登录
+                </Link>
+                <Link
                   href="/world-builder/settings"
-                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-600 hover:bg-pink-50"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-600 hover:bg-accent-soft"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Settings size={14} />
@@ -141,7 +149,7 @@ export function Sidebar() {
                 <a
                   href="https://discord.gg/fsqDMxZsQ"
                   target="_blank"
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-600 hover:bg-pink-50"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-600 hover:bg-accent-soft"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Globe size={14} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { PenLine, Trash2, UserRound } from "lucide-react";
+import { MessageCircle, PenLine, Trash2, UserRound } from "lucide-react";
 import type { Character } from "@/types/worldBuilder";
 
 type Props = {
@@ -10,8 +10,9 @@ type Props = {
 };
 
 export function CharacterCard({ character, onEdit, onDelete }: Props) {
+  const chatOn = character.chat?.enabled;
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+    <article className="rounded-2xl border border-card-border bg-white p-5 shadow-soft">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex gap-3">
           <div className="grid size-11 shrink-0 place-items-center rounded-2xl accent-soft text-accent">
@@ -24,8 +25,18 @@ export function CharacterCard({ character, onEdit, onDelete }: Props) {
             </p>
           </div>
         </div>
+        {chatOn && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-medium text-accent">
+            <MessageCircle size={12} /> 可对话
+          </span>
+        )}
       </div>
       <p className="min-h-[72px] text-sm leading-6 text-slate-600">{character.description}</p>
+      {chatOn && character.chat?.personality && (
+        <p className="mt-3 line-clamp-2 text-xs leading-5 text-slate-400">
+          对话人设：{character.chat.personality}
+        </p>
+      )}
       <div className="mt-5 flex gap-2">
         <button onClick={() => onEdit(character)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">
           <PenLine size={15} /> 编辑

@@ -8,7 +8,7 @@ import { LocationCard } from "@/components/world-builder/LocationCard";
 import { cn } from "@/lib/utils";
 import { locationTypeLabels } from "@/lib/worldBuilderLabels";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
-import type { Character, Location } from "@/types/worldBuilder";
+import type { Character, CharacterChatConfig, Location } from "@/types/worldBuilder";
 
 type Tab = "Characters" | "Locations" | "Storylines";
 
@@ -18,11 +18,19 @@ const tabLabels: Record<Tab, string> = {
   Storylines: "故事线",
 };
 
+const defaultChat = (): CharacterChatConfig => ({
+  enabled: false,
+  personality: "",
+  memoryHooks: "",
+  relationshipGoals: "",
+});
+
 const emptyCharacter: Omit<Character, "id"> = {
   name: "",
   age: undefined,
   role: "",
   description: "",
+  chat: defaultChat(),
 };
 
 const emptyLocation: Omit<Location, "id"> = {
@@ -61,10 +69,19 @@ export function WorldTabs() {
     setLocationDraft(null);
   };
 
+  const chat = characterDraft?.chat ?? defaultChat();
+  const patchChat = (patch: Partial<CharacterChatConfig>) => {
+    if (!characterDraft) return;
+    setCharacterDraft({
+      ...characterDraft,
+      chat: { ...chat, ...patch },
+    });
+  };
+
   return (
     <section className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-soft">
+        <div className="flex rounded-2xl border border-card-border bg-white p-1 shadow-soft">
           {(["Characters", "Locations", "Storylines"] as Tab[]).map((item) => (
             <button
               key={item}
@@ -93,7 +110,12 @@ export function WorldTabs() {
       {tab === "Characters" && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           {characters.map((character) => (
-            <CharacterCard key={character.id} character={character} onEdit={setCharacterDraft} onDelete={deleteCharacter} />
+            <CharacterCard
+              key={character.id}
+              character={character}
+              onEdit={(c) => setCharacterDraft({ ...c, chat: c.chat ?? defaultChat() })}
+              onDelete={deleteCharacter}
+            />
           ))}
         </div>
       )}
@@ -109,7 +131,7 @@ export function WorldTabs() {
       {tab === "Storylines" && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {episodes.map((episode) => (
-            <Link key={episode.id} href="/world-builder/story-graph" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft hover:border-pink-200">
+            <Link key={episode.id} href="/world-builder/story-graph" className="rounded-2xl border border-card-border bg-white p-5 shadow-soft hover:border-accent/40">
               <div className="flex items-center gap-3">
                 <div className="grid size-11 place-items-center rounded-2xl bg-accent-soft text-accent">
                   <Route size={20} />
@@ -126,13 +148,50 @@ export function WorldTabs() {
 
       {characterDraft && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink-strong/35 p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-soft">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-soft">
             <h2 className="text-lg font-semibold">角色信息</h2>
             <div className="mt-5 grid gap-3">
               <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="角色名" value={characterDraft.name} onChange={(e) => setCharacterDraft({ ...characterDraft, name: e.target.value })} />
               <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="年龄" type="number" value={characterDraft.age ?? ""} onChange={(e) => setCharacterDraft({ ...characterDraft, age: e.target.value ? Number(e.target.value) : undefined })} />
               <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="身份 / 戏剧功能" value={characterDraft.role} onChange={(e) => setCharacterDraft({ ...characterDraft, role: e.target.value })} />
               <textarea className="min-h-28 rounded-xl border border-slate-200 px-3 py-2" placeholder="角色描述" value={characterDraft.description} onChange={(e) => setCharacterDraft({ ...characterDraft, description: e.target.value })} />
+
+              <div className="mt-2 rounded-2xl border border-card-border bg-slate-50 p-4">
+                <label className="flex items-center justify-between gap-3 text-sm font-medium">
+                  <span>剧后角色对话（编辑器配置）</span>
+                  <input
+                    type="checkbox"
+                    checked={chat.enabled}
+                    onChange={(e) => patchChat({ enabled: e.target.checked })}
+                    className="size-4 accent-[var(--tw-accent)]"
+                  />
+                </label>
+                <p className="mt-1 text-xs text-slate-400">
+                  对应 Dreem 消费端「与角色聊天」能力；此处仅配置导出字段，不运行聊天 runtime。
+                </p>
+                {chat.enabled && (
+                  <div className="mt-3 grid gap-2">
+                    <textarea
+                      className="min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="对话人设 / 说话风格"
+                      value={chat.personality}
+                      onChange={(e) => patchChat({ personality: e.target.value })}
+                    />
+                    <textarea
+                      className="min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="记忆钩子（剧情事实、秘密、称呼）"
+                      value={chat.memoryHooks}
+                      onChange={(e) => patchChat({ memoryHooks: e.target.value })}
+                    />
+                    <textarea
+                      className="min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="关系目标（亲密度、解锁条件）"
+                      value={chat.relationshipGoals}
+                      onChange={(e) => patchChat({ relationshipGoals: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setCharacterDraft(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">取消</button>

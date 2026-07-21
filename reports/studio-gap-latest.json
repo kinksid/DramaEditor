@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21 17:20:00 Asia/Shanghai",
+  "updatedAt": "2026-07-21 17:30:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "reference": "https://studio.dreem-world.ai/",
@@ -11,7 +11,8 @@
     "earlyExitIfNoHigh": true,
     "syncToGithub": true,
     "targets": ["cloud_github", "local_volume"],
-    "localRoot": "/Volumes/YANG/DramaEditor"
+    "localRoot": "/Volumes/YANG/DramaEditor",
+    "automationStatus": "stopped"
   },
   "confirmedDecisions": {
     "login": "lightweight_ui_shell",
@@ -26,9 +27,9 @@
       "area": "visual_ia",
       "route": "theme",
       "gap": "全局仍偏粉紫默认审美；需调为电影感炭黑+玫瑰",
-      "evidence": "globals.css accent #d9468a; pink-* borders",
-      "suggestedFix": "Update CSS variables + reduce pink utility clusters",
-      "status": "open"
+      "evidence": "globals.css + tailwind branch colors updated",
+      "suggestedFix": "Done — charcoal/rose tokens; legacy pink utilities remapped",
+      "status": "fixed"
     },
     {
       "id": "G10",
@@ -36,9 +37,9 @@
       "area": "feature_flow",
       "route": "/login",
       "gap": "缺少 Studio 风格轻量登录/推荐码壳",
-      "evidence": "no src/app/login",
-      "suggestedFix": "Add /login UI with referral code + local session",
-      "status": "open"
+      "evidence": "src/app/login/page.tsx",
+      "suggestedFix": "Done — referral code local session shell",
+      "status": "fixed"
     },
     {
       "id": "G11",
@@ -46,9 +47,9 @@
       "area": "feature_flow",
       "route": "/api/studio/generate-world",
       "gap": "自动拆解/创建未接真实 API；需代理 + Settings 凭证",
-      "evidence": "home autoSplit only writes setupDraft notes",
-      "suggestedFix": "Proxy generate-world; persist apiBaseUrl/apiKey; wire home/setup",
-      "status": "open"
+      "evidence": "route + studioApi + home wiring + settings persist",
+      "suggestedFix": "Done — proxy POST {base}/worlds/generate",
+      "status": "fixed"
     },
     {
       "id": "G12",
@@ -56,18 +57,18 @@
       "area": "feature_flow",
       "route": "/world-builder",
       "gap": "角色对话/关系/记忆配置入口缺失（编辑器占位）",
-      "evidence": "Character type lacks chat config",
-      "suggestedFix": "Extend Character + WorldTabs editor fields",
-      "status": "open"
+      "evidence": "Character.chat + WorldTabs editor",
+      "suggestedFix": "Done — editor config fields exportable with character",
+      "status": "fixed"
     },
     {
       "id": "G13",
-      "priority": "medium",
+      "priority": "high",
       "area": "integration",
       "route": "settings.api",
-      "gap": "真实 API Base/Key 待人工确认（默认 api.dramaplay.dev 可能不可用）",
-      "evidence": "settings default https://api.dramaplay.dev/v1",
-      "suggestedFix": "User confirms production base URL + key scheme",
+      "gap": "真实 API Key 稍后由人工提供；默认 Base=https://api.dramaplay.dev/v1，路径 POST /worlds/generate，鉴权 Bearer",
+      "evidence": "settings persist + /api/studio/generate-world; user deferred key",
+      "suggestedFix": "When key arrives: set Settings or STUDIO_API_KEY; confirm base/path if different",
       "status": "open"
     }
   ]

@@ -9,6 +9,17 @@ export type World = {
   createdAt: string;
 };
 
+export type CharacterChatConfig = {
+  /** Enable Dreem-style post-story character chat for this role */
+  enabled: boolean;
+  /** In-character speaking style / personality for chat */
+  personality: string;
+  /** Memory hooks the chat agent should remember */
+  memoryHooks: string;
+  /** Relationship goals with the player */
+  relationshipGoals: string;
+};
+
 export type Character = {
   id: string;
   name: string;
@@ -16,6 +27,7 @@ export type Character = {
   role: string;
   description: string;
   referenceImage?: string;
+  chat?: CharacterChatConfig;
 };
 
 export type Location = {
