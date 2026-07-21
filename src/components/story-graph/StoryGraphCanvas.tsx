@@ -32,6 +32,8 @@ import { EpisodeFrame } from "@/components/story-graph/EpisodeFrame";
 import { InteractionNode } from "@/components/story-graph/nodes/InteractionNode";
 import { SceneNode } from "@/components/story-graph/nodes/SceneNode";
 import { EndingNode } from "@/components/story-graph/nodes/EndingNode";
+import { GenerationTaskBar } from "@/components/story-graph/GenerationTaskBar";
+import { NodeFloatingToolbar } from "@/components/story-graph/NodeFloatingToolbar";
 import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Episode, StoryEdge, StoryNode } from "@/types/worldBuilder";
@@ -199,7 +201,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
   };
 
   return (
-    <div className="h-full min-h-[720px] overflow-hidden bg-white dark:bg-[#1a1a2e]">
+    <div className="relative h-full min-h-[720px] overflow-hidden bg-[#0c0a0f]">
       <ReactFlow
         nodes={canvasNodes} edges={flowEdges} nodeTypes={nodeTypes}
         fitView fitViewOptions={{ padding: 0.16 }} minZoom={0.18} maxZoom={2}
@@ -265,14 +267,16 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
         onConnect={handleConnect}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#d9468a" gap={20} size={0.8} style={{ opacity: 0.12 }} />
+        <Background color="#b94a6a" gap={20} size={0.8} style={{ opacity: 0.1 }} />
         <FocusSelectedEpisode episodes={episodes} selectedEpisodeId={selectedEpisodeId} />
         <CanvasControls mode={mode} setMode={setMode} onAutoLayout={autoLayoutEpisodes} />
         <CanvasInteractions onOpenNode={onOpenNode} />
         <ConnectionDropMenu connectMenu={connectMenu} onClose={() => setConnectMenu(null)} />
+        <NodeFloatingToolbar onOpenNode={onOpenNode} />
         <MiniMap pannable zoomable nodeStrokeWidth={3}
-          className="!bottom-5 !right-5 !h-[112px] !w-[180px] !rounded-2xl !border !border-slate-200 !bg-white/95 !shadow-soft" />
+          className="!bottom-16 !right-5 !h-[112px] !w-[180px] !rounded-2xl !border !border-white/10 !bg-[#16141c]/95 !shadow-soft" />
       </ReactFlow>
+      <GenerationTaskBar />
     </div>
   );
 }
@@ -513,17 +517,17 @@ function CanvasControls({ mode, setMode, onAutoLayout }: { mode: "select" | "pan
   const zp = Math.round(vp.zoom * 100);
   return (
     <Panel position="bottom-left" className="!m-5">
-      <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/95 p-1 shadow-soft backdrop-blur">
-        <button onClick={() => setMode("select")} title="选择" className={cn("grid size-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100", mode === "select" && "bg-accent-soft text-accent")}><MousePointer2 size={17} /></button>
-        <button onClick={() => setMode("pan")} title="拖动" className={cn("grid size-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100", mode === "pan" && "bg-accent-soft text-accent")}><Hand size={17} /></button>
-        <span className="mx-1 h-6 w-px bg-slate-200" />
-        <button onClick={() => flow.zoomOut({ duration: 180 })} className="grid size-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"><Minus size={17} /></button>
-        <button onClick={() => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 220 })} className="min-w-14 rounded-xl px-2 py-2 text-sm font-semibold text-slate-700">{zp}%</button>
-        <button onClick={() => flow.zoomIn({ duration: 180 })} className="grid size-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"><Plus size={17} /></button>
-        <span className="mx-1 h-6 w-px bg-slate-200" />
-        <button onClick={() => flow.fitView({ padding: 0.16, duration: 260 })} className="grid size-9 place-items-center rounded-xl text-slate-600"><Maximize2 size={16} /></button>
-        <button onClick={onAutoLayout} className="grid size-9 place-items-center rounded-xl text-slate-600"><LayoutGrid size={16} /></button>
-        <button onClick={() => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 220 })} className="grid size-9 place-items-center rounded-xl text-slate-600"><RotateCcw size={16} /></button>
+      <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-[#16141c]/95 p-1 shadow-soft backdrop-blur">
+        <button onClick={() => setMode("select")} title="选择" className={cn("grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10", mode === "select" && "bg-accent/20 text-accent")}><MousePointer2 size={17} /></button>
+        <button onClick={() => setMode("pan")} title="拖动" className={cn("grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10", mode === "pan" && "bg-accent/20 text-accent")}><Hand size={17} /></button>
+        <span className="mx-1 h-6 w-px bg-white/15" />
+        <button onClick={() => flow.zoomOut({ duration: 180 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><Minus size={17} /></button>
+        <button onClick={() => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 220 })} className="min-w-14 rounded-xl px-2 py-2 text-sm font-semibold text-white/80">{zp}%</button>
+        <button onClick={() => flow.zoomIn({ duration: 180 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><Plus size={17} /></button>
+        <span className="mx-1 h-6 w-px bg-white/15" />
+        <button onClick={() => flow.fitView({ padding: 0.16, duration: 260 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><Maximize2 size={16} /></button>
+        <button onClick={onAutoLayout} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><LayoutGrid size={16} /></button>
+        <button onClick={() => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 220 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><RotateCcw size={16} /></button>
       </div>
     </Panel>
   );

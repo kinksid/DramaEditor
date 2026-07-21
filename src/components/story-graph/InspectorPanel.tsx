@@ -21,10 +21,10 @@ export function InspectorPanel() {
 
   if (!selectedNode) {
     return (
-      <aside className="h-full border-l border-slate-200 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">属性面板</p>
-        <h2 className="mt-2 text-lg font-semibold">选择一个节点</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+      <aside className="h-full border-l border-white/8 bg-[#121016] p-5 text-white/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/35">属性面板</p>
+        <h2 className="mt-2 text-lg font-semibold text-white">选择一个节点</h2>
+        <p className="mt-2 text-sm leading-6 text-white/45">
           点击画布中的视频节点、互动节点或结局节点，即可编辑本地数据。
         </p>
       </aside>
@@ -32,19 +32,19 @@ export function InspectorPanel() {
   }
 
   return (
-    <aside className="max-h-[calc(100vh-142px)] overflow-y-auto border-l border-slate-200 bg-white p-5">
+    <aside className="max-h-[calc(100vh-142px)] overflow-y-auto border-l border-white/8 bg-[#121016] p-5 text-white/90">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">属性面板</p>
-      <h2 className="mt-2 text-lg font-semibold capitalize">{nodeKindLabel(selectedNode.kind)}</h2>
+      <h2 className="mt-2 text-lg font-semibold capitalize text-white">{nodeKindLabel(selectedNode.kind)}</h2>
       <div className="mt-5">
         {selectedNode.kind === "scene" && <SceneInspector node={selectedNode} />}
         {selectedNode.kind === "interaction" && <InteractionInspector node={selectedNode} />}
         {selectedNode.kind === "ending" && <EndingInspector node={selectedNode} />}
       </div>
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <button onClick={() => duplicateNode(selectedNode.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
+        <button onClick={() => duplicateNode(selectedNode.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 px-3 py-2 text-sm text-white/80 hover:bg-white/8">
           <Copy size={15} /> 复制
         </button>
-        <button onClick={() => deleteNode(selectedNode.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-sm text-red-600">
+        <button onClick={() => deleteNode(selectedNode.id)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-400/25 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10">
           <Trash2 size={15} /> 删除
         </button>
       </div>
@@ -63,7 +63,7 @@ export function InspectorPanel() {
         <TextInput label="视频地址" value={data.videoUrl ?? ""} onChange={(value) => setData({ videoUrl: value })} />
         <label className="block">
           <span className="text-sm font-medium">状态</span>
-          <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={data.status} onChange={(e) => setData({ status: e.target.value as SceneNodeData["status"] })}>
+          <select className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" value={data.status} onChange={(e) => setData({ status: e.target.value as SceneNodeData["status"] })}>
             {Object.entries(statusLabels).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -133,7 +133,7 @@ export function InspectorPanel() {
         <TextInput label="标题" value={node.data.title} onChange={(value) => updateNode(node.id, { title: value })} />
         <label className="block">
           <span className="text-sm font-medium">结局类型</span>
-          <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={node.data.endingType} onChange={(e) => updateNode(node.id, { endingType: e.target.value as never })}>
+          <select className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" value={node.data.endingType} onChange={(e) => updateNode(node.id, { endingType: e.target.value as never })}>
             <option>good</option>
             <option>bad</option>
             <option>normal</option>
@@ -158,12 +158,12 @@ function OptionEditor({
   onDelete: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
       <div className="grid gap-2">
         <TextInput label="选项文案" value={option.label} onChange={(value) => onUpdate({ label: value })} compact />
         <label>
-          <span className="text-xs font-medium text-slate-500">交互类型</span>
-          <select className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" value={option.actionType} onChange={(e) => onUpdate({ actionType: e.target.value as InteractionOption["actionType"] })}>
+          <span className="text-xs font-medium text-white/45">交互类型</span>
+          <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" value={option.actionType} onChange={(e) => onUpdate({ actionType: e.target.value as InteractionOption["actionType"] })}>
             {Object.entries(actionTypeLabels).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -173,8 +173,8 @@ function OptionEditor({
         </label>
         <TextInput label="交互参数" value={option.actionValue ?? ""} onChange={(value) => onUpdate({ actionValue: value })} compact />
         <label>
-          <span className="text-xs font-medium text-slate-500">目标节点</span>
-          <select className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" value={option.targetNodeId ?? ""} onChange={(e) => onUpdate({ targetNodeId: e.target.value })}>
+          <span className="text-xs font-medium text-white/45">目标节点</span>
+          <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" value={option.targetNodeId ?? ""} onChange={(e) => onUpdate({ targetNodeId: e.target.value })}>
             <option value="">无</option>
             {nodes.map((node) => (
               <option key={node.id} value={node.id}>
@@ -185,7 +185,7 @@ function OptionEditor({
         </label>
         <TextInput label="连线颜色" value={option.color ?? ""} onChange={(value) => onUpdate({ color: value })} compact />
       </div>
-      <button onClick={onDelete} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2 text-xs text-red-600">
+      <button onClick={onDelete} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-red-400/25 bg-transparent px-3 py-2 text-xs text-red-300 hover:bg-red-500/10">
         <Trash2 size={14} /> 删除选项
       </button>
     </div>
@@ -195,8 +195,8 @@ function OptionEditor({
 function TextInput({ label, value, onChange, compact }: { label: string; value: string; onChange: (value: string) => void; compact?: boolean }) {
   return (
     <label className="block">
-      <span className={compact ? "text-xs font-medium text-slate-500" : "text-sm font-medium"}>{label}</span>
-      <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)} />
+      <span className={compact ? "text-xs font-medium text-white/45" : "text-sm font-medium text-white/70"}>{label}</span>
+      <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-accent/50" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
@@ -204,8 +204,8 @@ function TextInput({ label, value, onChange, compact }: { label: string; value: 
 function Textarea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium">{label}</span>
-      <textarea className="mt-2 min-h-32 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm leading-6" value={value} onChange={(e) => onChange(e.target.value)} />
+      <span className="text-sm font-medium text-white/70">{label}</span>
+      <textarea className="mt-2 min-h-32 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-accent/50" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
@@ -266,14 +266,14 @@ function GestureEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-6 backdrop-blur-sm">
-      <div className="grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-soft lg:grid-cols-[420px_1fr]">
-        <section className="bg-ink-strong p-5">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-sm">
+      <div className="grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-[#121016] text-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] lg:grid-cols-[420px_1fr]">
+        <section className="bg-[#0c0a0f] p-5">
           <div
             onClick={handlePreviewClick}
-            className="relative mx-auto aspect-[9/16] max-h-[82vh] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,#09111f,#172136_52%,#05070d)] text-white shadow-2xl"
+            className="relative mx-auto aspect-[9/16] max-h-[82vh] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,#120a12,#1a1020_52%,#08060a)] text-white shadow-2xl"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_18%,rgba(47,125,246,0.32),transparent_18%),linear-gradient(90deg,rgba(255,255,255,0.08),transparent_24%,transparent_76%,rgba(255,255,255,0.07))]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_18%,rgba(185,74,106,0.28),transparent_18%),linear-gradient(90deg,rgba(255,255,255,0.08),transparent_24%,transparent_76%,rgba(255,255,255,0.07))]" />
             <div className="absolute inset-x-0 top-0 p-5">
               <p className="text-xs text-white/55">互动预览</p>
               <h3 className="mt-1 text-lg font-semibold">{node.data.title}</h3>
@@ -292,10 +292,10 @@ function GestureEditorModal({
                   className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
                   style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
                 >
-                  <span className={active ? "grid size-14 place-items-center rounded-full border-2 border-sky-400 bg-white/15 shadow-glow backdrop-blur" : "grid size-11 place-items-center rounded-full border border-white/60 bg-black/35 backdrop-blur"}>
+                  <span className={active ? "grid size-14 place-items-center rounded-full border-2 border-accent bg-white/15 shadow-glow backdrop-blur" : "grid size-11 place-items-center rounded-full border border-white/60 bg-black/35 backdrop-blur"}>
                     <MousePointerClick size={22} />
                   </span>
-                  <span className="absolute -right-1 -top-2 grid size-6 place-items-center rounded-full bg-sky-500 text-xs font-bold text-white">{index + 1}</span>
+                  <span className="absolute -right-1 -top-2 grid size-6 place-items-center rounded-full bg-accent text-xs font-bold text-white">{index + 1}</span>
                   <span className="mt-1 block max-w-28 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-semibold">{option.label}</span>
                 </button>
               );
@@ -307,21 +307,21 @@ function GestureEditorModal({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <label className="block">
-                <span className="text-sm font-semibold">名称</span>
-                <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={node.data.title} onChange={(event) => onTitle(event.target.value)} />
+                <span className="text-sm font-semibold text-white/90">名称</span>
+                <input className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-accent/50" value={node.data.title} onChange={(event) => onTitle(event.target.value)} />
               </label>
             </div>
-            <button onClick={onClose} className="grid size-9 place-items-center rounded-xl hover:bg-slate-100">
+            <button onClick={onClose} className="grid size-9 place-items-center rounded-xl text-white/70 hover:bg-white/10">
               <X size={18} />
             </button>
           </div>
 
-          <div className="mt-4 border-b border-slate-200">
-            <button className="border-b-2 border-ink px-2 py-2 text-sm font-semibold">互动</button>
+          <div className="mt-4 border-b border-white/10">
+            <button className="border-b-2 border-accent px-2 py-2 text-sm font-semibold text-white">互动</button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-slate-200 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">交互类型</p>
+          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">交互类型</p>
             <div className="mt-3 grid gap-2 md:grid-cols-4">
               <GestureTypeButton active={selectedOption?.actionType === "tap"} icon={MousePointerClick} title="点击" detail="最多 6 个屏幕选项" onClick={() => setActionType("tap")} />
               <GestureTypeButton active={selectedOption?.actionType === "swipe"} icon={Hand} title="滑动" detail="单方向手势" onClick={() => setActionType("swipe")} />
@@ -330,14 +330,14 @@ function GestureEditorModal({
             </div>
 
             <div className="mt-5 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">选项 ({node.data.options.length}/6)</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">选项 ({node.data.options.length}/6)</p>
               <button
                 disabled={node.data.options.length >= 6}
                 onClick={() => {
                   onAddOption();
                   window.setTimeout(() => setSelectedOptionId(node.data.options.at(-1)?.id), 0);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/12 px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/8 disabled:opacity-40"
               >
                 <Plus size={15} /> 添加选项
               </button>
@@ -359,8 +359,8 @@ function GestureEditorModal({
             </div>
 
             <label className="mt-4 block">
-              <span className="text-sm font-semibold">互动说明</span>
-              <textarea className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm leading-6" value={node.data.instruction} onChange={(event) => onInstruction(event.target.value)} />
+              <span className="text-sm font-semibold text-white/90">互动说明</span>
+              <textarea className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-accent/50" value={node.data.instruction} onChange={(event) => onInstruction(event.target.value)} />
             </label>
           </div>
         </section>
@@ -383,14 +383,14 @@ function GestureTypeButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className={active ? "rounded-xl border border-ink p-3 text-left" : "rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"}>
+    <button onClick={onClick} className={active ? "rounded-xl border border-accent/50 bg-accent/10 p-3 text-left" : "rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left hover:bg-white/8"}>
       <div className="flex items-center gap-2">
         <span className="grid size-7 place-items-center rounded-full bg-accent text-white">
           <Icon size={15} />
         </span>
-        <span className="font-semibold">{title}</span>
+        <span className="font-semibold text-white">{title}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-500">{detail}</p>
+      <p className="mt-2 text-xs text-white/45">{detail}</p>
     </button>
   );
 }
@@ -415,33 +415,33 @@ function GestureOptionCard({
   const point = option.hotspot ?? parseHotspot(option.actionValue) ?? defaultHotspot(index);
 
   return (
-    <button onClick={onSelect} className={active ? "rounded-2xl border border-ink p-3 text-left" : "rounded-2xl border border-slate-200 p-3 text-left hover:bg-slate-50"}>
+    <button onClick={onSelect} className={active ? "rounded-2xl border border-accent/45 bg-accent/10 p-3 text-left" : "rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left hover:bg-white/8"}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="grid size-6 place-items-center rounded-full bg-sky-500 text-xs font-bold text-white">{index + 1}</span>
-          <span className="font-semibold">{actionTypeLabels[option.actionType]}</span>
-          <span className="text-xs text-slate-500">({point.x.toFixed(2)}, {point.y.toFixed(2)})</span>
+          <span className="grid size-6 place-items-center rounded-full bg-accent text-xs font-bold text-white">{index + 1}</span>
+          <span className="font-semibold text-white">{actionTypeLabels[option.actionType]}</span>
+          <span className="text-xs text-white/40">({point.x.toFixed(2)}, {point.y.toFixed(2)})</span>
         </div>
         <span
           onClick={(event) => {
             event.stopPropagation();
             onDelete();
           }}
-          className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+          className="grid size-8 place-items-center rounded-lg text-white/40 hover:bg-red-500/15 hover:text-red-300"
         >
           <Trash2 size={15} />
         </span>
       </div>
       <div className="mt-3 grid gap-2">
-        <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm" value={option.label} onChange={(event) => onUpdate({ label: event.target.value })} />
+        <input className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-accent/50" value={option.label} onChange={(event) => onUpdate({ label: event.target.value })} />
         <div className="grid grid-cols-2 gap-2">
           <NumberInput label="X" value={point.x} onChange={(value) => onUpdate({ hotspot: { x: clamp(value), y: point.y }, actionValue: `(${clamp(value).toFixed(2)}, ${point.y.toFixed(2)})` })} />
           <NumberInput label="Y" value={point.y} onChange={(value) => onUpdate({ hotspot: { x: point.x, y: clamp(value) }, actionValue: `(${point.x.toFixed(2)}, ${clamp(value).toFixed(2)})` })} />
         </div>
-        <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm" value={option.actionValue ?? ""} onChange={(event) => onUpdate({ actionValue: event.target.value })} placeholder="交互参数，例如 right / 1500ms / 3x" />
+        <input className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-accent/50" value={option.actionValue ?? ""} onChange={(event) => onUpdate({ actionValue: event.target.value })} placeholder="交互参数，例如 right / 1500ms / 3x" />
         <label>
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">跳转到</span>
-          <select className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={option.targetNodeId ?? ""} onChange={(event) => onUpdate({ targetNodeId: event.target.value })}>
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">跳转到</span>
+          <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" value={option.targetNodeId ?? ""} onChange={(event) => onUpdate({ targetNodeId: event.target.value })}>
             <option value="">未连接</option>
             {nodes.map((node) => (
               <option key={node.id} value={node.id}>
@@ -458,8 +458,8 @@ function GestureOptionCard({
 function NumberInput({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
     <label>
-      <span className="text-xs font-semibold text-slate-500">{label}</span>
-      <input className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" type="number" min={0} max={1} step={0.01} value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <span className="text-xs font-semibold text-white/45">{label}</span>
+      <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-accent/50" type="number" min={0} max={1} step={0.01} value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-21 18:15:00 Asia/Shanghai",
+  "updatedAt": "2026-07-21 18:30:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "references": {
@@ -9,7 +9,7 @@
     "taptv": "https://app.tapnow.ai/home/taptv",
     "tapnowCanvas": "https://app.tapnow.ai/"
   },
-  "referenceProduct": "Dreem Creator Studio + TapNow/TapTV UX",
+  "referenceProduct": "Dreem Creator Studio (feature + UI/UX replica) + TapNow/TapTV UX",
   "gate": {
     "autoResolvePriorities": ["high"],
     "maxItemsPerRun": 3,
@@ -23,27 +23,13 @@
     "aiGenerate": "provider_decompose_primary",
     "consumerChat": "editor_config_entry_placeholder",
     "theme": "cinematic_charcoal_rose",
-    "workspaceUx": "tapnow_dock_drag_dark_shell",
-    "taptv": "local_inspire_shell_only_until_confirmed"
+    "workspaceUx": "studio_ui_ux_replica_primary_tapnow_supplement",
+    "C1": "yes_generation_task_bar_and_node_floating_toolbar",
+    "C2": "yes_inspector_full_dark",
+    "C3": "no_forced_sample_project_split",
+    "C4": "taptv_local_inspire_shell_only"
   },
-  "pendingUserConfirm": [
-    {
-      "id": "C1",
-      "question": "是否本轮做 TapNow 式「底部生成历史任务条」与「节点旁浮动工具条」？"
-    },
-    {
-      "id": "C2",
-      "question": "右侧 Inspector 是否全面改暗色 TapNow 面板？"
-    },
-    {
-      "id": "C3",
-      "question": "世界库示例卡与真实项目是否强制分区展示？"
-    },
-    {
-      "id": "C4",
-      "question": "TapTV：仅本地灵感/Remix 壳，还是后续要接真实发布/关注社区？"
-    }
-  ],
+  "pendingUserConfirm": [],
   "gaps": [
     {
       "id": "G13",
@@ -68,31 +54,41 @@
     {
       "id": "G15",
       "priority": "medium",
-      "area": "ux_tapnow",
+      "area": "ui_studio",
       "route": "/world-builder/story-graph",
-      "gap": "缺底部生成历史任务条 / 节点旁浮动工具条（待确认 C1）",
-      "evidence": "GraphToolbar is top-only",
-      "suggestedFix": "Await C1 confirmation",
-      "status": "open"
+      "gap": "底部生成历史任务条 + 节点旁浮动工具条（C1=是）",
+      "evidence": "GenerationTaskBar.tsx + NodeFloatingToolbar.tsx wired in StoryGraphCanvas",
+      "suggestedFix": "Done — C1 confirmed and implemented",
+      "status": "fixed"
     },
     {
       "id": "G16",
       "priority": "medium",
-      "area": "ux_tapnow",
+      "area": "ui_studio",
       "route": "InspectorPanel",
-      "gap": "Inspector 仍偏浅色页面态（待确认 C2）",
-      "evidence": "src/components/story-graph/InspectorPanel.tsx",
-      "suggestedFix": "Await C2 confirmation",
-      "status": "open"
+      "gap": "Inspector 全面暗色（C2=是），含手势编辑弹层",
+      "evidence": "InspectorPanel.tsx dark shell + GestureEditorModal",
+      "suggestedFix": "Done — C2 confirmed and implemented",
+      "status": "fixed"
     },
     {
       "id": "G17",
       "priority": "low",
       "area": "ux_tapnow",
       "route": "/world-builder/worlds",
-      "gap": "示例世界与真实项目仍可能混排（待确认 C3）",
-      "evidence": "worlds/page.tsx merges sampleCards",
-      "suggestedFix": "Await C3 confirmation",
+      "gap": "示例世界与真实项目混排（C3=否，不强制分区）",
+      "evidence": "user confirmed C3=no",
+      "suggestedFix": "No change required — keep merged library",
+      "status": "wontfix"
+    },
+    {
+      "id": "G18",
+      "priority": "medium",
+      "area": "ui_studio",
+      "route": "multi",
+      "gap": "继续对照 studio.dreem-world.ai 复刻剩余 UI/UX 细节（非 C1/C2 已完成项）",
+      "evidence": "automation-prompt.md Studio UI/UX replica mandate",
+      "suggestedFix": "Each run: pick ≤3 high visual/IA diffs vs Studio; do not invent unverified controls",
       "status": "open"
     }
   ]

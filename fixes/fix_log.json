@@ -142,5 +142,31 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T10:35:00.000Z",
+    "timestampLocal": "2026-07-21 18:35:00 Asia/Shanghai",
+    "automationId": "studio-ui-replica-15m",
+    "projectId": "drama-editor",
+    "fixes": [
+      {
+        "id": "C1-taskbar-floating-toolbar",
+        "status": "fixed",
+        "action": "Added GenerationTaskBar + NodeFloatingToolbar on story graph canvas.",
+        "result": "Studio/TapNow-style generation history rail and node context toolbar."
+      },
+      {
+        "id": "C2-inspector-dark",
+        "status": "fixed",
+        "action": "Darkened InspectorPanel including GestureEditorModal.",
+        "result": "Inspector matches charcoal Studio shell."
+      },
+      {
+        "id": "automation-studio-ui-replica",
+        "status": "fixed",
+        "action": "Updated automation-prompt/loop and gap gate for Studio UI/UX replica + C1-C4.",
+        "result": "15-min agent now prioritizes Studio feature+UI replicate."
+      }
+    ]
   }
 ]

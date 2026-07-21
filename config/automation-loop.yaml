@@ -1,5 +1,4 @@
-# DramaEditor 15-minute loop — DUAL TARGET + dual reference
-# Studio 功能对齐 + TapNow/TapTV UI/UX
+# DramaEditor 15-minute loop — Studio UI/UX 复刻 + TapNow/TapTV
 # 流程：Inspect → Review → Debug → Fix → Verify → Commit
 
 automation:
@@ -21,16 +20,25 @@ automation:
 references:
   studio:
     url: https://studio.dreem-world.ai/
-    role: feature_flow
+    role: feature_flow_and_ui_ux_replica
     support: https://www.dreem-world.ai/
+    notes: |
+      Primary: replicate Studio feature flow AND UI/UX (IA, dark charcoal+rose shell,
+      canvas workspace, inspector, generation task feedback, node context actions).
   tapnow_canvas:
     url: https://app.tapnow.ai/
-    role: ux_workspace
-    notes: left asset dock, drag-to-canvas, dark shell, select/dblclick
+    role: ux_workspace_supplement
+    notes: left asset dock, drag-to-canvas, select/dblclick
   taptv:
     url: https://app.tapnow.ai/home/taptv
     role: ux_inspire_remix
-    notes: browse public canvases, remix/clone workflows; local shell only unless confirmed
+    notes: local shell only (C4 confirmed)
+
+confirmed_decisions:
+  C1: bottom_generation_task_bar_and_node_floating_toolbar
+  C2: inspector_full_dark
+  C3: worlds_no_forced_sample_project_split
+  C4: taptv_local_shell_only
 
 targets:
   cloud_github:
@@ -78,10 +86,12 @@ drama_editor:
       - npm run inspect:hourly
   reference_primary: https://studio.dreem-world.ai/
   reference_ux: https://app.tapnow.ai/home/taptv
+  prompt_file: config/automation-prompt.md
 
 rules:
-  - 云端：每轮必须对照 Studio 功能 + TapNow/TapTV UX；可 commit/push 到 automation/hourly-inspection
-  - TapTV：默认可补本地灵感/Remix 壳；真实社交/发布需人工确认
+  - 云端：每轮必须对照 Studio「功能 + UI/UX 复刻」；TapNow/TapTV 为辅助 UX
+  - 遵守 C1–C4；勿推翻 confirmed_decisions
+  - TapTV：仅本地灵感/Remix 壳
   - 无 high/open 且验证通过 → 心跳总结后退出
   - 本机：pull + 验证 + 心跳；默认不 push
   - 门禁文件：reports/studio-gap-latest.json
