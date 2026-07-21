@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T10:50:00.315Z",
+    "timestampLocal": "2026-07-21 18:50:00 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-pixel-ia-alignment",
+    "fixes": [
+      {
+        "id": "G-STUDIO-01",
+        "status": "fixed",
+        "action": "Replaced the pink-purple visual foundation with cinematic charcoal and restrained rose tokens, loaded Public Sans and Instrument Serif, and remapped legacy pink utilities.",
+        "result": "All existing routes inherit the confirmed Studio typography and palette without inventing login-gated controls."
+      }
+    ]
   }
 ]

@@ -2,22 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Light Theme (default) ===== */
+/* Light — warm paper and charcoal, with rose reserved for actions */
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --tw-stage: #fdf5fa;
-  --tw-panel: #fff5fb;
-  --tw-ink: #2d1b3d;
-  --tw-ink-muted: #5a3d6e;
-  --tw-ink-strong: #1a0f2e;
-  --tw-accent: #d9468a;
-  --tw-accent-soft: #fce7f3;
-  --tw-accent-deep: #9d174d;
+  --tw-stage: #f4f1f2;
+  --tw-panel: #faf7f8;
+  --tw-ink: #1c1719;
+  --tw-ink-muted: #6b5e63;
+  --tw-ink-strong: #120e10;
+  --tw-accent: #b94a6a;
+  --tw-accent-soft: #f3e4e9;
+  --tw-accent-deep: #8f3550;
   --tw-sidebar: #ffffff;
-  --tw-sidebar-border: #fce7f3;
+  --tw-sidebar-border: #e8dde1;
   --tw-card: #ffffff;
-  --tw-card-border: #fce7f3;
+  --tw-card-border: #e8dde1;
 
   --dramaplay-stage: var(--tw-stage);
   --dramaplay-panel: var(--tw-panel);
@@ -32,21 +32,21 @@
   color: var(--tw-ink);
 }
 
-/* ===== Dark Theme ===== */
+/* Dark — Studio's cinematic charcoal and restrained rose */
 [data-theme="dark"] {
   color-scheme: dark;
-  --tw-stage: #0f0a1a;
-  --tw-panel: #1a1028;
-  --tw-ink: #e0d0ee;
-  --tw-ink-muted: #a08ab8;
-  --tw-ink-strong: #f0e5fa;
-  --tw-accent: #e879a8;
-  --tw-accent-soft: #2a1528;
-  --tw-accent-deep: #f49bc0;
-  --tw-sidebar: #130e22;
-  --tw-sidebar-border: #2a1540;
-  --tw-card: #1a1028;
-  --tw-card-border: #2a1540;
+  --tw-stage: #0c0a0f;
+  --tw-panel: #161218;
+  --tw-ink: #ebe4e7;
+  --tw-ink-muted: #9a8d93;
+  --tw-ink-strong: #f7f2f4;
+  --tw-accent: #d47893;
+  --tw-accent-soft: #2a1a22;
+  --tw-accent-deep: #e8a0b4;
+  --tw-sidebar: #110e14;
+  --tw-sidebar-border: #2a2228;
+  --tw-card: #161218;
+  --tw-card-border: #2a2228;
 
   --dramaplay-stage: var(--tw-stage);
   --dramaplay-panel: var(--tw-panel);
@@ -72,16 +72,26 @@ body {
 
 body {
   margin: 0;
+  font-family: var(--font-public-sans), "Public Sans", system-ui, sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(217, 70, 138, 0.07), transparent 34rem),
+    radial-gradient(circle at top left, rgba(185, 74, 106, 0.06), transparent 28rem),
+    linear-gradient(180deg, #f7f4f5 0%, var(--tw-stage) 40%),
     var(--tw-stage);
   color: var(--tw-ink);
 }
 
 [data-theme="dark"] body {
   background:
-    radial-gradient(circle at top left, rgba(232, 121, 168, 0.1), transparent 34rem),
+    radial-gradient(circle at top left, rgba(212, 120, 147, 0.1), transparent 34rem),
     var(--tw-stage);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
 }
 
 button,
@@ -92,7 +102,7 @@ select {
 }
 
 ::selection {
-  background: rgba(217, 70, 138, 0.22);
+  background: rgba(185, 74, 106, 0.22);
 }
 
 :focus-visible {
@@ -105,7 +115,7 @@ select {
 }
 
 .react-flow__node.selected {
-  filter: drop-shadow(0 18px 34px rgba(217, 70, 138, 0.2));
+  filter: drop-shadow(0 18px 34px rgba(185, 74, 106, 0.18));
 }
 
 /* Dark-mode specific overrides */
@@ -119,11 +129,11 @@ select {
 [data-theme="dark"] .bg-slate-100 { background-color: rgba(255,255,255,0.06) !important; }
 [data-theme="dark"] .bg-slate-200\/70 { background-color: rgba(255,255,255,0.08) !important; }
 [data-theme="dark"] .bg-slate-200\/80 { background-color: rgba(255,255,255,0.08) !important; }
-[data-theme="dark"] .text-slate-500 { color: #a08ab8 !important; }
-[data-theme="dark"] .text-slate-600 { color: #b09ac8 !important; }
-[data-theme="dark"] .text-slate-700 { color: #c0aad8 !important; }
-[data-theme="dark"] .text-slate-800 { color: #d0bce8 !important; }
-[data-theme="dark"] .text-slate-400 { color: #706088 !important; }
+[data-theme="dark"] .text-slate-500 { color: #9a8d93 !important; }
+[data-theme="dark"] .text-slate-600 { color: #b0a4aa !important; }
+[data-theme="dark"] .text-slate-700 { color: #c8bdc3 !important; }
+[data-theme="dark"] .text-slate-800 { color: #ddd4d8 !important; }
+[data-theme="dark"] .text-slate-400 { color: #7a6e74 !important; }
 [data-theme="dark"] .text-ink { color: var(--tw-ink) !important; }
 [data-theme="dark"] .text-ink-strong { color: var(--tw-ink-strong) !important; }
 [data-theme="dark"] .text-ink-muted { color: var(--tw-ink-muted) !important; }
@@ -148,5 +158,14 @@ select {
 [data-theme="dark"] .react-flow__minimap { background: var(--tw-stage) !important; border-color: var(--tw-card-border) !important; }
 
 /* Phone preview dark */
-[data-theme="dark"] .phone-preview-bg { background: radial-gradient(circle at top, rgba(232,121,168,0.12), var(--tw-stage) 42%, var(--tw-stage)) !important; }
-[data-theme="dark"] .bg-accent-soft\/40 { background-color: rgba(232, 121, 168, 0.15) !important; }
+[data-theme="dark"] .phone-preview-bg { background: radial-gradient(circle at top, rgba(212,120,147,0.12), var(--tw-stage) 42%, var(--tw-stage)) !important; }
+[data-theme="dark"] .bg-accent-soft\/40 { background-color: rgba(212, 120, 147, 0.15) !important; }
+
+/* Remap legacy pink utilities so old screens cannot restore the purple-pink theme. */
+.border-pink-100 { border-color: var(--tw-card-border); }
+.border-pink-200 { border-color: color-mix(in srgb, var(--tw-accent) 28%, var(--tw-card-border)); }
+.hover\:border-pink-200:hover,
+.hover\:border-pink-300:hover { border-color: color-mix(in srgb, var(--tw-accent) 45%, var(--tw-card-border)); }
+.bg-pink-50 { background-color: var(--tw-accent-soft); }
+.hover\:bg-pink-50:hover { background-color: var(--tw-accent-soft); }
+.text-pink-600 { color: var(--tw-accent); }
