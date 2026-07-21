@@ -75,7 +75,7 @@
       "area": "feature_flow",
       "route": "/login",
       "gap": "已确认的 Creator Studio 推荐码入口缺少本地对应页面",
-      "evidence": "公开营销站明确展示 Creator Studio referral code 入口；src/app 下此前无 login 路由。本轮新增轻量推荐码壳，不推断认证后控件。",
+      "evidence": "公开营销站明确展示 Creator Studio referral code 入口；本轮新增轻量推荐码壳，npm run typecheck 通过且本地 /login 返回 200，不推断认证后控件。",
       "suggestedFix": "提供炭黑 + 玫瑰的轻量推荐码入口，并将非空推荐码引导至本地世界库",
       "status": "fixed"
     },
