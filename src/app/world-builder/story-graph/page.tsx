@@ -59,15 +59,15 @@ function StoryGraphBootstrap() {
 
   return (
     <WorldBuilderLayout agentMode="none">
-      <div className="grid h-screen grid-rows-[auto_auto_1fr] gap-4 p-5">
-        <div className="rounded-2xl border border-pink-100 bg-white px-4 py-2 text-sm text-slate-500">
-          当前世界：<span className="font-semibold text-ink-strong">{world.title}</span>
-          <span className="ml-3 text-xs text-slate-400">
-            {episodes.length} 集 · {nodes.length} 节点
+      <div className="grid h-screen grid-rows-[auto_auto_1fr] gap-3 bg-[#0c0a0f] p-4 text-white">
+        <div className="rounded-2xl border border-white/8 bg-[#16141c] px-4 py-2 text-sm text-white/50">
+          当前画布：<span className="font-semibold text-white">{world.title}</span>
+          <span className="ml-3 text-xs text-white/35">
+            {episodes.length} 集 · {nodes.length} 节点 · TapNow 式素材拖放
           </span>
         </div>
         <GraphToolbar onPreview={() => setPreviewOpen(true)} />
-        <div className="grid min-h-0 overflow-hidden rounded-3xl border border-slate-200 bg-white xl:grid-cols-[278px_1fr_360px]">
+        <div className="grid min-h-0 overflow-hidden rounded-2xl border border-white/8 bg-[#121016] xl:grid-cols-[288px_1fr_360px]">
           <GraphOutline />
           <StoryGraphCanvas onOpenNode={() => setEditorOpen(true)} />
           <InspectorPanel />

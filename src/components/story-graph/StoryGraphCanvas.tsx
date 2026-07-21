@@ -324,25 +324,60 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
     };
 
-    /* Drop from assets */
+    /* Drop from assets / outline (TapNow-style asset → canvas) */
     const onDragOver = (e: DragEvent) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"; };
     const onDrop = (e: DragEvent) => {
       e.preventDefault();
-      const raw = e.dataTransfer?.getData("application/drama-asset");
+      const raw =
+        e.dataTransfer?.getData("application/drama-asset") ||
+        e.dataTransfer?.getData("text/plain");
       if (!raw) return;
       try {
-        const asset = JSON.parse(raw);
+        const asset = (JSON.parse(raw.startsWith("{") ? raw : "{}") as {
+          kind?: string;
+          title?: string;
+          prompt?: string;
+          videoUrl?: string;
+          poster?: string;
+          referenceImage?: string;
+        });
+        if (!asset.kind && !asset.title) return;
         const pos = flow.screenToFlowPosition({ x: e.clientX, y: e.clientY });
         const st = useWorldBuilderStore.getState();
+        const kind = asset.kind ?? "video";
+        if (kind === "character" || kind === "location") {
+          st.addSceneNode(st.selectedEpisodeId);
+          setTimeout(() => {
+            const updated = useWorldBuilderStore.getState().nodes;
+            const latest = updated[updated.length - 1];
+            if (!latest) return;
+            useWorldBuilderStore.getState().updateNodePosition(latest.id, pos);
+            useWorldBuilderStore.getState().updateNode(latest.id, {
+              title: asset.title ?? (kind === "character" ? "角色场景" : "地点场景"),
+              prompt:
+                asset.prompt ??
+                (kind === "character"
+                  ? `以角色「${asset.title}」为主角的场景`
+                  : `场景地点「${asset.title}」`),
+              firstFrameRef: asset.referenceImage ?? asset.poster,
+              status: asset.referenceImage || asset.poster ? "draft" : "empty",
+            });
+          }, 50);
+          return;
+        }
         st.addSceneNode(st.selectedEpisodeId);
         setTimeout(() => {
           const updated = useWorldBuilderStore.getState().nodes;
           const latest = updated[updated.length - 1];
-          if (latest) {
-            useWorldBuilderStore.getState().updateNodePosition(latest.id, pos);
-            if (asset.title) useWorldBuilderStore.getState().updateNode(latest.id, { title: asset.title });
-            if (asset.prompt) useWorldBuilderStore.getState().updateNode(latest.id, { prompt: asset.prompt });
-          }
+          if (!latest) return;
+          useWorldBuilderStore.getState().updateNodePosition(latest.id, pos);
+          useWorldBuilderStore.getState().updateNode(latest.id, {
+            title: asset.title ?? "新视频节点",
+            prompt: asset.prompt ?? asset.title ?? "",
+            videoUrl: asset.videoUrl,
+            firstFrameRef: asset.poster ?? asset.referenceImage,
+            status: asset.videoUrl ? "ready" : "draft",
+          });
         }, 50);
       } catch { /* */ }
     };
