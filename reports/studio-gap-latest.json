@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-07-21 20:15:00 Asia/Shanghai",
+  "sourceRepo": "kinksid/DramaEditor",
+  "branch": "cursor/studio-pixel-ia-alignment-1151",
+  "references": {
+    "studio": "https://studio.dreem-world.ai/",
+    "studioMarketing": "https://www.dreem-world.ai/"
+  },
+  "evidenceBoundary": "Studio /worlds 公开抓取仅返回 SPA 标题；2026-07-21 浏览器核验根路径和 /worlds 均在展示产品内容前重定向到 /sign-in。未获得认证会话，因此登录后控件与精确像素项保持 open。",
+  "gaps": [
+    {
+      "id": "G-STUDIO-01",
+      "priority": "high",
+      "area": "ui_studio",
+      "route": "global",
+      "gap": "全局粉紫主题且未加载已确认的 Public Sans / Instrument Serif，与炭黑 + 玫瑰视觉决策不符",
+      "evidence": "globals.css 使用 #fdf5fa、#2d1b3d、#d9468a；src 中无字体声明",
+      "suggestedFix": "切换到炭黑 + 玫瑰令牌，加载 Public Sans / Instrument Serif，并映射遗留 pink utility",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-02",
+      "priority": "high",
+      "area": "visual_ia",
+      "route": "/world-builder/worlds",
+      "gap": "世界列表仍是旧亮色营销卡片布局，Studio 登录后精确网格、间距和组件态尚未补证",
+      "evidence": "本地 page.tsx 使用白卡、28px hero 和三列卡片；2026-07-21 核验 Studio /worlds 在产品内容前受登录墙阻挡",
+      "suggestedFix": "获得认证截图后按基线逐项收敛列表密度、卡片比例、字号和状态",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-03",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/worlds/[worldId]/characters|locations|storylines",
+      "gap": "P0 世界详情及 characters、locations、storylines 参数化子路由不存在",
+      "evidence": "src/app/world-builder/worlds 下仅有 page.tsx",
+      "suggestedFix": "新增共享详情壳和三个参数化标签页，绑定 worldId",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-04",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/worlds|/worlds/:worldId/*|/stories/:storyId",
+      "gap": "Studio 公共路由别名 rewrite 缺失",
+      "evidence": "next.config.ts 当前为空配置",
+      "suggestedFix": "新增保留动态参数的 rewrites 并做路由回归",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-05",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/stories/[storyId]",
+      "gap": "故事详情页面未读取 storyId，页面内容和链接均固定到当前 store 示例",
+      "evidence": "page.tsx 未调用 useParams，标题硬编码为记忆盗贼",
+      "suggestedFix": "使用 storyId 解析项目或剧集上下文并修正面包屑与编辑链接",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-06",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/worlds",
+      "gap": "世界库强制混入 DramaPlay 与静态样例卡，无法区分用户项目",
+      "evidence": "page.tsx 将 listProjects() 与 dramaPlayAssets、血色之城、春日盟约合并展示",
+      "suggestedFix": "世界库只展示持久化用户项目，并为零项目和零搜索结果提供独立空态",
+      "status": "open"
+    },
+    {
+      "id": "G-STUDIO-07",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/login",
+      "gap": "已确认的 Creator Studio 推荐码入口缺少本地对应页面",
+      "evidence": "公开营销站明确展示 Creator Studio referral code 入口；src/app 下此前无 login 路由。本轮新增轻量推荐码壳，不推断认证后控件。",
+      "suggestedFix": "提供炭黑 + 玫瑰的轻量推荐码入口，并将非空推荐码引导至本地世界库",
+      "status": "fixed"
+    },
+    {
+      "id": "G13",
+      "priority": "medium",
+      "area": "feature_flow",
+      "route": "settings.api",
+      "gap": "真实 AI Provider Key 尚未由人工提供",
+      "evidence": "本轮未发现可用 Key，且禁止密钥入仓",
+      "suggestedFix": "人工通过运行环境或 Settings 提供 Key；继续使用 Provider / decompose 流程",
+      "status": "open"
+    }
+  ]
+}

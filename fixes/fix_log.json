@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T12:15:00.000Z",
+    "timestampLocal": "2026-07-21 20:15:00 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-pixel-ia-alignment",
+    "fixes": [
+      {
+        "id": "G-STUDIO-07",
+        "status": "fixed",
+        "action": "Added the confirmed lightweight Creator Studio referral-code shell at /login.",
+        "result": "The local app now has an evidence-bounded charcoal-and-rose entry route without inventing authenticated Studio controls."
+      }
+    ]
   }
 ]
