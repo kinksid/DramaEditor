@@ -1,35 +1,39 @@
 STDOUT:
 
-> drama-play@0.1.0 dev
-> next dev --hostname 127.0.0.1 --port 3000
+> drama-play@0.3.0 dev
+> node scripts/dev.mjs --hostname 127.0.0.1 --port 3000
+
+
+========================================
+  本地访问:   http://localhost:3000
+  局域网访问: http://172.30.0.2:3000
+  LLM 预设将在服务启动时自动探测（见 config/llm-presets.json）
+  提示: 可复制 .env.local.example 为 .env.local，并设置 LLM_PRESET_ID=ollama-lan-qwen36
+========================================
 
    ▲ Next.js 15.5.19
-   - Local:        http://127.0.0.1:3000
-   - Network:      http://127.0.0.1:3000
+   - Local:        http://localhost:3000
+   - Network:      http://0.0.0.0:3000
 
  ✓ Starting...
- ✓ Ready in 2.7s
- ✓ Compiled /world-builder/home in 309ms (708 modules)
- GET /world-builder/home 200 in 527ms
- GET /world-builder/home 200 in 61ms
- ✓ Compiled /world-builder in 120ms (755 modules)
- GET /world-builder 200 in 227ms
- ✓ Compiled /world-builder/stories/[storyId] in 118ms (780 modules)
- GET /world-builder/stories/the-memory-thief 200 in 475ms
- ✓ Compiled /world-builder/story-graph in 263ms (1188 modules)
- GET /world-builder/story-graph 200 in 410ms
- ✓ Compiled /world-builder/app-preview in 128ms (1201 modules)
- GET /world-builder/app-preview 200 in 278ms
- ✓ Compiled /world-builder/settings in 113ms (1210 modules)
- GET /world-builder/settings 200 in 255ms
- GET /world-builder/story-graph 200 in 84ms
- GET /world-builder 200 in 53ms
- GET /world-builder/settings 200 in 33ms
- GET /world-builder/home 200 in 48ms
- GET /world-builder/settings 200 in 35ms
- GET /world-builder/app-preview 200 in 40ms
- GET /world-builder/stories/the-memory-thief 200 in 52ms
-[?25h
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Compiled /instrumentation in 278ms (29 modules)
+[LLM] 预设探测完成: 0/3 可用
+ ✓ Ready in 58.2s
+ ○ Compiling /world-builder/home ...
+ ✓ Compiled /world-builder/home in 3.1s (777 modules)
+ GET /world-builder/home 200 in 3716ms
 
 
 STDERR:
+[LLM] LLM 预设探测 ollama-lan-qwen36 连接失败 (1/4): read ECONNRESET
+[LLM] LLM 预设探测 ollama-lan-qwen36 连接失败 (2/4): read ECONNRESET
+[LLM] LLM 预设探测 ollama-lan-qwen36 连接失败 (3/4): read ECONNRESET
+[LLM] LLM 预设探测 ollama-local 连接失败 (1/4): connect ECONNREFUSED 127.0.0.1:11434
+[LLM] LLM 预设探测 ollama-local 连接失败 (2/4): connect ECONNREFUSED 127.0.0.1:11434
+[LLM] LLM 预设探测 ollama-local 连接失败 (3/4): connect ECONNREFUSED 127.0.0.1:11434
+[LLM] 已应用预设 局域网 Qwen3.6 27B，但探测未通过: read ECONNRESET。拆解时将自动重试连接。
