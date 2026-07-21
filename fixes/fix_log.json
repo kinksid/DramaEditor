@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T11:30:01.009Z",
+    "timestampLocal": "2026-07-21 19:30:01 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-pixel-ia-alignment",
+    "fixes": [
+      {
+        "id": "G-STUDIO-04",
+        "status": "fixed",
+        "action": "Added Next.js rewrites for /worlds, nested world paths, and parameterized /stories routes.",
+        "result": "Studio-compatible public aliases preserve path parameters while mapping to local World Builder routes."
+      }
+    ]
   }
 ]
