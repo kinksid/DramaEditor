@@ -30,6 +30,13 @@
 - **Canvas Agent**：根据上下文建议节点链
 - 节点支持图像/视频生成任务提交与轮询回写
 
+### Dreem 自动化工作坊 (`/world-builder/automation`)
+
+- 用自然语言匹配数据采集、文件编排、API 编排三类蓝图
+- 以节点链预览执行步骤，并按蓝图动态配置参数
+- 生成可审查、可下载的 Python 脚本
+- API 密钥仅通过运行时环境变量读取；应用服务器不会执行生成代码或自动安装依赖
+
 ### Settings (`/world-builder/settings`)
 
 - **LLM**：从预设下拉选择接入点（局域网 Qwen3.6 / 本机 Ollama / OpenAI 云端）
@@ -118,6 +125,7 @@ ENABLE_MOCK_GENERATION=true
 
 - `POST /api/world-builder/decompose` — Home 创意拆解（支持 `llmPresetId`）
 - `POST /api/world-builder/agent/suggest-chain` — 故事图 Canvas 建链建议
+- `POST /api/world-builder/agent/dreem-flow` — Dreem 意图解析与受控脚本生成（本地规则，无需 LLM）
 
 **首次拆解较慢**：27B 模型冷启动可能需要 30–60 秒，属正常现象。
 

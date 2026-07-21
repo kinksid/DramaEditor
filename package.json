@@ -7,7 +7,7 @@
     "build": "next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "npx tsx --test src/lib/providers/llm/presetPrompt.test.ts src/lib/providers/llm/parseResponse.test.ts src/lib/providers/comfy/characterTurnaround.test.ts src/lib/providers/comfy/zimageTxt2Img.test.ts",
+    "test:unit": "npx tsx --test src/lib/dreemAutoAgent.test.ts src/lib/providers/llm/presetPrompt.test.ts src/lib/providers/llm/parseResponse.test.ts src/lib/providers/comfy/characterTurnaround.test.ts src/lib/providers/comfy/zimageTxt2Img.test.ts",
     "inspect:hourly": "node scripts/hourlyInspection.mjs"
   },
   "dependencies": {

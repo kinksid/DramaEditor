@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Film, Gift, Globe, Home, Map, Moon, Settings, Smartphone, Sparkles, Sun, UserRound } from "lucide-react";
+import { Film, Gift, Globe, Home, Map, Moon, Settings, Smartphone, Sparkles, Sun, UserRound, Workflow } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -30,6 +30,7 @@ export function Sidebar() {
       icon: Map,
     },
     { label: t("nav.assets"), href: "/world-builder/assets", icon: Film },
+    { label: "自动化工作坊", href: "/world-builder/automation", icon: Workflow },
     { label: t("nav.appPreview"), href: "/world-builder/app-preview", icon: Smartphone },
   ];
 

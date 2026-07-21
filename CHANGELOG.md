@@ -4,6 +4,14 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [Unreleased]
+
+### 新增
+
+- **Dreem 自动化工作坊**：自然语言匹配数据采集、文件编排、API 编排蓝图，展示节点链并生成可下载的 Python 脚本
+- **Dreem Flow API**：`POST /api/world-builder/agent/dreem-flow` 支持意图分析、参数校验与安全代码生成
+- **安全边界**：生成代码不在应用服务器执行，API 密钥改由脚本运行时环境变量读取
+
 ## [0.3.0] - 2026-07-09
 
 ### 新增
