@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.dreem.dramaeditor.local-loop</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Volumes/YANG/DramaEditor/scripts/runLocalLoop.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Volumes/YANG/DramaEditor</string>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Volumes/YANG/DramaEditor/logs/local_loop_stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Volumes/YANG/DramaEditor/logs/local_loop_stderr.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>DRAMAEDITOR_ROOT</key>
+    <string>/Volumes/YANG/DramaEditor</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

@@ -1,0 +1,57 @@
+# DramaEditor 15-minute optimization loop — DUAL TARGET
+# 云端（GitHub Cursor Automation）+ 本机（/Volumes/YANG/DramaEditor）都跑。
+
+automation:
+  interval_cron: "*/15 * * * *"
+  timezone: Asia/Shanghai
+  max_items_per_run: 3
+  max_iterations_per_day: 96
+  early_exit_if_no_high: true
+  branch: automation/hourly-inspection
+  repo: kinksid/DramaEditor
+
+targets:
+  cloud_github:
+    enabled: true
+    role: "AI 修复 + 提交到 GitHub"
+    sync_to_github: true
+    allow_commit: true
+    workspace: "Cursor Cloud checkout of kinksid/DramaEditor"
+
+  local_volume:
+    enabled: true
+    role: "拉取云端结果 + 本机验证/心跳"
+    root: /Volumes/YANG/DramaEditor
+    sync_from_github: true   # git pull --ff-only
+    sync_to_github: false    # 本机默认不 push（避免双端抢推）
+    runner: scripts/runLocalLoop.mjs
+    heartbeat: logs/automation_heartbeat.log
+
+feedback:
+  primary: reports/studio-gap-latest.json
+  archive_glob: reports/studio-gap-*.json
+  inspect_reports_glob: reports/[0-9][0-9][0-9][0-9]-*.json
+  fix_log: fixes/fix_log.json
+  auto_resolve:
+    priorities: [high]
+    require_verify: true
+
+drama_editor:
+  allowed_globs:
+    - "src/**/*.{ts,tsx}"
+    - "scripts/**/*.mjs"
+    - "src/app/**/*.css"
+    - "reports/**/*.json"
+    - "fixes/fix_log.json"
+    - "logs/**/*"
+  verify:
+    always:
+      - npm run typecheck
+    when_ui_changed:
+      - npm run inspect:hourly
+  reference: https://studio.dreem-world.ai/
+
+rules:
+  - 云端：可 commit/push 到 automation/hourly-inspection；无 high/open 则心跳式总结后退出
+  - 本机：pull 吸收云端提交，跑验证，写心跳；默认不 push
+  - 两边都以 reports/studio-gap-latest.json 为门禁
