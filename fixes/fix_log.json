@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T11:55:00.307Z",
+    "timestampLocal": "2026-07-21 19:55:00 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-pixel-ia-alignment",
+    "fixes": [
+      {
+        "id": "G-STUDIO-06",
+        "status": "fixed",
+        "action": "Removed forced DramaPlay and static sample cards from the worlds library and added explicit empty states.",
+        "result": "The worlds library now represents only persisted user projects, preserving the confirmed C3 project/sample separation."
+      }
+    ]
   }
 ]
