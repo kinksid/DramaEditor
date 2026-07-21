@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+dist
+*.tsbuildinfo
+.env*
+!.env.example
+!.env.local.example
+
+.cursor/
+public/uploads
+data/
+.DS_Store

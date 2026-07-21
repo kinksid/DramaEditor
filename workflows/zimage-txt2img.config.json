@@ -1,0 +1,33 @@
+{
+  "label": "文生图 Z-Image",
+  "workflowFile": "workflows/文生图Zimage.json",
+  "nodes": {
+    "promptText": "30",
+    "fluxResolution": "24",
+    "widthInt": "4",
+    "heightInt": "29",
+    "saveImage": "19"
+  },
+  "fluxResolutionClassType": "FluxResolutionNode",
+  "defaults": {
+    "aspectRatio": "9:16 (Slim Vertical)",
+    "width": 1080,
+    "height": 1920
+  },
+  "aspectRatioFallback": [
+    "1:1 (Perfect Square)",
+    "4:3 (Classic TV)",
+    "3:2 (Classic Photo)",
+    "16:9 (Widescreen)",
+    "9:16 (Slim Vertical)",
+    "21:9 (Ultra Wide)",
+    "2:3 (Classic Portrait)",
+    "3:4 (Portrait)",
+    "4:5 (Instagram Portrait)",
+    "5:4 (Instagram Landscape)"
+  ],
+  "timeouts": {
+    "historyMs": 900000,
+    "pollIntervalMs": 3000
+  }
+}

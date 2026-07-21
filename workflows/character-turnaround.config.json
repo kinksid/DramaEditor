@@ -1,0 +1,24 @@
+{
+  "label": "角色设定三视图加特写_自动补提示词",
+  "nodes": {
+    "promptText": "28",
+    "controlImage": "12",
+    "ksamplerSeed": "2",
+    "llamaCharacterSeed": "26",
+    "llamaPromptSeed": "33",
+    "saveImage": "4"
+  },
+  "timeouts": {
+    "historyMs": 1800000,
+    "pollIntervalMs": 3000
+  },
+  "_comment": {
+    "workflow_file": "workflows/角色设定三视图加特写_自动补提示词.json",
+    "format": "必须为 ComfyUI API 格式（Save API Format），非 UI 导出的 nodes/links 格式",
+    "params": {
+      "prompt": "节点 28 CR Text — 用户角色主题描述",
+      "control_image": "节点 12 LoadImage — 需先 POST /upload/image",
+      "seed": "同时写入节点 2 / 26 / 33（33 = seed + 1）"
+    }
+  }
+}

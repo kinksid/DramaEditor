@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ollama-lan-qwen36",
+    "label": "局域网 Qwen3.6 27B",
+    "provider": "ollama",
+    "baseUrl": "http://10.11.8.22:11434",
+    "model": "qwen3.6:27b",
+    "think": false
+  },
+  {
+    "id": "ollama-local",
+    "label": "本机 Ollama",
+    "provider": "ollama",
+    "baseUrl": "http://127.0.0.1:11434",
+    "model": "qwen2.5:14b",
+    "think": false
+  },
+  {
+    "id": "openai-cloud",
+    "label": "OpenAI 云端",
+    "provider": "openai",
+    "baseUrl": "https://api.openai.com/v1",
+    "model": "gpt-4o-mini",
+    "requiresApiKey": true
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "name": "drama-play",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "next build",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "npx tsx --test src/lib/providers/llm/presetPrompt.test.ts src/lib/providers/llm/parseResponse.test.ts src/lib/providers/comfy/characterTurnaround.test.ts src/lib/providers/comfy/zimageTxt2Img.test.ts",
+    "inspect:hourly": "node scripts/hourlyInspection.mjs"
+  },
+  "dependencies": {
+    "@types/node": "^24.0.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "lucide-react": "^0.522.0",
+    "next": "^15.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "reactflow": "^11.11.4",
+    "uuid": "^11.1.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.29.0",
+    "eslint-config-next": "^15.3.4",
+    "playwright": "^1.61.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3"
+  }
+}

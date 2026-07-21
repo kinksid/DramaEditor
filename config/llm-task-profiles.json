@@ -1,0 +1,75 @@
+[
+  {
+    "id": "decompose",
+    "label": "创意拆解",
+    "description": "Home 创意拆解 → 世界观 / 角色 / 剧本 JSON",
+    "systemPrompt": "你是互动短剧世界构建助手。根据用户提供的创意描述和参考素材，输出严格的 JSON，用于填充世界设定、角色地点和剧本文本。\n\n输出 JSON schema:\n{\n  \"worldview\": {\n    \"worldTitle\": \"string\",\n    \"genre\": \"string，逗号分隔\",\n    \"tags\": \"string，逗号分隔\",\n    \"tone\": \"string\",\n    \"visualStyle\": \"string\",\n    \"worldDescription\": \"string，200-500字\"\n  },\n  \"characters\": [\n    { \"name\": \"string\", \"role\": \"string\", \"description\": \"string\", \"age\": number可选 }\n  ],\n  \"locations\": [\n    { \"name\": \"string\", \"type\": \"Establishing|Master|Temporary\", \"description\": \"string\" }\n  ],\n  \"script\": \"string，完整剧本文本，含场次\"\n}\n\n只输出 JSON，不要 markdown 代码块。",
+    "userPromptTemplate": "#",
+    "presetMode": "direct",
+    "responseFormat": "json",
+    "think": false,
+    "options": {
+      "temperature": 0.7,
+      "num_predict": 4096
+    }
+  },
+  {
+    "id": "suggest_chain",
+    "label": "Canvas 建链建议",
+    "description": "故事图 Canvas 助手 → 节点链 JSON 建议",
+    "systemPrompt": "你是互动短剧画布助手。根据剧本摘要，建议创建 scene（视频）和 interaction（互动）节点链。\n只输出 JSON，不要 markdown：\n{\n  \"nodes\": [\n    { \"kind\": \"scene\"|\"interaction\"|\"ending\", \"title\": \"string\", \"promptOrInstruction\": \"string\" }\n  ],\n  \"summary\": \"string 简短说明\"\n}\n不要自动触发生成，只建节点建议。",
+    "userPromptTemplate": "剧集：#\n\n剧本摘要：\n@",
+    "presetMode": "template",
+    "responseFormat": "json",
+    "think": false,
+    "options": {
+      "temperature": 0.6,
+      "num_predict": 2048
+    }
+  },
+  {
+    "id": "reference_analyze",
+    "label": "参考图视觉分析",
+    "description": "上传参考图 → 视觉风格与内容摘要（中文）",
+    "systemPrompt": "你是互动短剧视觉参考分析助手。根据用户提供的图片与说明，输出简洁的中文视觉摘要，包含：主体、环境、光线、色调、风格关键词。不要 JSON，不要标题，2-4 句话。",
+    "userPromptTemplate": "参考素材名称：#",
+    "presetMode": "template",
+    "responseFormat": "text",
+    "think": false,
+    "options": {
+      "temperature": 0.5,
+      "num_predict": 512
+    }
+  },
+  {
+    "id": "txt2img_prompt",
+    "label": "文生图提示词扩写",
+    "description": "将用户主题扩写为 ComfyUI 英文提示词",
+    "systemPrompt": "你是 ComfyUI 文生图提示词专家。将用户主题扩写为通顺、有画面感的自然语言提示词（照片/电影感、主体、环境、光线、画质）。只输出英文提示词。不要中文、不要标题、不要解释。主题：",
+    "userPromptTemplate": "#",
+    "presetMode": "template",
+    "responseFormat": "text",
+    "think": true,
+    "enabled": false,
+    "options": {
+      "temperature": 0.8,
+      "top_k": 30,
+      "top_p": 0.9,
+      "min_p": 0.05,
+      "num_predict": 400
+    }
+  },
+  {
+    "id": "health_check",
+    "label": "连接测试",
+    "description": "验证 LLM /api/chat 链路",
+    "systemPrompt": "You are a health check bot.",
+    "userPromptTemplate": "Reply with JSON: {\"ok\":true}",
+    "presetMode": "direct",
+    "responseFormat": "json",
+    "think": false,
+    "options": {
+      "num_predict": 64
+    }
+  }
+]

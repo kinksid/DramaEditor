@@ -1,0 +1,323 @@
+{
+  "1": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "2": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "3": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "4": {
+    "inputs": {
+      "Number": 1080
+    },
+    "class_type": "Int",
+    "_meta": {
+      "title": "Int"
+    }
+  },
+  "5": {
+    "inputs": {
+      "anything": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "easy cleanGpuUsed",
+    "_meta": {
+      "title": "清理显存占用"
+    }
+  },
+  "6": {
+    "inputs": {
+      "max_tokens": 400,
+      "top_k": 30,
+      "top_p": 0.9,
+      "min_p": 0.05,
+      "typical_p": 1,
+      "temperature": 0.8,
+      "repeat_penalty": 1,
+      "frequency_penalty": 0,
+      "presence_penalty": 1,
+      "mirostat_mode": 0,
+      "mirostat_eta": 0.1,
+      "mirostat_tau": 5,
+      "reasoning_budget": -1,
+      "reasoning_budget_message": "",
+      "reasoning_start": "MLElements",
+      "reasoning_end": "Exception",
+      "state_uid": -1
+    },
+    "class_type": "llama_cpp_parameters",
+    "_meta": {
+      "title": "Llama-cpp Parameters"
+    }
+  },
+  "7": {
+    "inputs": {
+      "model": "Qwen3.5-9B-Q8_0.gguf",
+      "mmproj": "Qwen3.5-9B-mmproj-BF16.gguf",
+      "chat_handler": "Qwen3.5",
+      "n_ctx": 32768,
+      "vram_limit": -1,
+      "image_min_tokens": 0,
+      "image_max_tokens": 0
+    },
+    "class_type": "llama_cpp_model_loader",
+    "_meta": {
+      "title": "Llama-cpp Model Loader"
+    }
+  },
+  "8": {
+    "inputs": {
+      "text": [
+        "5",
+        0
+      ],
+      "clip": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "9": {
+    "inputs": {
+      "conditioning": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "10": {
+    "inputs": {
+      "width": [
+        "26",
+        3
+      ],
+      "height": [
+        "26",
+        4
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "11": {
+    "inputs": {
+      "seed": 930692826669455,
+      "steps": 10,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "3",
+        0
+      ],
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "latent_image": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "13": {
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "14": {
+    "inputs": {
+      "anything": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "easy cleanGpuUsed",
+    "_meta": {
+      "title": "清理显存占用"
+    }
+  },
+  "18": {
+    "inputs": {
+      "preset_prompt": "Normal - Describe",
+      "custom_prompt": [
+        "30",
+        0
+      ],
+      "system_prompt": "你是 ComfyUI 文生图提示词专家。将用户主题扩写为一段流畅英文自然语言提示词（照片/电影感、主体、环境、光影、画质）。只输出英文提示词，不要中文、不要标题、不要解释。",
+      "inference_mode": "one by one",
+      "max_frames": 24,
+      "max_size": 256,
+      "seed": 989001013823112,
+      "force_offload": false,
+      "save_states": false,
+      "llama_model": [
+        "7",
+        0
+      ],
+      "parameters": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "llama_cpp_instruct_adv",
+    "_meta": {
+      "title": "Llama-cpp Instruct"
+    }
+  },
+  "19": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "20": {
+    "inputs": {
+      "text": "The imposing entrance hall of a rusted iron fortress, dominated by a massive concrete archway, flanked on both sides by barbed wire fences and towering searchlights, an endless abyss of darkness stretches behind, punctuated only by intermittently flashing red warning lights illuminating walls of corroded gears and heavy machinery, cinematic lighting, volumetric fog, dramatic shadows, photorealistic, 8k, Unreal Engine 5 render, hyper-detailed, gritty industrial atmosphere, desaturated color palette with accents of crimson and steel gray.",
+      "anything": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "展示任何"
+    }
+  },
+  "24": {
+    "inputs": {
+      "megapixel": "1.0",
+      "aspect_ratio": "9:16 (Slim Vertical)",
+      "divisible_by": "64",
+      "custom_ratio": false,
+      "custom_aspect_ratio": "1:1"
+    },
+    "class_type": "FluxResolutionNode",
+    "_meta": {
+      "title": "Flux Resolution Calc"
+    }
+  },
+  "25": {
+    "inputs": {
+      "width": [
+        "24",
+        0
+      ],
+      "height": [
+        "24",
+        1
+      ],
+      "batch_size": 1,
+      "color": 0
+    },
+    "class_type": "EmptyImage",
+    "_meta": {
+      "title": "空图像"
+    }
+  },
+  "26": {
+    "inputs": {
+      "aspect_ratio": "original",
+      "proportional_width": 1,
+      "proportional_height": 1,
+      "fit": "letterbox",
+      "method": "lanczos",
+      "round_to_multiple": "8",
+      "scale_to_side": "longest",
+      "scale_to_length": [
+        "29",
+        0
+      ],
+      "background_color": "#000000",
+      "image": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: ImageScaleByAspectRatio V2",
+    "_meta": {
+      "title": "图层工具：按宽高比缩放 V2"
+    }
+  },
+  "29": {
+    "inputs": {
+      "Number": 1920
+    },
+    "class_type": "Int",
+    "_meta": {
+      "title": "Int"
+    }
+  },
+  "30": {
+    "inputs": {
+      "text": "铁堡入口大厅,巨大的混凝土拱门，两侧布满带刺的铁丝网和探照灯。背��是无尽的黑暗深渊，只有偶尔闪过的红色警示灯照亮生锈的齿轮墙壁。"
+    },
+    "class_type": "Text",
+    "_meta": {
+      "title": "Text"
+    }
+  }
+}

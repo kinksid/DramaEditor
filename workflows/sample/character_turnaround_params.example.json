@@ -1,0 +1,17 @@
+{
+  "prompt": "REPLACE_WITH_NODE_28_TEXT",
+  "control_image": null,
+  "seed": 123456789,
+  "_comment": {
+    "baseURL": "http://10.11.8.22:8188",
+    "workflow_file": "workflows/角色设定三视图加特写_自动补提示词.json",
+    "patch_nodes": {
+      "28": "提示词文本 (CR Text)",
+      "12": "控制参考图 (LoadImage，需先 POST /upload/image)",
+      "2": "KSampler seed",
+      "26": "llama 角色卡生成 seed",
+      "33": "llama 英文提示词 seed"
+    },
+    "output_node": "4 (SaveImage)"
+  }
+}

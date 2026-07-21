@@ -1,0 +1,137 @@
+{
+  "generatedAt": "2026-06-26T08:45:44.000Z",
+  "generatedAtLocal": "2026-06-26 16:45:44 Asia/Shanghai",
+  "projectId": "world-neon-tokyo-noir",
+  "repository": "https://github.com/kinksid/DramaPlay",
+  "automationId": "dramaplay-app",
+  "positioning": "互动影游的 TikTok",
+  "discovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/home",
+    "remoteEntryUrl": null,
+    "loginIdentity": "DramaPlay User",
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "previous local snapshot",
+    "latestVersionSource": "local_seed_state",
+    "notes": [
+      "Git remote remains correctly configured for https://github.com/kinksid/DramaPlay.",
+      "No remote DramaPlay APP URL, login credentials, or reusable browser session were discoverable in local repository context.",
+      "Several heartbeat triggers arrived while the prior local change was still uncommitted; this report consolidates the pending recommendation-feedback change into the latest run.",
+      "The working tree still contains unrelated pre-existing edits in story graph and store files; this run avoided changing or staging them."
+    ]
+  },
+  "changeSummary": [
+    {
+      "focus": "Recommendation feedback loop",
+      "changed": true,
+      "status": "optimized",
+      "detail": "Home feed cards now include a '不感兴趣' action that hides the card from the current recommendation list."
+    },
+    {
+      "focus": "Recommendation personalization",
+      "changed": true,
+      "status": "improved",
+      "detail": "Hidden-title state is applied together with genre, search, and sort filters to model a lightweight negative-feedback loop."
+    },
+    {
+      "focus": "Authenticated APP traversal",
+      "changed": false,
+      "status": "manual_intervention",
+      "detail": "DramaPlay User login cannot be executed until an APP endpoint and credentials are provided."
+    }
+  ],
+  "functionalResults": [
+    {
+      "module": "APP login",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "No credentials or authenticated browser session were found.",
+        "No login result was fabricated."
+      ]
+    },
+    {
+      "module": "Home recommendation feed",
+      "status": "passed",
+      "fixStatus": "optimized",
+      "notes": [
+        "Added page-local hidden-title state.",
+        "The '不感兴趣' button hides a card without mutating persisted project data.",
+        "Search, genre, and sort filters still compose with the visibility filter."
+      ]
+    },
+    {
+      "module": "Type safety",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "npm run typecheck completed successfully."
+      ],
+      "performance": {
+        "typecheckSeconds": 1.15
+      }
+    },
+    {
+      "module": "Git save",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "GitHub push credentials remain functional."
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "name": "typecheck",
+      "tool": "tsc --noEmit",
+      "wallClockMs": 1152,
+      "status": "passed"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "missing-app-login-context",
+      "severity": "manual_intervention",
+      "message": "Cannot perform real DramaPlay APP login without endpoint, credentials, or browser session.",
+      "autoFixAttempted": false
+    }
+  ],
+  "autoFixes": [
+    {
+      "id": "home-feed-negative-feedback",
+      "status": "optimized",
+      "action": "Added a page-local 'not interested' action to hide feed cards from the current recommendation list.",
+      "result": "The feed now has a basic user feedback loop for tuning recommendations."
+    }
+  ],
+  "productOptimization": {
+    "goal": "Let users actively tune the interactive-drama feed.",
+    "landed": [
+      "Added hiddenTitles state to the home feed.",
+      "Filtered hidden titles alongside genre, search, and ranking controls.",
+      "Added a '不感兴趣' button under each preview CTA."
+    ],
+    "nextPriorities": [
+      "Persist negative feedback across sessions.",
+      "Add undo after hiding a card.",
+      "Use feedback to down-rank similar genres or recommendation reasons."
+    ]
+  },
+  "recommendations": [
+    "Provide DramaPlay APP endpoint and DramaPlay User credentials through local env or a reusable browser session for full login validation.",
+    "Add Playwright coverage for hiding a recommendation card and ensuring filters still work.",
+    "Resolve or intentionally commit the pre-existing dirty story graph/store changes before broad automation commits resume."
+  ],
+  "githubSave": {
+    "committed": true,
+    "pushed": true,
+    "branch": "automation/hourly-inspection"
+  },
+  "artifacts": {
+    "report": "reports/2026-06-26_16-45.json",
+    "snapshot": "snapshots/project_world-neon-tokyo-noir.json",
+    "log": "logs/functional_test.log",
+    "error": "errors/error_2026-06-26_16-45-44.json",
+    "fixLog": "fixes/fix_log.json"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-06-24T00:15:48.334Z",
+  "projectId": "world-neon-tokyo-noir",
+  "errors": [],
+  "manualInterventionModules": [
+    {
+      "module": "剧本编辑器",
+      "notes": [
+        "Typing persisted to Zustand local storage.",
+        "Node drag did not update stored position.",
+        "Selection worked through React Flow node click.",
+        "Undo/redo shortcuts are not implemented in the current UI and require manual product follow-up."
+      ]
+    },
+    {
+      "module": "场景时间线",
+      "notes": [
+        "Story graph supports node drag and episode focus, but no episode reorder or insert-scene timeline UI exists.",
+        "Timeline-specific drag reorder and scene insertion need product implementation before this checklist can run."
+      ]
+    },
+    {
+      "module": "批注系统",
+      "notes": [
+        "No annotation or threaded comment UI exists in the current build."
+      ]
+    },
+    {
+      "module": "版本历史",
+      "notes": [
+        "No version history UI, version switcher, or diff viewer exists in the current build."
+      ]
+    },
+    {
+      "module": "协作成员",
+      "notes": [
+        "The app contains only static workflow copy; no live member presence, online status, or permission management UI exists."
+      ]
+    }
+  ]
+}

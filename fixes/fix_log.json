@@ -1,0 +1,146 @@
+[
+  {
+    "timestamp": "2026-06-26T06:21:52.000Z",
+    "timestampLocal": "2026-06-26 14:21:52 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "remote-corrected",
+        "status": "fixed",
+        "action": "Updated git origin remote to https://github.com/kinksid/DramaPlay.",
+        "result": "Future pushes target the requested DramaPlay repository."
+      },
+      {
+        "id": "github-credential-helper",
+        "status": "fixed",
+        "action": "Ran gh auth setup-git to connect existing GitHub CLI auth to git HTTPS pushes.",
+        "result": "Push to origin/automation/hourly-inspection succeeded."
+      },
+      {
+        "id": "app-preview-social-rail",
+        "status": "optimized",
+        "action": "Added favorite, comment, and share controls to the vertical APP preview.",
+        "result": "The preview better communicates short-video engagement and sharing behavior."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T06:33:01.000Z",
+    "timestampLocal": "2026-06-26 14:33:01 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "app-preview-up-next",
+        "status": "optimized",
+        "action": "Added an up-swipe next-episode cue to the vertical APP preview.",
+        "result": "The prototype better supports continuous viewing and short-video style retention."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T06:40:39.000Z",
+    "timestampLocal": "2026-06-26 14:40:39 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-growth-chips",
+        "status": "optimized",
+        "action": "Added heat, completion, and interaction-count chips to home feed cards.",
+        "result": "The home feed better supports fast short-video style content decisions."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T06:50:38.000Z",
+    "timestampLocal": "2026-06-26 14:50:38 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-preview-cta",
+        "status": "optimized",
+        "action": "Added a direct preview CTA to home feed cards.",
+        "result": "The feed reduces the distance from discovery to interactive playback preview."
+      },
+      {
+        "id": "home-feed-card-semantics",
+        "status": "fixed",
+        "action": "Changed the feed card wrapper from button to article before adding a nested Link.",
+        "result": "Interactive markup remains valid and safer for browser behavior."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T07:00:40.000Z",
+    "timestampLocal": "2026-06-26 15:00:40 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-continue-watching-card",
+        "status": "optimized",
+        "action": "Reworked the home continue area into a continue-watching card with progress and APP preview link.",
+        "result": "The home page now better supports return-user retention and unfinished interactive paths."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T07:10:42.000Z",
+    "timestampLocal": "2026-06-26 15:10:42 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-sort-modes",
+        "status": "optimized",
+        "action": "Added recommendation sort modes for hotness, completion, and interaction density.",
+        "result": "The feed can now be tuned toward discovery, retention, or interactive-depth goals."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T07:20:40.000Z",
+    "timestampLocal": "2026-06-26 15:20:40 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-recommendation-reasons",
+        "status": "optimized",
+        "action": "Added recommendation reason text to home feed cards.",
+        "result": "The feed better communicates personalization and why a user should try each interactive title."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T08:45:44.000Z",
+    "timestampLocal": "2026-06-26 16:45:44 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-negative-feedback",
+        "status": "optimized",
+        "action": "Added a page-local 'not interested' action to hide feed cards from the current recommendation list.",
+        "result": "The feed now has a basic user feedback loop for tuning recommendations."
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-06-26T08:49:18.000Z",
+    "timestampLocal": "2026-06-26 16:49:18 Asia/Shanghai",
+    "automationId": "dramaplay-app",
+    "projectId": "world-neon-tokyo-noir",
+    "fixes": [
+      {
+        "id": "home-feed-negative-feedback-undo",
+        "status": "optimized",
+        "action": "Added an undo strip for the most recently hidden recommendation.",
+        "result": "Users can recover from accidental negative feedback without reloading the page."
+      }
+    ]
+  }
+]

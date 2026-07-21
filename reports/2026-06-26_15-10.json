@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-06-26T07:10:42.000Z",
+  "generatedAtLocal": "2026-06-26 15:10:42 Asia/Shanghai",
+  "projectId": "world-neon-tokyo-noir",
+  "repository": "https://github.com/kinksid/DramaPlay",
+  "automationId": "dramaplay-app",
+  "positioning": "互动影游的 TikTok",
+  "discovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/home",
+    "remoteEntryUrl": null,
+    "loginIdentity": "DramaPlay User",
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "previous local snapshot",
+    "latestVersionSource": "local_seed_state",
+    "notes": [
+      "Git remote remains correctly configured for https://github.com/kinksid/DramaPlay.",
+      "No remote DramaPlay APP URL, login credentials, or reusable browser session were discoverable in local repository context.",
+      "The working tree still contains unrelated pre-existing edits in story graph and store files; this run avoided changing or staging them."
+    ]
+  },
+  "changeSummary": [
+    {
+      "focus": "Recommendation ranking controls",
+      "changed": true,
+      "status": "optimized",
+      "detail": "The home recommendation feed now supports sorting by hotness, completion, and interaction density."
+    },
+    {
+      "focus": "Feed scanning context",
+      "changed": true,
+      "status": "improved",
+      "detail": "The recommendation area now has an explicit title block, making the feed easier to scan as a product surface."
+    },
+    {
+      "focus": "Authenticated APP traversal",
+      "changed": false,
+      "status": "manual_intervention",
+      "detail": "DramaPlay User login cannot be executed until an APP endpoint and credentials are provided."
+    }
+  ],
+  "functionalResults": [
+    {
+      "module": "APP login",
+      "status": "manual_intervention",
+      "fixStatus": "not_applicable",
+      "notes": [
+        "No credentials or authenticated browser session were found.",
+        "No login result was fabricated."
+      ]
+    },
+    {
+      "module": "Home recommendation feed",
+      "status": "passed",
+      "fixStatus": "optimized",
+      "notes": [
+        "Sort mode state was added for hotness, completion, and interaction density.",
+        "Sorting is applied after genre and keyword filters."
+      ]
+    },
+    {
+      "module": "Type safety",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "npm run typecheck completed successfully."
+      ],
+      "performance": {
+        "typecheckSeconds": 0.95
+      }
+    },
+    {
+      "module": "Git save",
+      "status": "passed",
+      "fixStatus": "not_needed",
+      "notes": [
+        "GitHub push credentials remain functional."
+      ]
+    }
+  ],
+  "performance": [
+    {
+      "name": "typecheck",
+      "tool": "tsc --noEmit",
+      "wallClockMs": 948,
+      "status": "passed"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "missing-app-login-context",
+      "severity": "manual_intervention",
+      "message": "Cannot perform real DramaPlay APP login without endpoint, credentials, or browser session.",
+      "autoFixAttempted": false
+    }
+  ],
+  "autoFixes": [
+    {
+      "id": "home-feed-sort-modes",
+      "status": "optimized",
+      "action": "Added recommendation sort modes for hotness, completion, and interaction density.",
+      "result": "The feed can now be tuned toward discovery, retention, or interactive-depth goals."
+    }
+  ],
+  "productOptimization": {
+    "goal": "Make the recommendation feed more operable as an interactive-video discovery surface.",
+    "landed": [
+      "Added a sort mode selector to the recommendation controls.",
+      "Sorted filtered cards by heat score, completion rate, or interaction count.",
+      "Added a clearer recommendation section title."
+    ],
+    "nextPriorities": [
+      "Persist the selected sort mode for return visits.",
+      "Replace string-parsed prototype metrics with numeric story analytics.",
+      "Add a personalized 'because you watched' reason to each card."
+    ]
+  },
+  "recommendations": [
+    "Provide DramaPlay APP endpoint and DramaPlay User credentials through local env or a reusable browser session for full login validation.",
+    "Add Playwright coverage for feed sort modes combined with search and genre filters.",
+    "Resolve or intentionally commit the pre-existing dirty story graph/store changes before broad automation commits resume."
+  ],
+  "githubSave": {
+    "committed": true,
+    "pushed": true,
+    "branch": "automation/hourly-inspection"
+  },
+  "artifacts": {
+    "report": "reports/2026-06-26_15-10.json",
+    "snapshot": "snapshots/project_world-neon-tokyo-noir.json",
+    "log": "logs/functional_test.log",
+    "error": "errors/error_2026-06-26_15-10-42.json",
+    "fixLog": "fixes/fix_log.json"
+  }
+}

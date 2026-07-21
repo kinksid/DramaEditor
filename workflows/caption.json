@@ -1,0 +1,15 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{IMAGE}}"
+    }
+  },
+  "2": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "dramaeditor-caption",
+      "images": ["1", 0]
+    }
+  }
+}

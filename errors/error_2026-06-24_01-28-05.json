@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-06-23T17:28:22.977Z",
+  "projectId": "world-neon-tokyo-noir",
+  "errors": [],
+  "manualInterventionModules": [
+    {
+      "module": "场景时间线",
+      "notes": [
+        "Story graph supports node drag and episode focus, but no episode reorder or insert-scene timeline UI exists.",
+        "Timeline-specific drag reorder and scene insertion need product implementation before this checklist can run."
+      ]
+    },
+    {
+      "module": "批注系统",
+      "notes": [
+        "No annotation or threaded comment UI exists in the current build."
+      ]
+    },
+    {
+      "module": "版本历史",
+      "notes": [
+        "No version history UI, version switcher, or diff viewer exists in the current build."
+      ]
+    },
+    {
+      "module": "协作成员",
+      "notes": [
+        "The app contains only static workflow copy; no live member presence, online status, or permission management UI exists."
+      ]
+    }
+  ]
+}
