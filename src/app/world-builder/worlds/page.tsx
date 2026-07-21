@@ -62,8 +62,7 @@ export default function WorldsPage() {
       return;
     }
     switchProject(card.projectId);
-    const target = projects.find((item) => item.id === card.projectId);
-    router.push(target?.episodes.length ? `/world-builder/story-graph?project=${card.projectId}` : `/world-builder/setup?project=${card.projectId}`);
+    router.push(`/world-builder/worlds/${card.projectId}`);
   };
 
   const handleConfirmDelete = () => {

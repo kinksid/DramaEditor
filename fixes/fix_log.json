@@ -142,5 +142,19 @@
         "result": "Users can recover from accidental negative feedback without reloading the page."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-21T11:40:00.308Z",
+    "timestampLocal": "2026-07-21 19:40:00 Asia/Shanghai",
+    "automationId": "406b928e-84f0-11f1-a7d1-d6b4613131ce",
+    "projectId": "studio-p0-ia",
+    "fixes": [
+      {
+        "id": "G-P0-01",
+        "status": "fixed",
+        "action": "Added Studio-compatible worlds/stories rewrites, route-backed world detail tabs, and world-card detail navigation.",
+        "result": "The P0 worlds IA now resolves through both Studio aliases and local world-builder routes without inventing unverified Studio controls."
+      }
+    ]
   }
 ]
