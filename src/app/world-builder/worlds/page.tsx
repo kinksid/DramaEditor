@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
-import { dramaPlayAssets } from "@/data/dramaPlayAssets";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
 type WorldCard = {
@@ -13,22 +12,8 @@ type WorldCard = {
   genre: string;
   description: string;
   active: boolean;
-  tone?: string;
-  poster?: string;
-  projectId?: string;
+  projectId: string;
 };
-
-const sampleCards: WorldCard[] = [
-  ...dramaPlayAssets.map((asset) => ({
-    title: asset.title,
-    genre: asset.genre,
-    description: asset.description,
-    poster: asset.poster,
-    active: false,
-  })),
-  { title: "血色之城", genre: "恐怖", description: "一座明亮城市隐藏着百年吸血族与人类共存的秘密。", tone: "from-ink-strong via-red-950 to-accent", active: false },
-  { title: "春日盟约", genre: "爱情", description: "外交、孤独与权力在一场王室峰会上相撞。", tone: "from-panel via-stone-300 to-accent", active: false },
-];
 
 export default function WorldsPage() {
   const router = useRouter();
@@ -40,27 +25,21 @@ export default function WorldsPage() {
   const projects = listProjects();
 
   const worlds = useMemo(() => {
-    const projectCards: WorldCard[] = projects.map((project) => ({
-      title: project.name,
-      genre: project.setupDraft.genre.split(/[,，]/)[0]?.trim() || "未分类",
-      description: project.setupDraft.worldDescription || project.world.description,
-      active: project.id === activeProjectId,
-      projectId: project.id,
-    }));
-    const merged = [...projectCards, ...sampleCards];
-    return merged.filter(({ title, genre: itemGenre, description }) => {
-      return (
+    return projects
+      .map((project): WorldCard => ({
+        title: project.name,
+        genre: project.setupDraft.genre.split(/[,，]/)[0]?.trim() || "未分类",
+        description: project.setupDraft.worldDescription || project.world.description,
+        active: project.id === activeProjectId,
+        projectId: project.id,
+      }))
+      .filter(({ title, genre: itemGenre, description }) => (
         (genre === "全部类型" || itemGenre === genre) &&
         `${title} ${description}`.toLowerCase().includes(query.toLowerCase())
-      );
-    });
+      ));
   }, [genre, query, projects, activeProjectId]);
 
   const openProject = (card: WorldCard) => {
-    if (!card.projectId) {
-      router.push("/world-builder/setup");
-      return;
-    }
     switchProject(card.projectId);
     const target = projects.find((item) => item.id === card.projectId);
     router.push(target?.episodes.length ? `/world-builder/story-graph?project=${card.projectId}` : `/world-builder/setup?project=${card.projectId}`);
@@ -105,48 +84,61 @@ export default function WorldsPage() {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {worlds.map(({ title, genre: itemGenre, description, poster, active, projectId }) => (
+          {worlds.length === 0 && (
+            <section className="col-span-full rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-soft">
+              <h2 className="text-lg font-semibold text-ink-strong">
+                {projects.length === 0 ? "还没有世界" : "没有匹配的世界"}
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                {projects.length === 0
+                  ? "创建你的第一个世界后，它会出现在这里。"
+                  : "请调整类型筛选或搜索关键词。"}
+              </p>
+              {projects.length === 0 && (
+                <Link
+                  href="/world-builder/home"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white"
+                >
+                  <Plus size={16} /> 新建世界
+                </Link>
+              )}
+            </section>
+          )}
+          {worlds.map(({ title, genre: itemGenre, description, active, projectId }) => (
             <article
-              key={`${projectId ?? "sample"}-${title}`}
+              key={projectId}
               className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft hover:border-pink-200"
             >
               <button
                 type="button"
-                onClick={() => openProject({ title, genre: itemGenre, description, active, poster, projectId })}
+                onClick={() => openProject({ title, genre: itemGenre, description, active, projectId })}
                 className="block w-full text-left"
               >
-                {poster ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={poster} alt={title} className="h-48 w-full object-cover" />
-                ) : (
-                  <div className="relative h-48 bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
-                    <div className="absolute inset-0 dot-matrix opacity-25" />
-                  </div>
-                )}
+                <div className="relative h-48 bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]">
+                  <div className="absolute inset-0 dot-matrix opacity-25" />
+                </div>
                 <div className="p-5">
                   <div className="flex items-center justify-between gap-3">
                     <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">{itemGenre}</span>
                     {active && <span className="rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-semibold text-accent">继续制作</span>}
-                    {projectId && !active && <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">我的项目</span>}
+                    {!active && <span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">我的项目</span>}
                   </div>
                   <h2 className="mt-3 text-lg font-semibold">{title}</h2>
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{description}</p>
                 </div>
               </button>
 
-              {projectId && (
-                <button
-                  type="button"
-                  aria-label={`删除世界「${title}」`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setPendingDelete({ id: projectId, title });
-                  }}
-                  className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full border border-white/30 bg-black/40 text-white shadow-sm backdrop-blur transition hover:bg-red-500/90 hover:border-red-300"
-                >
-                  <X size={16} />
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label={`删除世界「${title}」`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPendingDelete({ id: projectId, title });
+                }}
+                className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full border border-white/30 bg-black/40 text-white shadow-sm backdrop-blur transition hover:bg-red-500/90 hover:border-red-300"
+              >
+                <X size={16} />
+              </button>
             </article>
           ))}
         </div>
