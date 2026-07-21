@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-07-21T10:56:29.914Z",
+  "message": "page.goto: Timeout 10000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3000/world-builder\", waiting until \"domcontentloaded\"\n",
+  "inspectionErrors": [
+    {
+      "module": "inspection_runtime",
+      "message": "page.goto: Timeout 10000ms exceeded.\nCall log:\n  - navigating to \"http://127.0.0.1:3000/world-builder\", waiting until \"domcontentloaded\"\n"
+    }
+  ],
+  "inspectionFixes": [],
+  "inspectionResults": [],
+  "inspectionPerformance": [
+    {
+      "name": "home",
+      "route": "/world-builder/home",
+      "wallClockMs": 655,
+      "attempt": 1,
+      "domContentLoadedMs": 204,
+      "loadEventMs": 0,
+      "transferSize": 10059
+    }
+  ],
+  "inspectionDiscovery": {
+    "localEntryUrl": "http://127.0.0.1:3000/world-builder/stories/the-memory-thief",
+    "remoteEntryUrl": null,
+    "loginCredentials": null,
+    "browserSession": null,
+    "projectIdSource": "seed world id",
+    "storyRouteSource": "hard-coded story route in app links",
+    "notes": [
+      "No remote login credentials were found in repository files, env files, or test fixtures.",
+      "No external DramaEditor Editor URL was found; local Next.js route was used for offline inspection.",
+      "The app behaves as a local prototype with client-side Zustand persistence and no backend version source."
+    ]
+  }
+}
