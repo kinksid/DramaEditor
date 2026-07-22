@@ -30,7 +30,7 @@ export type I18nKey =
   | "home.hotFirst"
   | "home.completionFirst"
   | "home.interactiveFirst"
-  | "home.resumeWatch"
+  | "home.resumeWork"
   | "home.lastSeen"
   | "home.watchedPercent"
   | "home.tapToContinue"
@@ -184,7 +184,7 @@ const zh: I18nDict = {
   "home.heading": "一键生成，可以玩的短剧",
   "home.subtitle": "One Click, Boundless Stories。面向 App 的树状分支剧情、互动节点、视频节点和多人协作制作平台。",
   "home.createBtn": "创建",
-  "home.continueWatching": "继续观看",
+  "home.continueWatching": "继续工作",
   "home.recommended": "推荐流",
   "home.forYou": "为你推荐",
   "home.addRef": "添加参考",
@@ -198,7 +198,7 @@ const zh: I18nDict = {
   "home.hotFirst": "热门优先",
   "home.completionFirst": "完播优先",
   "home.interactiveFirst": "互动密度",
-  "home.resumeWatch": "上次看到 第 1 集 · 互动选择前",
+  "home.resumeWork": "上次工作到 第 {level} 级",
   "home.lastSeen": "上次看到",
   "home.watchedPercent": "已观看 · 点按继续互动",
   "home.tapToContinue": "已有",
@@ -351,7 +351,7 @@ const en: I18nDict = {
   "home.heading": "One Click, Boundless Stories",
   "home.subtitle": "Tree-branching narratives, interaction nodes, video nodes, and collaborative production platform for apps.",
   "home.createBtn": "Create",
-  "home.continueWatching": "Continue Watching",
+  "home.continueWatching": "Continue Working",
   "home.recommended": "Recommended",
   "home.forYou": "For You",
   "home.addRef": "Add Reference",
@@ -365,7 +365,7 @@ const en: I18nDict = {
   "home.hotFirst": "Hot First",
   "home.completionFirst": "Completion First",
   "home.interactiveFirst": "Interactive Density",
-  "home.resumeWatch": "Last watched Ep.1 · Before interaction",
+  "home.resumeWork": "Last worked to level {level}",
   "home.lastSeen": "Last Seen",
   "home.watchedPercent": "Watched · Tap to continue",
   "home.tapToContinue": "watched",

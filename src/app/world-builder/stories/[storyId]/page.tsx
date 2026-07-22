@@ -1,32 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowRight,
+  Bot,
   CheckCircle2,
-  Download,
-  Film,
+  ChevronRight,
   GitBranch,
-  LayoutDashboard,
-  MonitorPlay,
+  MousePointerClick,
+  PenLine,
   Play,
-  RotateCcw,
+  Plus,
   Send,
   Settings2,
-  Smartphone,
-  Sparkles,
-  Users,
+  Trash2,
 } from "lucide-react";
+import { AddAssetCard, portraitGridClass, portraitAspectClass, portraitShellClass, WorldAssetEditor, type WorldAssetEditorActions } from "@/components/world-builder/WorldAssetEditor";
+import { EditWorldModal } from "@/components/world-builder/EditWorldModal";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
-import { actionTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
 import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 
-const tabs = ["总览", "剧集", "角色", "地点", "App 数据"] as const;
+const tabs = [
+  { id: "overview", label: "概览" },
+  { id: "episodes", label: "剧集" },
+  { id: "characters", label: "角色" },
+  { id: "locations", label: "地点" },
+  { id: "interactions", label: "交互" },
+] as const;
+
+type TabId = (typeof tabs)[number]["id"];
 
 export default function StoryProjectPage() {
+  return (
+    <Suspense fallback={<div className="grid min-h-[50vh] place-items-center text-sm text-ink-muted">加载中…</div>}>
+      <StoryProjectContent />
+    </Suspense>
+  );
+}
+
+function StoryProjectContent() {
+  const params = useParams<{ storyId: string }>();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const storyId = params.storyId;
+  const tabParam = searchParams.get("tab");
+  const validTabIds = tabs.map((t) => t.id);
+  const initialTab = tabParam && validTabIds.includes(tabParam as TabId) ? (tabParam as TabId) : "overview";
+
   const {
     world,
     characters,
@@ -34,67 +57,165 @@ export default function StoryProjectPage() {
     episodes,
     nodes,
     edges,
-    resetWorld,
-    generateAllMockVideos,
+    activeProjectId,
+    ensureProjectLoaded,
+    listProjects,
     validateStory,
     publishStory,
-    exportAppJson,
+    addEpisode,
+    addInteractionNode,
+    deleteNode,
   } = useWorldBuilderStore();
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("总览");
+
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+  const [missing, setMissing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [editWorldOpen, setEditWorldOpen] = useState(false);
+  const assetActionsRef = useRef<WorldAssetEditorActions | null>(null);
+  const registerAssetActions = useCallback((actions: WorldAssetEditorActions) => {
+    assetActionsRef.current = actions;
+  }, []);
+
+  useEffect(() => {
+    if (tabParam === "assets") {
+      setActiveTab("overview");
+      router.replace(`/world-builder/stories/${storyId}?tab=overview`, { scroll: false });
+      return;
+    }
+    if (tabParam && validTabIds.includes(tabParam as TabId)) {
+      setActiveTab(tabParam as TabId);
+    }
+  }, [tabParam, storyId, router, validTabIds]);
+
+  useEffect(() => {
+    if (!storyId) return;
+    const projects = listProjects();
+    const byId = projects.find((p) => p.id === storyId);
+    const byEpisode = projects.find((p) => p.episodes.some((e) => e.id === storyId));
+    const target = byId?.id ?? byEpisode?.id ?? (storyId === activeProjectId ? activeProjectId : undefined);
+    if (target) {
+      ensureProjectLoaded(target);
+      setMissing(false);
+    } else if (projects.length && activeProjectId) {
+      setMissing(false);
+    } else {
+      setMissing(!ensureProjectLoaded(storyId));
+    }
+  }, [storyId, ensureProjectLoaded, listProjects, activeProjectId]);
+
+  const interactionNodes = useMemo(
+    () => nodes.filter((node) => node.kind === "interaction"),
+    [nodes],
+  );
   const issues = useMemo(() => validateStory(), [validateStory, nodes, edges, episodes]);
   const readyScenes = nodes.filter((node) => node.kind === "scene" && node.data.status === "ready").length;
   const sceneCount = nodes.filter((node) => node.kind === "scene").length;
   const interactionCount = nodes.filter((node) => node.kind === "interaction").length;
   const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const warningCount = issues.filter((issue) => issue.severity === "warning").length;
+  const worldId = activeProjectId || storyId;
+  const storyTitle = episodes[0]?.title || world.title || "未命名故事";
+  const storyGraphHref = `/world-builder/story-graph?project=${worldId}`;
 
-  const downloadAppJson = () => {
-    const blob = new Blob([exportAppJson()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "drama-play-app-story.json";
-    anchor.click();
-    URL.revokeObjectURL(url);
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    router.replace(`/world-builder/stories/${storyId}?tab=${tab}`, { scroll: false });
   };
+
+  const handlePublish = () => {
+    const result = publishStory();
+    setNotice(
+      result.some((i) => i.severity === "error")
+        ? `发布检查：${result.length} 项待处理`
+        : "发布检查通过",
+    );
+  };
+
+  const handleAddEpisode = () => {
+    addEpisode({ title: `第 ${episodes.length + 1} 集`, description: "" });
+    selectTab("episodes");
+  };
+
+  const handleAddInteraction = () => {
+    addInteractionNode();
+    router.push(storyGraphHref);
+  };
+
+  const tabAddAction =
+    activeTab === "episodes"
+      ? { label: "添加剧集", onClick: handleAddEpisode }
+      : activeTab === "characters"
+        ? { label: "添加角色", onClick: () => assetActionsRef.current?.openAdd() }
+        : activeTab === "locations"
+          ? { label: "添加地点", onClick: () => assetActionsRef.current?.openAdd() }
+          : activeTab === "interactions"
+            ? { label: "添加交互", onClick: handleAddInteraction }
+            : null;
+
+  if (missing) {
+    return (
+      <WorldBuilderLayout agentMode="none">
+        <div className="grid min-h-[50vh] place-items-center px-6 text-center">
+          <div>
+            <h1 className="font-display text-3xl text-ink-strong">未找到故事</h1>
+            <Link href="/world-builder/worlds" className="mt-4 inline-flex text-sm text-accent">
+              返回工作空间
+            </Link>
+          </div>
+        </div>
+      </WorldBuilderLayout>
+    );
+  }
 
   return (
     <WorldBuilderLayout agentMode="none">
-      <main className="min-h-screen bg-stage p-5">
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft">
-          <div className="relative min-h-[340px] bg-[linear-gradient(135deg,#09111f_0%,#162338_38%,#ec6f38_100%)] px-7 py-6 text-white">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(56,189,248,0.32),transparent_32%),radial-gradient(circle_at_78%_20%,rgba(244,114,182,0.34),transparent_30%)]" />
-            <div className="relative z-10 flex h-full min-h-[300px] flex-col justify-between">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Link href="/world-builder/home" className="hover:text-white">创作工作台</Link>
-                  <span>/</span>
-                  <span>{world.title}</span>
-                  <span>/</span>
-                  <span className="text-white">记忆盗贼</span>
-                </div>
+      <main className="min-h-screen bg-stage">
+        <section className="bg-stage">
+          <div className="relative min-h-[320px] bg-[linear-gradient(135deg,#0a0a0a_0%,#161218_42%,#b94a6a_115%)] px-6 py-5 text-white">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(212,120,147,0.28),transparent_34%)]" />
+            <Link
+              href={storyGraphHref}
+              className="absolute inset-0 z-0 cursor-pointer"
+              aria-label="打开故事图"
+            />
+            <div className="relative z-10 flex h-full min-h-[280px] flex-col justify-between pointer-events-none">
+              <div className="flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
+                <nav className="flex flex-wrap items-center gap-1.5 text-sm text-white/65">
+                  <Link href="/world-builder/worlds" className="hover:text-white">
+                    我的工作空间
+                  </Link>
+                  <ChevronRight size={14} className="text-white/35" />
+                  <span className="text-white">{world.title}</span>
+                  <ChevronRight size={14} className="text-white/35" />
+                  <span className="text-white">{storyTitle}</span>
+                </nav>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={generateAllMockVideos}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-3 py-2 text-sm font-medium backdrop-blur hover:bg-white/20"
+                  <Link
+                    href={storyGraphHref}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-deep"
                   >
-                    <Sparkles size={16} /> 生成全部视频
-                  </button>
+                    <GitBranch size={16} /> 故事图
+                  </Link>
                   <button
-                    onClick={downloadAppJson}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink-strong"
+                    type="button"
+                    onClick={() => setEditWorldOpen(true)}
+                    className="inline-flex items-center rounded-lg bg-black px-3 py-2 text-sm font-medium text-white transition hover:bg-[#1a1a1a]"
                   >
-                    <Smartphone size={16} /> 导出 App 数据
+                    世界观编辑
                   </button>
+                  <Link
+                    href={`/world-builder/setup?project=${worldId}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#1a1a1a]"
+                  >
+                    <Settings2 size={16} /> 世界设置
+                  </Link>
                 </div>
               </div>
 
-              <div className="max-w-3xl">
-                <p className="text-xs font-semibold tracking-[0.18em] text-white/55">霓虹东京迷案世界</p>
-                <h1 className="mt-3 text-5xl font-semibold tracking-normal">记忆盗贼</h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">
-                  {world.description}
-                </p>
+              <div className="max-w-3xl cursor-pointer">
+                <p className="text-xs font-semibold tracking-[0.18em] text-white/55">{world.title}</p>
+                <h1 className="mt-3 font-display text-5xl tracking-tight">{storyTitle}</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">{world.description}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {world.genre.concat(world.tags.slice(0, 4)).map((tag) => (
                     <span key={tag} className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs text-white/75">
@@ -103,227 +224,254 @@ export default function StoryProjectPage() {
                   ))}
                 </div>
               </div>
-
-              <div className="grid gap-3 md:grid-cols-4">
-                <Metric label="剧集" value={episodes.length} />
-                <Metric label="视频节点" value={sceneCount} />
-                <Metric label="互动节点" value={interactionCount} />
-                <Metric label="就绪视频" value={`${readyScenes}/${sceneCount}`} />
-              </div>
             </div>
           </div>
 
-          <div className="grid gap-6 p-6 xl:grid-cols-[1fr_340px]">
+          <div className="grid gap-6 p-6 xl:grid-cols-[1fr_320px]">
             <div>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 overflow-x-auto">
                   {tabs.map((tab) => (
                     <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
+                      key={tab.id}
+                      type="button"
+                      onClick={() => selectTab(tab.id)}
                       className={cn(
-                        "rounded-xl px-4 py-2 text-sm font-medium text-slate-500",
-                        activeTab === tab && "bg-white text-ink-strong shadow-sm",
+                        "shrink-0 rounded-lg border px-4 py-2 text-sm font-medium transition",
+                        activeTab === tab.id
+                          ? "border-white/20 bg-[#2a2a2a] font-semibold text-white"
+                          : "border-white/10 bg-transparent text-white/50 hover:border-white/15 hover:bg-white/[0.03] hover:text-white/75",
                       )}
                     >
-                      {tab}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link href="/world-builder/story-graph" className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-glow hover:bg-accent-deep">
-                    <GitBranch size={16} /> 继续编辑故事图
-                  </Link>
-                  <Link href="/world-builder/setup" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium">
-                    <Settings2 size={16} /> 世界设置
-                  </Link>
-                </div>
+                {tabAddAction && (
+                  <button
+                    type="button"
+                    onClick={tabAddAction.onClick}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-deep"
+                  >
+                    <Plus size={14} /> {tabAddAction.label}
+                  </button>
+                )}
               </div>
 
-              {activeTab === "总览" && (
-                <div className="grid gap-4 md:grid-cols-3">
-                  <StudioAction href="/world-builder/story-graph" icon={GitBranch} title="无限故事画布" description="按集整理视频、互动、结局节点，拖拽连接分支。" />
-                  <StudioAction href="/world-builder" icon={LayoutDashboard} title="世界资料库" description="编辑角色、地点、故事线，作为 App 内容源。" />
-                  <StudioAction href="/world-builder/app-preview" icon={MonitorPlay} title="竖屏预览" description="用模拟视频快速检查互动播放路径。" />
+              {activeTab === "overview" && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <StudioAction
+                    href={`/world-builder/story-graph?project=${worldId}`}
+                    icon={GitBranch}
+                    title="故事图"
+                    description="在画布上编辑视频、互动与结局节点。"
+                  />
+                  <StudioAction
+                    href="/world-builder/app-preview"
+                    icon={Play}
+                    title="预览"
+                    description="在手机框中检查互动播放路径。"
+                  />
                 </div>
               )}
 
-              {activeTab === "剧集" && (
-                <div className="space-y-3">
+              {activeTab === "episodes" && (
+                <div className={portraitGridClass}>
                   {episodes.map((episode) => {
                     const episodeNodes = nodes.filter((node) => node.data.episodeId === episode.id);
+                    const hasNodes = episodeNodes.length > 0;
+                    const isPublished = episodeNodes.some(
+                      (node) => node.kind === "scene" && node.data.status === "ready",
+                    );
                     return (
                       <Link
-                        href="/world-builder/story-graph"
+                        href={storyGraphHref}
                         key={episode.id}
-                        className="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-pink-200 hover:bg-accent-soft/40"
+                        className={cn(
+                          portraitAspectClass,
+                          portraitShellClass,
+                          "group block transition hover:border-white/20",
+                        )}
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-400">第 {(episode.label ?? String(episode.index)).toUpperCase()} 集</p>
-                            <h2 className="mt-1 text-lg font-semibold">{episode.title}</h2>
+                        <div className="relative flex h-full flex-col justify-between bg-gradient-to-br from-[#121018] via-[#1a1218] to-[#3a1f2c] p-4 text-white">
+                          <div className="flex flex-wrap gap-2">
+                            {!isPublished && (
+                              <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-white/70">
+                                草稿
+                              </span>
+                            )}
+                            {hasNodes && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-200">
+                                <span className="size-1.5 rounded-full bg-amber-400" />
+                                进行中
+                              </span>
+                            )}
                           </div>
-                          <ArrowRight size={18} className="text-slate-400" />
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {episodeNodes.map((node) => (
-                            <span key={node.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                              {node.kind === "scene" ? "视频" : node.kind === "interaction" ? "互动" : "结局"} · {node.data.title}
-                            </span>
-                          ))}
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                              第 {episode.index} 集
+                            </p>
+                            <h3 className="mt-2 font-display text-2xl leading-tight">{episode.title}</h3>
+                            <p className="mt-2 text-xs text-white/55">{episodeNodes.length} 个节点</p>
+                          </div>
                         </div>
                       </Link>
                     );
                   })}
+                  <AddAssetCard label="添加剧集" onClick={handleAddEpisode} />
                 </div>
               )}
 
-              {activeTab === "角色" && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {characters.map((character) => (
-                    <InfoCard key={character.id} title={character.name} eyebrow={character.role} body={character.description} />
+              {activeTab === "characters" && (
+                <WorldAssetEditor mode="characters" storyId={storyId} onRegisterActions={registerAssetActions} />
+              )}
+              {activeTab === "locations" && (
+                <WorldAssetEditor mode="locations" storyId={storyId} onRegisterActions={registerAssetActions} />
+              )}
+
+              {activeTab === "interactions" && (
+                <div className={portraitGridClass}>
+                  {interactionNodes.map((node) => (
+                    <article
+                      key={node.id}
+                      className="group rounded-xl border border-card-border bg-card p-4 hover:border-accent/35"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+                          <MousePointerClick size={18} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-ink-muted">交互节点</p>
+                          <h2 className="mt-1 text-lg font-semibold text-ink-strong">{node.data.title}</h2>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink-muted">{node.data.instruction}</p>
+                          <p className="mt-3 text-xs text-ink-muted">{node.data.options.length} 个选项</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <Link
+                          href={storyGraphHref}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-card-border bg-stage px-3 py-2 text-sm text-ink-muted transition hover:border-accent/35 hover:text-ink-strong"
+                        >
+                          <PenLine size={14} /> 编辑
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => deleteNode(node.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-card-border bg-stage px-3 py-2 text-sm text-red-400 transition hover:border-red-400/40 hover:bg-red-500/10"
+                        >
+                          <Trash2 size={14} /> 删除
+                        </button>
+                      </div>
+                    </article>
                   ))}
-                </div>
-              )}
-
-              {activeTab === "地点" && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {locations.map((location) => (
-                    <InfoCard key={location.id} title={location.name} eyebrow={location.type} body={location.description} />
-                  ))}
-                </div>
-              )}
-
-              {activeTab === "App 数据" && (
-                <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-                  <div className="rounded-2xl border border-slate-200 bg-ink-strong p-4 text-xs leading-6 text-slate-200">
-                    <pre className="max-h-[460px] overflow-auto whitespace-pre-wrap">{exportAppJson()}</pre>
-                  </div>
-                  <div className="space-y-3">
-                    <button onClick={downloadAppJson} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink-strong px-4 py-3 text-sm font-semibold text-white">
-                      <Download size={16} /> 下载 App 数据
-                    </button>
-                    <button onClick={publishStory} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold">
-                      <Send size={16} /> 发布前检查
-                    </button>
-                    <button onClick={resetWorld} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">
-                      <RotateCcw size={16} /> 重置世界
-                    </button>
-                  </div>
+                  <AddAssetCard label="添加交互" onClick={handleAddInteraction} />
                 </div>
               )}
             </div>
 
-            <aside className="space-y-4">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  {errorCount === 0 ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertTriangle size={18} className="text-red-600" />}
-                  <h2 className="font-semibold">App 发布检查</h2>
+            <aside className="xl:sticky xl:top-20 xl:self-start">
+              <div className="p-1">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-accent text-white">
+                    <Bot size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-ink-strong">助手</h2>
+                    <p className="text-xs text-ink-muted">发布检查与发布引导</p>
+                  </div>
                 </div>
                 <div className="space-y-2 text-sm">
                   <CheckRow done={characters.length > 0} label={`${characters.length} 个角色`} />
                   <CheckRow done={locations.length > 0} label={`${locations.length} 个地点`} />
-                  <CheckRow done={episodes.length > 0} label={`${episodes.length} 个剧集`} />
-                  <CheckRow done={interactionCount > 0} label={`${interactionCount} 个互动节点`} />
-                  <CheckRow done={readyScenes === sceneCount && sceneCount > 0} label={`${readyScenes}/${sceneCount} 视频就绪`} />
+                  <CheckRow done={episodes.length > 0} label={`${episodes.length} 集剧集`} />
+                  <CheckRow done={interactionCount > 0} label={`${interactionCount} 个互动`} />
+                  <CheckRow
+                    done={readyScenes === sceneCount && sceneCount > 0}
+                    label={`${readyScenes}/${sceneCount} 视频就绪`}
+                  />
                 </div>
-                <div className="mt-4 rounded-2xl bg-white p-3 text-sm text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-ink-muted">
                   {errorCount > 0
-                    ? `还有 ${errorCount} 个错误需要处理，建议进入故事图逐项修复。`
+                    ? `还有 ${errorCount} 个错误需修复后才能发布。`
                     : warningCount > 0
-                      ? `可发布，但还有 ${warningCount} 个提醒。`
-                      : "全部检查通过，可以导出给 iOS 播放器。"}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                <h2 className="font-semibold">制作工具</h2>
-                <div className="mt-3 grid gap-2">
-                  <ToolButton href="/world-builder/app-preview" icon={Play} label="打开预览播放器" />
-                  <ToolButton href="/world-builder/story-graph" icon={Film} label="批量生成模拟视频" onClick={generateAllMockVideos} />
-                  <ToolButton href="/world-builder" icon={Users} label="管理角色地点" />
-                  <ToolButton href="/world-builder/settings" icon={Smartphone} label="App 导出设置" />
-                </div>
+                      ? `可发布，但有 ${warningCount} 条提醒。`
+                      : "所有检查已通过。"}
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePublish}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep"
+                >
+                  <Send size={15} /> 发布剧集
+                </button>
               </div>
             </aside>
           </div>
         </section>
       </main>
-    </WorldBuilderLayout>
-  );
-}
 
-function Metric({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur">
-      <p className="text-xs text-white/50">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
-    </div>
+      {notice && (
+        <div className="fixed right-5 top-5 z-50 rounded-xl border border-card-border bg-card px-4 py-3 text-sm shadow-soft">
+          {notice}
+          <button type="button" className="ml-3 text-ink-muted" onClick={() => setNotice(null)}>
+            ×
+          </button>
+        </div>
+      )}
+      <EditWorldModal
+        open={editWorldOpen}
+        onClose={() => setEditWorldOpen(false)}
+        episodeId={episodes[0]?.id}
+      />
+    </WorldBuilderLayout>
   );
 }
 
 function StudioAction({
   href,
+  onClick,
   icon: Icon,
   title,
   description,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   icon: typeof GitBranch;
   title: string;
   description: string;
 }) {
-  return (
-    <Link href={href} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-pink-200 hover:bg-accent-soft/40">
-      <div className="grid size-10 place-items-center rounded-xl accent-soft text-accent">
+  const className =
+    "rounded-xl border border-card-border bg-card p-4 text-left hover:border-accent/35 block w-full";
+  const inner = (
+    <>
+      <div className="grid size-10 place-items-center rounded-lg bg-accent-soft text-accent">
         <Icon size={18} />
       </div>
       <h2 className="mt-4 font-semibold">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
-    </Link>
+      <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
+    </>
   );
-}
 
-function InfoCard({ title, eyebrow, body }: { title: string; eyebrow: string; body: string }) {
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {inner}
+      </Link>
+    );
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
-      <h2 className="mt-2 text-lg font-semibold">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
-    </div>
+    <button type="button" onClick={onClick} className={className}>
+      {inner}
+    </button>
   );
 }
 
 function CheckRow({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-      <span className="text-slate-600">{label}</span>
-      {done ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-pink-600" />}
+    <div className="flex items-center justify-between rounded-lg px-1 py-2">
+      <span className="text-ink-muted">{label}</span>
+      {done ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-accent" />}
     </div>
-  );
-}
-
-function ToolButton({
-  href,
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  href: string;
-  icon: typeof Play;
-  label: string;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="inline-flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium hover:bg-slate-50"
-    >
-      <span className="inline-flex items-center gap-2">
-        <Icon size={16} /> {label}
-      </span>
-      <ArrowRight size={15} className="text-slate-400" />
-    </Link>
   );
 }

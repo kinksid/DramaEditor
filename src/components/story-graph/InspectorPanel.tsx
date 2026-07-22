@@ -5,6 +5,8 @@ import { Copy, Film, Hand, MousePointerClick, Plus, Timer, Trash2, X, Zap } from
 import { actionTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { InteractionOption, SceneNodeData, StoryNode } from "@/types/worldBuilder";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
+import { cn } from "@/lib/utils";
 
 export function InspectorPanel() {
   const {
@@ -266,8 +268,8 @@ function GestureEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6 backdrop-blur-sm">
-      <div className="grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-[#121016] text-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] lg:grid-cols-[420px_1fr]">
+    <div className={MODAL_OVERLAY}>
+      <div className={cn(MODAL_PANEL, "grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[28px] lg:grid-cols-[420px_1fr]")}>
         <section className="bg-[#0c0a0f] p-5">
           <div
             onClick={handlePreviewClick}

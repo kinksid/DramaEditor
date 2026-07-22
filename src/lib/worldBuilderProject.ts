@@ -119,6 +119,30 @@ export function buildBlankProject(
   };
 }
 
+export function cloneWorldProject(source: WorldProject): WorldProject {
+  const projectId = uuidv4();
+  const now = new Date().toISOString();
+  const baseName = source.name || source.world.title || "未命名世界";
+  const cloneTitle = baseName.includes("（克隆）") ? `${baseName} 副本` : `${baseName}（克隆）`;
+  const cloned = structuredClone(source);
+
+  cloned.id = projectId;
+  cloned.name = cloneTitle;
+  cloned.createdAt = now;
+  cloned.updatedAt = now;
+  cloned.world = {
+    ...cloned.world,
+    id: projectId,
+    title: cloneTitle,
+    createdAt: now,
+  };
+  cloned.setupDraft = {
+    ...cloned.setupDraft,
+    worldTitle: cloneTitle,
+  };
+  return cloned;
+}
+
 export function projectToWorkspace(project: WorldProject) {
   return {
     world: structuredClone(project.world),

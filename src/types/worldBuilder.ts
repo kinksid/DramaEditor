@@ -20,6 +20,28 @@ export type CharacterChatConfig = {
   relationshipGoals: string;
 };
 
+export type CharacterProfile = {
+  tagline?: string;
+  gender?: string;
+  ethnicity?: string;
+  personality?: string;
+  profession?: string;
+  voiceStyle?: string;
+  catchphrase?: string;
+  neverSays?: string;
+  habits?: string;
+  era?: string;
+  society?: string;
+  vibe?: string;
+  homeBase?: string;
+  form?: string;
+  skin?: string;
+  face?: string;
+  body?: string;
+  wardrobe?: string;
+  others?: string;
+};
+
 export type Character = {
   id: string;
   name: string;
@@ -27,7 +49,21 @@ export type Character = {
   role: string;
   description: string;
   referenceImage?: string;
+  previewImage?: string;
+  turnaroundImages?: string[];
+  profile?: CharacterProfile;
   chat?: CharacterChatConfig;
+};
+
+export type LocationProfile = {
+  placement?: string;
+  era?: string;
+  materials?: string;
+  timeOfDay?: string;
+  light?: string;
+  atmosphere?: string;
+  iconicDetail?: string;
+  others?: string;
 };
 
 export type Location = {
@@ -36,6 +72,8 @@ export type Location = {
   type: "Establishing" | "Master" | "Temporary";
   description: string;
   referenceImage?: string;
+  angleImages?: string[];
+  profile?: LocationProfile;
 };
 
 export type Episode = {
@@ -60,6 +98,7 @@ export type SceneNodeData = {
   episodeId: string;
   title: string;
   prompt: string;
+  clipKind?: "scene" | "highlight";
   videoUrl?: string;
   firstFrameRef?: string;
   status: "empty" | "draft" | "generating" | "ready" | "failed";

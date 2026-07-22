@@ -11,13 +11,20 @@ export default function RootLayout({
   const language = useSettingsStore((s) => s.language);
   const theme = useSettingsStore((s) => s.theme);
   return (
-    <html lang={language === "zh" ? "zh-CN" : "en"} data-theme={theme}>
+    <html lang={language === "zh" ? "zh-CN" : "en"} data-theme={theme} className="dark">
       <head>
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        <meta name="theme-color" content="#060508" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body>{children}</body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

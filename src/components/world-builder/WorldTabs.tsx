@@ -6,6 +6,7 @@ import { Plus, Route } from "lucide-react";
 import { CharacterCard } from "@/components/world-builder/CharacterCard";
 import { LocationCard } from "@/components/world-builder/LocationCard";
 import { cn } from "@/lib/utils";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
 import { locationTypeLabels } from "@/lib/worldBuilderLabels";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Character, CharacterChatConfig, Location } from "@/types/worldBuilder";
@@ -147,8 +148,8 @@ export function WorldTabs() {
       )}
 
       {characterDraft && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-strong/35 p-4">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl p-6")}>
             <h2 className="text-lg font-semibold">角色信息</h2>
             <div className="mt-5 grid gap-3">
               <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="角色名" value={characterDraft.name} onChange={(e) => setCharacterDraft({ ...characterDraft, name: e.target.value })} />
@@ -202,8 +203,8 @@ export function WorldTabs() {
       )}
 
       {locationDraft && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-strong/35 p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "w-full max-w-xl rounded-3xl p-6")}>
             <h2 className="text-lg font-semibold">地点信息</h2>
             <div className="mt-5 grid gap-3">
               <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="地点名" value={locationDraft.name} onChange={(e) => setLocationDraft({ ...locationDraft, name: e.target.value })} />

@@ -18,15 +18,18 @@ import {
   Smartphone,
   X,
 } from "lucide-react";
+import { AppPreviewCreatorBar } from "@/components/world-builder/AppPreviewCreatorBar";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { dramaPlayAssets } from "@/data/dramaPlayAssets";
 import { actionTypeLabels, statusLabels } from "@/lib/worldBuilderLabels";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
 import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { StoryNode } from "@/types/worldBuilder";
 
 export default function AppPreviewPage() {
-  const { world, episodes, nodes, edges, exportAppJson, generateAllMockVideos, updateNode, selectedNodeId } = useWorldBuilderStore();
+  const { world, episodes, nodes, edges, exportAppJson, generateAllMockVideos, updateNode, activeProjectId } =
+    useWorldBuilderStore();
   const [episodeId, setEpisodeId] = useState(episodes[0]?.id ?? "");
   const episodeNodes = useMemo(() => nodes.filter((node) => node.data.episodeId === episodeId), [episodeId, nodes]);
   const firstPlayable = episodeNodes.find((node) => node.kind === "scene") ?? episodeNodes[0];
@@ -65,9 +68,14 @@ export default function AppPreviewPage() {
     setTimeout(() => setApplyNotice(null), 3000);
   };
 
+  const processHref = activeProjectId
+    ? `/world-builder/story-graph?project=${activeProjectId}&readonly=1&from=app-preview`
+    : "/world-builder/story-graph?readonly=1&from=app-preview";
+
   return (
     <WorldBuilderLayout agentMode="none">
-      <main className="grid min-h-screen gap-5 bg-stage p-5 xl:grid-cols-[1fr_410px]">
+      <div className="flex min-h-screen flex-col">
+      <main className="grid flex-1 gap-5 bg-stage p-5 xl:grid-cols-[1fr_410px]">
         <section className="rounded-[2rem] border border-pink-100 bg-white p-5 shadow-soft">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -148,10 +156,21 @@ export default function AppPreviewPage() {
         </aside>
       </main>
 
+      <AppPreviewCreatorBar
+        title={world.title || "未命名项目"}
+        creator="DIDI_OK"
+        description={
+          world.description ||
+          "Every day, thousands of tons of waste are sent to waste to energy plants. But some things were never meant to be trash. One night, a shift operator discovers strange objects hidden among the waste…"
+        }
+        processHref={processHref}
+      />
+      </div>
+
       {/* DramaPlay Apply Modal */}
       {applyModalOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl p-6")}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">套用素材</p>

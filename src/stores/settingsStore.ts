@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       language: "zh",
-      theme: "light",
+      theme: "dark",
       apiBaseUrl: "https://api.dramaplay.dev/v1",
       apiKey: "",
       setLanguage: (language) => set({ language }),
@@ -33,7 +33,14 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "drama-editor-settings",
-      version: 3,
+      version: 4,
+      migrate: (persisted, version) => {
+        const state = persisted as SettingsState;
+        if (version < 4) {
+          return { ...state, theme: "dark" as Theme };
+        }
+        return state;
+      },
     },
   ),
 );

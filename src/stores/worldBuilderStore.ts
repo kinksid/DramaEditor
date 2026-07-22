@@ -15,6 +15,7 @@ import {
 import {
   buildBlankProject,
   buildProjectFromDecompose,
+  cloneWorldProject,
   emptyCreationSession,
   parseCommaList,
   projectToWorkspace,
@@ -98,10 +99,10 @@ export type WorldBuilderState = {
   publishStory: () => StoryValidationIssue[];
   updateWorld: (world: Partial<World>) => void;
   updateSetupDraft: (draft: Partial<SetupDraft>) => void;
-  addCharacter: (character: Omit<Character, "id">) => void;
+  addCharacter: (character: Omit<Character, "id">) => string;
   updateCharacter: (id: string, character: Partial<Character>) => void;
   deleteCharacter: (id: string) => void;
-  addLocation: (location: Omit<Location, "id">) => void;
+  addLocation: (location: Omit<Location, "id">) => string;
   updateLocation: (id: string, location: Partial<Location>) => void;
   deleteLocation: (id: string) => void;
   addEpisode: (episode: Omit<Episode, "id" | "index">) => void;
@@ -148,6 +149,8 @@ export type WorldBuilderState = {
   updateReference: (id: string, patch: Partial<CreationReference>) => void;
   setDecomposePreview: (result: DecomposeResult) => void;
   createProjectFromSession: (options?: { decomposeResult?: DecomposeResult }) => string;
+  cloneProject: (sourceProjectId?: string) => string | null;
+  renameProject: (id: string, name: string) => void;
   switchProject: (id: string) => void;
   deleteProject: (id: string) => void;
   listProjects: () => WorldProject[];
@@ -757,9 +760,11 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
         })),
       addCharacter: (character) => {
         get().pushHistory();
+        const id = uuidv4();
         set((state) => ({
-          characters: [{ ...character, id: uuidv4() }, ...state.characters],
+          characters: [{ ...character, id }, ...state.characters],
         }));
+        return id;
       },
       updateCharacter: (id, character) =>
         set((state) => ({
@@ -775,9 +780,11 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       },
       addLocation: (location) => {
         get().pushHistory();
+        const id = uuidv4();
         set((state) => ({
-          locations: [{ ...location, id: uuidv4() }, ...state.locations],
+          locations: [{ ...location, id }, ...state.locations],
         }));
+        return id;
       },
       updateLocation: (id, location) =>
         set((state) => ({
@@ -1418,6 +1425,54 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           ...projectToWorkspace(project),
         });
         return project.id;
+      },
+      cloneProject: (sourceProjectId) => {
+        const state = get();
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        const sourceId = sourceProjectId ?? state.activeProjectId;
+        const source = syncedProjects.find((item) => item.id === sourceId);
+        if (!source) return null;
+        const cloned = cloneWorldProject(source);
+        set({
+          projects: [...syncedProjects, cloned],
+          activeProjectId: cloned.id,
+          ...projectToWorkspace(cloned),
+        });
+        return cloned.id;
+      },
+      renameProject: (id, name) => {
+        const trimmed = name.trim().slice(0, 60);
+        if (!trimmed) return;
+        const state = get();
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        const index = syncedProjects.findIndex((item) => item.id === id);
+        if (index < 0) return;
+        const now = new Date().toISOString();
+        const updated: WorldProject = {
+          ...syncedProjects[index],
+          name: trimmed,
+          updatedAt: now,
+          world: { ...syncedProjects[index].world, title: trimmed },
+          setupDraft: { ...syncedProjects[index].setupDraft, worldTitle: trimmed },
+        };
+        const nextProjects = [...syncedProjects];
+        nextProjects[index] = updated;
+        if (state.activeProjectId === id) {
+          set({
+            projects: nextProjects,
+            ...projectToWorkspace(updated),
+          });
+          return;
+        }
+        set({ projects: nextProjects });
       },
       switchProject: (id) => {
         const state = get();

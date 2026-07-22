@@ -1,34 +1,38 @@
-# DramaEditor 15-minute loop — Studio UI/UX 复刻 + TapNow/TapTV
-# 流程：Inspect → Review → Debug → Fix → Verify → Commit
+# DramaEditor 15-minute loop — Studio 世界详情功能+UI/UX 复刻
+# Primary: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
+# 流程：Inspect → List → Modify → Debug → Review → Verify → Commit
 
 automation:
   interval_cron: "*/15 * * * *"
   timezone: Asia/Shanghai
-  max_items_per_run: 3
-  max_iterations_per_day: 96
+  max_items_per_run: 1
+  max_iterations_per_day: 288
   early_exit_if_no_high: true
   branch: automation/hourly-inspection
   repo: kinksid/DramaEditor
   phases:
     - inspect
-    - review
+    - list
+    - modify
     - debug
-    - fix
+    - review
     - verify
     - commit
 
 references:
   studio:
-    url: https://studio.dreem-world.ai/
-    role: feature_flow_and_ui_ux_replica
+    url: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
+    role: feature_and_ui_ux_replica
     support: https://www.dreem-world.ai/
     notes: |
-      Primary: replicate Studio feature flow AND UI/UX (IA, dark charcoal+rose shell,
-      canvas workspace, inspector, generation task feedback, node context actions).
+      Primary: feature + UI/UX replica for this worlds-level world detail page and its
+      subtree (tabs, characters, locations, storylines, related story/canvas).
+      Parent /worlds list is context only — not the every-run main target.
+  studio_root: https://studio.dreem-world.ai/
+  pixel_baseline: reports/studio-pixel-baseline.md
   tapnow_canvas:
     url: https://app.tapnow.ai/
     role: ux_workspace_supplement
-    notes: left asset dock, drag-to-canvas, select/dblclick
   taptv:
     url: https://app.tapnow.ai/home/taptv
     role: ux_inspire_remix
@@ -39,11 +43,12 @@ confirmed_decisions:
   C2: inspector_full_dark
   C3: worlds_no_forced_sample_project_split
   C4: taptv_local_shell_only
+  primary_replica: studio_world_019ef8e1_detail_and_subtree
 
 targets:
   cloud_github:
     enabled: true
-    role: "Review + Debug + 修复 + 提交到 GitHub"
+    role: "Inspect+List+Modify+Debug+Review+Verify+Commit"
     sync_to_github: true
     allow_commit: true
     workspace: "Cursor Cloud checkout of kinksid/DramaEditor"
@@ -75,23 +80,25 @@ drama_editor:
     - "scripts/**/*.mjs"
     - "src/app/**/*.css"
     - "reports/**/*.json"
+    - "reports/studio-pixel-baseline.md"
     - "fixes/fix_log.json"
     - "logs/**/*"
     - "errors/**/*.json"
     - "config/automation-*.{yaml,md}"
+    - "next.config.ts"
+    - "tailwind.config.ts"
   verify:
     always:
       - npm run typecheck
     when_ui_changed:
       - npm run inspect:hourly
-  reference_primary: https://studio.dreem-world.ai/
-  reference_ux: https://app.tapnow.ai/home/taptv
+  reference_primary: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
   prompt_file: config/automation-prompt.md
 
 rules:
-  - 云端：每轮必须对照 Studio「功能 + UI/UX 复刻」；TapNow/TapTV 为辅助 UX
+  - 每轮必须对照主目标世界页 https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee 及其子层级 + 本地对应路由（能开则开）
+  - 功能/像素差写入 gap（area=feature_flow|ui_studio|visual_ia），每轮最多修 1 条 high
   - 遵守 C1–C4；勿推翻 confirmed_decisions
-  - TapTV：仅本地灵感/Remix 壳
   - 无 high/open 且验证通过 → 心跳总结后退出
   - 本机：pull + 验证 + 心跳；默认不 push
   - 门禁文件：reports/studio-gap-latest.json

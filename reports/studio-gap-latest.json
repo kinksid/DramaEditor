@@ -1,20 +1,25 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-21 18:30:00 Asia/Shanghai",
+  "updatedAt": "2026-07-22 20:35:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "references": {
     "studio": "https://studio.dreem-world.ai/",
-    "studioMarketing": "https://www.dreem-world.ai/",
+    "studioPrimary": "https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee",
+    "studioWorldSample": "https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee",
+    "localWorldDetail": "/world-builder/worlds/[worldId]",
+    "localStorySample": "http://localhost:3000/world-builder/stories/efa48889-430b-4646-8649-be3615bac472",
+    "pixelBaseline": "reports/studio-pixel-baseline.md",
     "taptv": "https://app.tapnow.ai/home/taptv",
     "tapnowCanvas": "https://app.tapnow.ai/"
   },
-  "referenceProduct": "Dreem Creator Studio (feature + UI/UX replica) + TapNow/TapTV UX",
+  "referenceProduct": "Studio worlds-level world detail (019ef8e1…) feature + UI/UX replica",
   "gate": {
     "autoResolvePriorities": ["high"],
-    "maxItemsPerRun": 3,
+    "maxItemsPerRun": 1,
     "earlyExitIfNoHigh": true,
     "syncToGithub": true,
+    "intervalCron": "*/15 * * * *",
     "targets": ["cloud_github", "local_volume"],
     "localRoot": "/Volumes/YANG/DramaEditor"
   },
@@ -23,11 +28,9 @@
     "aiGenerate": "provider_decompose_primary",
     "consumerChat": "editor_config_entry_placeholder",
     "theme": "cinematic_charcoal_rose",
-    "workspaceUx": "studio_ui_ux_replica_primary_tapnow_supplement",
-    "C1": "yes_generation_task_bar_and_node_floating_toolbar",
-    "C2": "yes_inspector_full_dark",
-    "C3": "no_forced_sample_project_split",
-    "C4": "taptv_local_inspire_shell_only"
+    "workspaceUx": "studio_world_detail_019ef8e1_primary",
+    "taptv": "local_inspire_shell_only_until_confirmed",
+    "primaryReplica": "https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee"
   },
   "pendingUserConfirm": [],
   "gaps": [
@@ -37,8 +40,38 @@
       "area": "integration",
       "route": "settings.api",
       "gap": "真实 API Key 稍后由人工提供",
-      "evidence": "user deferred key",
+      "evidence": "user deferred key; ComfyUI generate may fail without config",
       "suggestedFix": "Set Settings or STUDIO_API_KEY when provided",
+      "status": "open"
+    },
+    {
+      "id": "G18",
+      "priority": "medium",
+      "area": "ui_studio",
+      "route": "/world-builder/stories/[storyId]/characters|locations/:id",
+      "gap": "Character/Location Studio 子页与 Studio 像素细节仍有微差",
+      "evidence": "2026-07-22 audit: 四栏布局+World builder 侧栏已落地；Face/IMAGES 生成依赖 API",
+      "suggestedFix": "15-min loop 继续像素微调",
+      "status": "fixed"
+    },
+    {
+      "id": "G19",
+      "priority": "medium",
+      "area": "ui_studio",
+      "route": "/insights",
+      "gap": "Insights 业绩页未复刻",
+      "evidence": "Studio nav Insights; local maps to app-preview placeholder",
+      "suggestedFix": "Add /world-builder/insights shell",
+      "status": "open"
+    },
+    {
+      "id": "G20",
+      "priority": "low",
+      "area": "visual_ia",
+      "route": "/world-builder/worlds",
+      "gap": "登录态竖版卡真实封面与 Studio 间距需浏览器二次校准",
+      "evidence": "Logged-in Studio session available; local worlds list OK",
+      "suggestedFix": "15-min automation browser compare",
       "status": "open"
     },
     {
@@ -47,48 +80,48 @@
       "area": "ux_taptv",
       "route": "/world-builder/inspire",
       "gap": "缺少 TapTV 风格灵感画布浏览 + Remix 入口（本地壳）",
-      "evidence": "src/app/world-builder/inspire/page.tsx + sidebar 灵感",
-      "suggestedFix": "Done — local TapTV shell with Remix to setup",
+      "evidence": "inspire page",
+      "suggestedFix": "Done — local TapTV shell",
       "status": "fixed"
     },
     {
-      "id": "G15",
-      "priority": "medium",
-      "area": "ui_studio",
+      "id": "G21",
+      "priority": "high",
+      "area": "visual_ia",
+      "route": "/world-builder/stories/[storyId]",
+      "gap": "P0：故事工作台 Hero/Tabs/助手/剧集/角色/地点/交互",
+      "evidence": "Local story page loads for efa48889 project; tabs functional",
+      "suggestedFix": "Ship P0 shell; refine via 15-min loop",
+      "status": "fixed"
+    },
+    {
+      "id": "G22",
+      "priority": "high",
+      "area": "feature_flow",
       "route": "/world-builder/story-graph",
-      "gap": "底部生成历史任务条 + 节点旁浮动工具条（C1=是）",
-      "evidence": "GenerationTaskBar.tsx + NodeFloatingToolbar.tsx wired in StoryGraphCanvas",
-      "suggestedFix": "Done — C1 confirmed and implemented",
+      "gap": "画布 Add node 右键菜单与 Episode 框内 Video/Interaction 启用规则",
+      "evidence": "NewNodeMenu canvas/frame/connect variants; clipKind highlight",
+      "suggestedFix": "Ship menu variants",
       "status": "fixed"
     },
     {
-      "id": "G16",
-      "priority": "medium",
-      "area": "ui_studio",
-      "route": "InspectorPanel",
-      "gap": "Inspector 全面暗色（C2=是），含手势编辑弹层",
-      "evidence": "InspectorPanel.tsx dark shell + GestureEditorModal",
-      "suggestedFix": "Done — C2 confirmed and implemented",
+      "id": "G23",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/worlds/:worldId/characters|locations/:id",
+      "gap": "Studio 详情路由 alias + 卡片跳转 Studio 子页",
+      "evidence": "next.config rewrites; WorldAssetEditor openCharacterStudio/openLocationStudio",
+      "suggestedFix": "Add rewrites and card navigation",
       "status": "fixed"
     },
     {
-      "id": "G17",
-      "priority": "low",
-      "area": "ux_tapnow",
-      "route": "/world-builder/worlds",
-      "gap": "示例世界与真实项目混排（C3=否，不强制分区）",
-      "evidence": "user confirmed C3=no",
-      "suggestedFix": "No change required — keep merged library",
-      "status": "wontfix"
-    },
-    {
-      "id": "G18",
+      "id": "G24",
       "priority": "medium",
       "area": "ui_studio",
-      "route": "multi",
-      "gap": "继续对照 studio.dreem-world.ai 复刻剩余 UI/UX 细节（非 C1/C2 已完成项）",
-      "evidence": "automation-prompt.md Studio UI/UX replica mandate",
-      "suggestedFix": "Each run: pick ≤3 high visual/IA diffs vs Studio; do not invent unverified controls",
+      "route": "/world-builder/stories/[storyId]",
+      "gap": "故事工作台右侧助手 vs Studio World builder 全量流水线 UI 仍有差距",
+      "evidence": "Local uses publish checklist; Studio uses chat pipeline cards",
+      "suggestedFix": "Optional: embed CharacterStudioWorldBuilderPanel on story desk",
       "status": "open"
     }
   ]

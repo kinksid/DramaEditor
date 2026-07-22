@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { Sidebar } from "@/components/world-builder/Sidebar";
+import { AccountModalHost } from "@/components/world-builder/AccountManagement";
+import { TopBar, TOP_BAR_OFFSET_CLASS } from "@/components/world-builder/TopBar";
 import { WorldAgentPanel } from "@/components/world-builder/WorldAgentPanel";
 import { useProjectSync } from "@/hooks/useProjectSync";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
+import { cn } from "@/lib/utils";
 
 type Props = {
   children: React.ReactNode;
@@ -37,11 +39,13 @@ export function WorldBuilderLayout({ children, agentMode = "world" }: Props) {
     }, 2000);
     return () => clearInterval(timer);
   }, [pendingGenerationTasks.length, pollGenerationTasks]);
+
   return (
-    <div className="flex min-h-screen bg-stage text-ink">
-      <Sidebar />
+    <div className={cn("flex min-h-screen bg-stage text-ink", TOP_BAR_OFFSET_CLASS)}>
+      <TopBar />
       <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
       {agentMode !== "none" && <WorldAgentPanel mode={agentMode} />}
+      <AccountModalHost />
     </div>
   );
 }

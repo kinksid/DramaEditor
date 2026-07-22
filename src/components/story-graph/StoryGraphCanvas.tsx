@@ -27,13 +27,14 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
-import { NewNodeMenu } from "@/components/story-graph/NewNodeMenu";
+import { NewNodeMenu, type NewNodeKind, type NewNodeMenuVariant } from "@/components/story-graph/NewNodeMenu";
 import { EpisodeFrame } from "@/components/story-graph/EpisodeFrame";
 import { InteractionNode } from "@/components/story-graph/nodes/InteractionNode";
 import { SceneNode } from "@/components/story-graph/nodes/SceneNode";
 import { EndingNode } from "@/components/story-graph/nodes/EndingNode";
 import { GenerationTaskBar } from "@/components/story-graph/GenerationTaskBar";
 import { NodeFloatingToolbar } from "@/components/story-graph/NodeFloatingToolbar";
+import { TapiesBalanceLink } from "@/components/world-builder/TapiesBalanceLink";
 import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Episode, StoryEdge, StoryNode } from "@/types/worldBuilder";
@@ -62,7 +63,16 @@ const episodeFramePosition = (episode: Episode, episodeIndex: number) => {
   return { x: episodeIndex * 1280, y: 330 };
 };
 
-export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
+export function StoryGraphCanvas({
+  onOpenNode,
+  readOnly = false,
+  agentPanelInset = false,
+}: {
+  onOpenNode?: () => void;
+  readOnly?: boolean;
+  /** Shift points chip left when the floating agent panel covers the canvas edge. */
+  agentPanelInset?: boolean;
+}) {
   const {
     episodes, nodes, edges, selectedEpisodeId,
     selectNode, selectEpisode, connectNodes, updateNodePosition, updateNodePositions, autoLayoutEpisodes,
@@ -83,7 +93,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
 
   const flowNodes = useMemo<Node[]>(() => {
     const output: Node[] = [];
-    episodes.forEach((episode) => {
+    episodes.forEach((episode, episodeIndex) => {
       const episodeNodes = nodes.filter((n) => n.data.episodeId === episode.id);
       const targetTitles = Object.fromEntries(nodes.map((i) => [i.id, i.data.title]));
 
@@ -93,8 +103,9 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
         if (p) { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x + nodeW); maxY = Math.max(maxY, p.y + nodeH); }
       });
       const hasNodes = episodeNodes.length > 0 && Number.isFinite(minX);
-      const fx = hasNodes ? minX - padX : episodeFramePosition(episode, 0).x;
-      const fy = hasNodes ? minY - padY : episodeFramePosition(episode, 0).y;
+      const defaultFrame = episodeFramePosition(episode, episodeIndex);
+      const fx = hasNodes ? minX - padX : defaultFrame.x;
+      const fy = hasNodes ? minY - padY : defaultFrame.y;
       const fw = hasNodes ? Math.max(640, maxX - minX + padX * 2) : 1160;
       const fh = hasNodes ? Math.max(520, maxY - minY + padY * 2) : 620;
 
@@ -202,10 +213,21 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
 
   return (
     <div className="relative h-full min-h-[720px] overflow-hidden bg-[#0c0a0f]">
+      {!readOnly && (
+        <div
+          className={cn(
+            "absolute top-4 z-[60] transition-[right] duration-300",
+            agentPanelInset ? "right-[calc(min(400px,92vw)+1rem)]" : "right-4",
+          )}
+        >
+          <TapiesBalanceLink variant="canvas" />
+        </div>
+      )}
       <ReactFlow
         nodes={canvasNodes} edges={flowEdges} nodeTypes={nodeTypes}
         fitView fitViewOptions={{ padding: 0.16 }} minZoom={0.18} maxZoom={2}
-        nodesDraggable nodesConnectable
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
         zoomOnScroll
         zoomOnPinch
         panOnScroll={false}
@@ -220,6 +242,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
           if (node.id.startsWith("frame-")) framePrevPos.current[node.id] = { x: node.position.x, y: node.position.y };
         }}
         onNodeDragStop={(_, node) => {
+          if (readOnly) return;
           if (node.id.startsWith("frame-")) {
             const episodeId = node.id.replace("frame-", "");
             const prev = framePrevPos.current[node.id];
@@ -250,7 +273,7 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
           }
         }}
         onNodeDoubleClick={(_, node) => {
-          if (node.id.startsWith("frame-")) return;
+          if (readOnly || node.id.startsWith("frame-")) return;
           selectEpisode((node.data as StoryNode["data"]).episodeId);
           selectNode(node.id);
           onOpenNode?.();
@@ -264,19 +287,19 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
           setConnectMenu(null);
           selectNode(undefined);
         }}
-        onConnect={handleConnect}
+        onConnect={readOnly ? undefined : handleConnect}
         proOptions={{ hideAttribution: true }}
       >
         <Background color="#b94a6a" gap={20} size={0.8} style={{ opacity: 0.1 }} />
         <FocusSelectedEpisode episodes={episodes} selectedEpisodeId={selectedEpisodeId} />
-        <CanvasControls mode={mode} setMode={setMode} onAutoLayout={autoLayoutEpisodes} />
-        <CanvasInteractions onOpenNode={onOpenNode} />
-        <ConnectionDropMenu connectMenu={connectMenu} onClose={() => setConnectMenu(null)} />
-        <NodeFloatingToolbar onOpenNode={onOpenNode} />
+        <CanvasControls mode={mode} setMode={setMode} onAutoLayout={autoLayoutEpisodes} readOnly={readOnly} />
+        {!readOnly && <CanvasInteractions onOpenNode={onOpenNode} />}
+        {!readOnly && <ConnectionDropMenu connectMenu={connectMenu} onClose={() => setConnectMenu(null)} />}
+        {!readOnly && <NodeFloatingToolbar onOpenNode={onOpenNode} />}
         <MiniMap pannable zoomable nodeStrokeWidth={3}
           className="!bottom-16 !right-5 !h-[112px] !w-[180px] !rounded-2xl !border !border-white/10 !bg-[#16141c]/95 !shadow-soft" />
       </ReactFlow>
-      <GenerationTaskBar />
+      {!readOnly && <GenerationTaskBar />}
     </div>
   );
 }
@@ -285,7 +308,14 @@ export function StoryGraphCanvas({ onOpenNode }: { onOpenNode?: () => void }) {
 function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
   const { selectNode, addSceneNode, addInteractionNode, addEndingNode } = useWorldBuilderStore();
   const flow = useReactFlow();
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; flowX: number; flowY: number } | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{
+    x: number;
+    y: number;
+    flowX: number;
+    flowY: number;
+    variant: NewNodeMenuVariant;
+    episodeId?: string;
+  } | null>(null);
   const lastPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressNode = useRef<string | null>(null);
@@ -294,14 +324,70 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
     const el = document.querySelector(".react-flow__pane") as HTMLElement | null;
     if (!el) return;
 
-    /* Double-click on pane → menu */
-    const onDblClick = (e: MouseEvent) => {
+    /* Right-click on pane → menu at cursor */
+    const onContextMenu = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest(".react-flow__node")) return;
+      if (
+        target.closest(".react-flow__controls") ||
+        target.closest(".react-flow__minimap") ||
+        target.closest("[data-ctx-menu]")
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const nodeEl = target.closest(".react-flow__node") as HTMLElement | null;
+      const nodeId = nodeEl?.getAttribute("data-id");
+      let variant: NewNodeMenuVariant = "canvas";
+      let episodeId: string | undefined;
+
+      if (nodeId?.startsWith("frame-")) {
+        variant = "frame";
+        episodeId = nodeId.replace("frame-", "");
+        useWorldBuilderStore.getState().selectEpisode(episodeId);
+      } else if (nodeId && !nodeId.startsWith("frame-")) {
+        selectNode(nodeId);
+      }
+
       const rect = el.getBoundingClientRect();
       const pos = flow.screenToFlowPosition({ x: e.clientX, y: e.clientY });
       lastPos.current = pos;
-      setCtxMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, flowX: pos.x, flowY: pos.y });
+      setCtxMenu({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        flowX: pos.x,
+        flowY: pos.y,
+        variant,
+        episodeId,
+      });
+    };
+
+    /* Double-click on pane → menu */
+    const onDblClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const nodeEl = target.closest(".react-flow__node") as HTMLElement | null;
+      const nodeId = nodeEl?.getAttribute("data-id");
+      let variant: NewNodeMenuVariant = "canvas";
+      let episodeId: string | undefined;
+      if (nodeId?.startsWith("frame-")) {
+        variant = "frame";
+        episodeId = nodeId.replace("frame-", "");
+        useWorldBuilderStore.getState().selectEpisode(episodeId);
+      } else if (nodeId) {
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const pos = flow.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      lastPos.current = pos;
+      setCtxMenu({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        flowX: pos.x,
+        flowY: pos.y,
+        variant,
+        episodeId,
+      });
     };
 
     /* Long-press on node → same menu */
@@ -316,7 +402,15 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
         const pos = flow.screenToFlowPosition({ x: e.clientX, y: e.clientY });
         lastPos.current = pos;
         selectNode(nodeId);
-        setCtxMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, flowX: pos.x, flowY: pos.y });
+        const pressed = useWorldBuilderStore.getState().nodes.find((n) => n.id === nodeId);
+        setCtxMenu({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          flowX: pos.x,
+          flowY: pos.y,
+          variant: "frame",
+          episodeId: pressed?.data.episodeId,
+        });
         longPressNode.current = null;
       }, 500);
     };
@@ -410,6 +504,7 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
       }
     };
 
+    el.addEventListener("contextmenu", onContextMenu);
     el.addEventListener("dblclick", onDblClick);
     el.addEventListener("mousedown", onMouseDown);
     el.addEventListener("mouseup", onMouseUp);
@@ -419,6 +514,7 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
     document.addEventListener("click", onClick);
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      el.removeEventListener("contextmenu", onContextMenu);
       el.removeEventListener("dblclick", onDblClick);
       el.removeEventListener("mousedown", onMouseDown);
       el.removeEventListener("mouseup", onMouseUp);
@@ -430,17 +526,54 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
     };
   }, [flow, selectNode]);
 
-  const createNodeAtMenu = (kind: "scene" | "interaction" | "ending") => {
+  const createNodeAtMenu = (kind: NewNodeKind) => {
     const st = useWorldBuilderStore.getState();
     const pos = lastPos.current;
+    const episodeId = ctxMenu?.episodeId ?? st.selectedEpisodeId;
     setCtxMenu(null);
-    const create = kind === "scene" ? st.addSceneNode : kind === "interaction" ? st.addInteractionNode : st.addEndingNode;
-    create();
-    setTimeout(() => {
-      const updated = useWorldBuilderStore.getState().nodes;
-      const latest = updated[updated.length - 1];
-      if (latest) useWorldBuilderStore.getState().updateNodePosition(latest.id, pos);
-    }, 50);
+
+    if (kind === "episode") {
+      st.addEpisode({ title: `第 ${st.episodes.length + 1} 集`, description: "" });
+      return;
+    }
+
+    const placeLatestNode = (patch?: Record<string, unknown>) => {
+      setTimeout(() => {
+        const updated = useWorldBuilderStore.getState().nodes;
+        const latest = updated[updated.length - 1];
+        if (!latest) return;
+        useWorldBuilderStore.getState().updateNodePosition(latest.id, pos);
+        if (patch) useWorldBuilderStore.getState().updateNode(latest.id, patch);
+      }, 50);
+    };
+
+    if (kind === "highlight") {
+      if (episodeId) st.selectEpisode(episodeId);
+      st.addSceneNode(episodeId);
+      placeLatestNode({
+        title: "Highlight",
+        prompt: "Highlight clip for this episode.",
+        clipKind: "highlight",
+      });
+      return;
+    }
+
+    if (kind === "scene") {
+      if (episodeId) st.selectEpisode(episodeId);
+      st.addSceneNode(episodeId);
+      placeLatestNode({ clipKind: "scene" });
+      return;
+    }
+
+    if (kind === "interaction") {
+      if (episodeId) st.selectEpisode(episodeId);
+      st.addInteractionNode(episodeId);
+      placeLatestNode();
+      return;
+    }
+
+    st.addEndingNode(episodeId);
+    placeLatestNode();
   };
 
   if (!ctxMenu) return null;
@@ -448,6 +581,7 @@ function CanvasInteractions({ onOpenNode }: { onOpenNode?: () => void }) {
     <NewNodeMenu
       x={ctxMenu.x}
       y={ctxMenu.y}
+      variant={ctxMenu.variant}
       onPick={createNodeAtMenu}
       onCancel={() => setCtxMenu(null)}
     />
@@ -472,15 +606,23 @@ function ConnectionDropMenu({
 
   if (!connectMenu) return null;
 
-  const handlePick = (kind: "scene" | "interaction" | "ending") => {
+  const handlePick = (kind: NewNodeKind) => {
     const position = flow.screenToFlowPosition({
       x: connectMenu.flowX,
       y: connectMenu.flowY,
     });
-    createConnectedNode(connectMenu.sourceNodeId, kind, {
+    const nodeKind =
+      kind === "scene" || kind === "highlight" ? "scene" : kind === "interaction" ? "interaction" : "ending";
+    const newId = createConnectedNode(connectMenu.sourceNodeId, nodeKind, {
       x: position.x,
       y: position.y - 120,
     });
+    if (newId && kind === "highlight") {
+      useWorldBuilderStore.getState().updateNode(newId, {
+        title: "Highlight",
+        clipKind: "highlight",
+      });
+    }
     onClose();
   };
 
@@ -488,6 +630,7 @@ function ConnectionDropMenu({
     <NewNodeMenu
       x={connectMenu.x}
       y={connectMenu.y}
+      variant="connect"
       onPick={handlePick}
       onCancel={onClose}
     />
@@ -511,7 +654,17 @@ function FocusSelectedEpisode({ episodes, selectedEpisodeId }: { episodes: Episo
 }
 
 /* === CanvasControls === */
-function CanvasControls({ mode, setMode, onAutoLayout }: { mode: "select" | "pan"; setMode: (m: "select" | "pan") => void; onAutoLayout: () => void }) {
+function CanvasControls({
+  mode,
+  setMode,
+  onAutoLayout,
+  readOnly = false,
+}: {
+  mode: "select" | "pan";
+  setMode: (m: "select" | "pan") => void;
+  onAutoLayout: () => void;
+  readOnly?: boolean;
+}) {
   const flow = useReactFlow();
   const vp = useViewport();
   const zp = Math.round(vp.zoom * 100);
@@ -526,7 +679,9 @@ function CanvasControls({ mode, setMode, onAutoLayout }: { mode: "select" | "pan
         <button onClick={() => flow.zoomIn({ duration: 180 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><Plus size={17} /></button>
         <span className="mx-1 h-6 w-px bg-white/15" />
         <button onClick={() => flow.fitView({ padding: 0.16, duration: 260 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><Maximize2 size={16} /></button>
-        <button onClick={onAutoLayout} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><LayoutGrid size={16} /></button>
+        {!readOnly && (
+          <button onClick={onAutoLayout} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><LayoutGrid size={16} /></button>
+        )}
         <button onClick={() => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 220 })} className="grid size-9 place-items-center rounded-xl text-white/65 hover:bg-white/10"><RotateCcw size={16} /></button>
       </div>
     </Panel>

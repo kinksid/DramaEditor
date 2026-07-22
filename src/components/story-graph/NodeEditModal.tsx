@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { actionTypeLabels } from "@/lib/worldBuilderLabels";
 import { cn } from "@/lib/utils";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { InteractionOption, SceneNodeData, StoryNode } from "@/types/worldBuilder";
 
@@ -111,8 +112,8 @@ export function NodeEditModal({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-5 backdrop-blur-sm">
-      <div className="grid max-h-[92vh] w-full max-w-7xl overflow-hidden rounded-[28px] bg-white shadow-2xl lg:grid-cols-[470px_1fr]">
+    <div className={MODAL_OVERLAY}>
+      <div className={cn(MODAL_PANEL, "grid max-h-[92vh] w-full max-w-7xl overflow-hidden rounded-[28px] lg:grid-cols-[470px_1fr]")}>
         <PreviewPane
           node={node}
           selectedOptionId={selectedOptionId}

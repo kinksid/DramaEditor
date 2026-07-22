@@ -18,6 +18,7 @@ import {
 import { analyzeScript } from "@/lib/scriptAnalysis";
 import { setDramaAssetDragData } from "@/lib/dramaAssetDrag";
 import { cn } from "@/lib/utils";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
 import { dramaPlayAssets } from "@/data/dramaPlayAssets";
 import { locationTypeLabels } from "@/lib/worldBuilderLabels";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
@@ -25,7 +26,12 @@ import type { Episode, StoryNode } from "@/types/worldBuilder";
 
 type PanelTab = "assets" | "outline";
 
-export function GraphOutline() {
+type GraphOutlineProps = {
+  className?: string;
+  readOnly?: boolean;
+};
+
+export function GraphOutline({ className, readOnly = false }: GraphOutlineProps) {
   const {
     episodes,
     nodes,
@@ -39,6 +45,7 @@ export function GraphOutline() {
     characters,
     locations,
     updateNode,
+    activeProjectId,
   } = useWorldBuilderStore();
   const [tab, setTab] = useState<PanelTab>("assets");
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -73,9 +80,20 @@ export function GraphOutline() {
   };
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+  const assetsHref = activeProjectId
+    ? `/world-builder/stories/${activeProjectId}?tab=assets`
+    : "/world-builder/worlds";
+  const storyDetailHref = activeProjectId
+    ? `/world-builder/stories/${activeProjectId}`
+    : "/world-builder/worlds";
 
   return (
-    <aside className="hidden min-h-0 border-r border-white/8 bg-[#121016] text-white/90 xl:flex xl:w-[288px] xl:flex-col">
+    <aside
+      className={cn(
+        "flex min-h-0 w-[288px] shrink-0 flex-col border-r border-white/8 bg-[#0a0a0a] text-white/90",
+        className,
+      )}
+    >
       <div className="grid grid-cols-2 border-b border-white/8 text-sm">
         <button
           onClick={() => setTab("assets")}
@@ -84,7 +102,7 @@ export function GraphOutline() {
             tab === "assets" ? "border-b-2 border-accent text-white" : "text-white/40 hover:text-white/70",
           )}
         >
-          素材坞
+          素材
         </button>
         <button
           onClick={() => setTab("outline")}
@@ -111,10 +129,12 @@ export function GraphOutline() {
                   selectEpisode(episode.id);
                   selectNode(id);
                 }}
-                onDelete={() => deleteEpisode(episode.id)}
+                onDelete={readOnly ? undefined : () => deleteEpisode(episode.id)}
               />
             ))}
           </div>
+        ) : readOnly ? (
+          <p className="px-3 text-xs leading-6 text-white/45">只读模式下素材拖放已禁用，可使用「克隆项目」复制后编辑。</p>
         ) : (
           <div className="space-y-4 px-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
@@ -153,7 +173,7 @@ export function GraphOutline() {
             </AssetGroup>
 
             <AssetGroup title="角色" icon={<UserRound size={12} />}>
-              {characters.length === 0 && <EmptyHint text="暂无角色，去素材库添加" href="/world-builder/assets" />}
+              {characters.length === 0 && <EmptyHint text="暂无角色，去素材库添加" href={assetsHref} />}
               {characters.map((c) => (
                 <DraggableAssetRow
                   key={c.id}
@@ -174,7 +194,7 @@ export function GraphOutline() {
             </AssetGroup>
 
             <AssetGroup title="地点" icon={<MapPin size={12} />}>
-              {locations.length === 0 && <EmptyHint text="暂无地点，去素材库添加" href="/world-builder/assets" />}
+              {locations.length === 0 && <EmptyHint text="暂无地点，去素材库添加" href={assetsHref} />}
               {locations.map((l) => (
                 <DraggableAssetRow
                   key={l.id}
@@ -195,7 +215,7 @@ export function GraphOutline() {
             </AssetGroup>
 
             <Link
-              href="/world-builder/assets"
+              href={assetsHref}
               className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-xs text-white/45 hover:border-accent/50 hover:text-accent transition"
             >
               <ImagePlus size={14} /> 打开完整素材库
@@ -205,24 +225,27 @@ export function GraphOutline() {
       </div>
 
       <div className="border-t border-white/8 p-4">
-        <p className="text-xs font-semibold text-white/70">剧本</p>
-        <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-white/35">
-          {setupDraft.script || "尚未写入剧本。可在此拆解并同步到故事图。"}
-        </p>
         <button
+          type="button"
           onClick={() => {
             setScriptDraft(setupDraft.script);
             setScriptOpen(true);
           }}
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-white hover:bg-white/12"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 px-3 py-2.5 text-xs font-medium text-white/75 hover:bg-white/8"
         >
-          <Sparkles size={13} /> 打开剧本 / 一键拆解
+          <Sparkles size={13} /> 查看完整剧本
         </button>
+        <Link
+          href={storyDetailHref}
+          className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-accent px-3 py-2.5 text-xs font-semibold text-white hover:bg-accent-deep"
+        >
+          查看故事详情
+        </Link>
       </div>
 
       {scriptOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border border-white/10 bg-[#16141c] p-5 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl p-5")}>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-white">剧本与拆解</h2>
               <button onClick={() => setScriptOpen(false)} className="rounded-lg p-1 text-white/40 hover:bg-white/10">
@@ -351,7 +374,7 @@ function EpisodeOutline({
   active: boolean;
   onSelectEpisode: () => void;
   onSelectNode: (id: string) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div className={cn("rounded-xl", active && "bg-white/6")}>
@@ -359,9 +382,11 @@ function EpisodeOutline({
         <button onClick={onSelectEpisode} className="min-w-0 flex-1 text-left text-xs font-semibold text-white/85">
           第 {episode.index} 集 · {episode.title}
         </button>
-        <button onClick={onDelete} className="rounded p-1 text-white/25 hover:bg-white/10 hover:text-red-300" title="删除剧集">
-          <Trash2 size={12} />
-        </button>
+        {onDelete && (
+          <button onClick={onDelete} className="rounded p-1 text-white/25 hover:bg-white/10 hover:text-red-300" title="删除剧集">
+            <Trash2 size={12} />
+          </button>
+        )}
       </div>
       <div className="space-y-0.5 px-1 pb-2">
         {nodes.map((node) => (

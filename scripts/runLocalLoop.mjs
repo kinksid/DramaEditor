@@ -16,7 +16,7 @@ const ROOT = process.env.DRAMAEDITOR_ROOT ?? "/Volumes/YANG/DramaEditor";
 const LOGS = path.join(ROOT, "logs");
 const HEARTBEAT = path.join(LOGS, "automation_heartbeat.log");
 const GAP_FILE = path.join(ROOT, "reports", "studio-gap-latest.json");
-const BRANCH = "automation/hourly-inspection";
+const BRANCH = "main";
 
 function stamp() {
   return new Intl.DateTimeFormat("sv-SE", {

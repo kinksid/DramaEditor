@@ -67,7 +67,7 @@ export function WorldAgentPanel({ mode }: Props) {
   };
 
   return (
-    <aside className="hidden h-screen w-[310px] shrink-0 border-l border-slate-200 bg-white p-5 xl:block">
+    <aside className="hidden h-screen w-[310px] shrink-0 border-l border-card-border bg-panel p-5 xl:block">
       <div className="mb-5 flex items-center gap-3">
         <div className="grid size-10 place-items-center rounded-2xl bg-ink text-white">
           <Bot size={20} />
@@ -81,7 +81,7 @@ export function WorldAgentPanel({ mode }: Props) {
         {copy[mode].map(([title, status, state]) => {
           const Icon = state === "done" ? CheckCircle2 : state === "active" ? Loader2 : Clock3;
           return (
-            <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div key={title} className="rounded-xl border border-card-border bg-card px-3 py-3">
               <div className="flex items-center gap-2">
                 <Icon
                   size={16}
@@ -106,18 +106,18 @@ export function WorldAgentPanel({ mode }: Props) {
           <button
             onClick={handleSuggestChain}
             disabled={loading}
-            className="rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {loading ? "分析中..." : "建链建议"}
           </button>
           <button
             onClick={generateAllMockVideos}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"
+            className="rounded-xl border border-card-border bg-card px-3 py-2 text-sm text-ink-muted"
           >
             批量生成
           </button>
         </div>
-        {agentMessage && <p className="mt-3 text-xs leading-5 text-slate-600">{agentMessage}</p>}
+        {agentMessage && <p className="mt-3 text-xs leading-5 text-ink-muted">{agentMessage}</p>}
       </div>
       <div className="mt-4 space-y-2 text-sm">
         {[
@@ -128,26 +128,26 @@ export function WorldAgentPanel({ mode }: Props) {
         ].map((item) => (
           <button
             key={item}
-            className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-left hover:bg-slate-50"
+            className="flex w-full items-center justify-between rounded-xl border border-card-border px-3 py-2 text-left hover:bg-accent-soft/40"
           >
             <span className="inline-flex items-center gap-2">
-              <CheckCircle2 size={14} className="text-slate-500" />
+              <CheckCircle2 size={14} className="text-ink-muted" />
               {item}
             </span>
-            <span className="text-slate-400">›</span>
+            <span className="text-ink-muted">›</span>
           </button>
         ))}
       </div>
-      <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-        <p className="text-sm text-slate-500">Canvas Assistant</p>
+      <div className="mt-4 rounded-2xl border border-card-border p-3">
+        <p className="text-sm text-ink-muted">Canvas Assistant</p>
         <div className="mt-4 flex items-center justify-between">
-          <button className="grid size-8 place-items-center rounded-lg hover:bg-slate-100">
+          <button className="grid size-8 place-items-center rounded-lg hover:bg-accent-soft/40">
             <Plus size={16} />
           </button>
           <button
             onClick={handleSuggestChain}
             disabled={loading}
-            className="grid size-8 place-items-center rounded-lg bg-ink text-white disabled:opacity-60"
+            className="grid size-8 place-items-center rounded-lg bg-accent text-white disabled:opacity-60"
           >
             <SendHorizontal size={15} />
           </button>

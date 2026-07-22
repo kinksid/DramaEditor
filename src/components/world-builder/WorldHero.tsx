@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Calendar, Download, PenLine, Radio, RotateCcw, Upload, X } from "lucide-react";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import { useI18n } from "@/lib/i18n";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
+import { cn } from "@/lib/utils";
 import type { StoryValidationIssue } from "@/types/worldBuilder";
 
 export function WorldHero() {
@@ -104,8 +106,8 @@ export function WorldHero() {
         </div>
       )}
       {issues && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "w-full max-w-xl rounded-3xl p-6")}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{t("story.publishCheck")}</p>
@@ -150,8 +152,8 @@ export function WorldHero() {
 
       {/* Edit World Modal */}
       {editOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-soft">
+        <div className={MODAL_OVERLAY}>
+          <div className={cn(MODAL_PANEL, "w-full max-w-2xl rounded-3xl p-6")}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{t("world.editWorldModal")}</p>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Loader2, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MODAL_OVERLAY, MODAL_PANEL } from "@/lib/modalTheme";
 import { decomposeStory, filterDecomposePreview } from "@/lib/worldBuilderApi";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import { useProviderSettingsStore } from "@/stores/providerSettingsStore";
@@ -103,8 +104,8 @@ export function DecomposePreviewPanel({ prompt, label = "自动拆解" }: Decomp
       {error && <p className="mt-1 text-[10px] text-red-300">{error}</p>}
 
       {panelOpen && preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-2xl">
+        <div className={cn(MODAL_OVERLAY, "flex items-center justify-center")}>
+          <div className={cn(MODAL_PANEL, "max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-3xl")}>
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">自动拆解预览</p>
