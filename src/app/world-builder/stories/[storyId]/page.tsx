@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
-  AlertTriangle,
-  Bot,
-  CheckCircle2,
   ChevronRight,
   GitBranch,
   MousePointerClick,
@@ -18,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AddAssetCard, portraitGridClass, portraitAspectClass, portraitShellClass, WorldAssetEditor, type WorldAssetEditorActions } from "@/components/world-builder/WorldAssetEditor";
+import { CharacterStudioWorldBuilderPanel } from "@/components/world-builder/CharacterStudioWorldBuilderPanel";
 import { EditWorldModal } from "@/components/world-builder/EditWorldModal";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { cn } from "@/lib/utils";
@@ -227,8 +225,8 @@ function StoryProjectContent() {
             </div>
           </div>
 
-          <div className="grid gap-6 p-6 xl:grid-cols-[1fr_320px]">
-            <div>
+          <div className="grid gap-0 xl:grid-cols-[1fr_320px]">
+            <div className="p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 overflow-x-auto">
                   {tabs.map((tab) => (
@@ -369,43 +367,37 @@ function StoryProjectContent() {
               )}
             </div>
 
-            <aside className="xl:sticky xl:top-20 xl:self-start">
-              <div className="p-1">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-accent text-white">
-                    <Bot size={18} />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-ink-strong">助手</h2>
-                    <p className="text-xs text-ink-muted">发布检查与发布引导</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <CheckRow done={characters.length > 0} label={`${characters.length} 个角色`} />
-                  <CheckRow done={locations.length > 0} label={`${locations.length} 个地点`} />
-                  <CheckRow done={episodes.length > 0} label={`${episodes.length} 集剧集`} />
-                  <CheckRow done={interactionCount > 0} label={`${interactionCount} 个互动`} />
-                  <CheckRow
-                    done={readyScenes === sceneCount && sceneCount > 0}
-                    label={`${readyScenes}/${sceneCount} 视频就绪`}
-                  />
-                </div>
-                <p className="mt-4 text-sm leading-6 text-ink-muted">
+            <div className="flex min-h-[calc(100vh-4rem)] flex-col xl:sticky xl:top-0 xl:h-[100vh] xl:self-start">
+              <div className="min-h-0 flex-1">
+                <CharacterStudioWorldBuilderPanel
+                  zh
+                  world={world}
+                  characters={characters}
+                  locations={locations}
+                  activeCharacterId={characters[0]?.id ?? ""}
+                  coverImage={world.coverImage}
+                  hasScript={episodes.length > 0 || nodes.some((n) => n.kind === "scene")}
+                  onGenerateImages={() => selectTab("characters")}
+                  onGenerateStory={() => router.push(storyGraphHref)}
+                />
+              </div>
+              <div className="shrink-0 border-l border-white/8 bg-[#0c0c0c] px-3 pb-4 pt-1">
+                <p className="mb-2 text-[11px] leading-5 text-white/35">
                   {errorCount > 0
                     ? `还有 ${errorCount} 个错误需修复后才能发布。`
                     : warningCount > 0
-                      ? `可发布，但有 ${warningCount} 条提醒。`
-                      : "所有检查已通过。"}
+                      ? `可发布，但有 ${warningCount} 条提醒 · ${readyScenes}/${sceneCount} 视频就绪`
+                      : `检查通过 · ${interactionCount} 互动 · ${readyScenes}/${sceneCount} 视频就绪`}
                 </p>
                 <button
                   type="button"
                   onClick={handlePublish}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep"
                 >
                   <Send size={15} /> 发布剧集
                 </button>
               </div>
-            </aside>
+            </div>
           </div>
         </section>
       </main>
@@ -467,11 +459,3 @@ function StudioAction({
   );
 }
 
-function CheckRow({ done, label }: { done: boolean; label: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg px-1 py-2">
-      <span className="text-ink-muted">{label}</span>
-      {done ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-accent" />}
-    </div>
-  );
-}

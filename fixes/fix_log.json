@@ -168,5 +168,33 @@
         "result": "15-min agent now prioritizes Studio feature+UI replicate."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-22T13:08:00.000Z",
+    "timestampLocal": "2026-07-22 21:08:00 Asia/Shanghai",
+    "automationId": "studio-ui-replica-15m",
+    "projectId": "drama-editor",
+    "fixes": [
+      {
+        "id": "cycle-immediate-15m",
+        "status": "skipped",
+        "action": "Immediate 15m cycle after config: Inspect/List OK; Modify skipped — sole high open G13 needs manual API key.",
+        "result": "typecheck_ok; local pull_skipped_dirty head=ba5cc26; background loop pid started"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-07-23T02:18:00.000Z",
+    "timestampLocal": "2026-07-23 10:18:00 Asia/Shanghai",
+    "automationId": "studio-ui-replica-15m",
+    "projectId": "drama-editor",
+    "fixes": [
+      {
+        "id": "G24-story-world-builder",
+        "status": "fixed",
+        "action": "Replaced story desk publish-checklist assistant with CharacterStudioWorldBuilderPanel pipeline UI; kept compact publish strip.",
+        "result": "Story desk right rail matches Studio World builder chat/pipeline cards."
+      }
+    ]
   }
 ]

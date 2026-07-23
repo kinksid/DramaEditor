@@ -165,7 +165,7 @@ export function CharacterStudioWorldBuilderPanel({
   const hasProgress = characters.length > 0 || locations.length > 0 || !!world.coverImage;
 
   return (
-    <aside className="flex w-[320px] shrink-0 flex-col border-l border-white/8 bg-[#0c0c0c]">
+    <aside className="flex h-full min-h-0 w-[320px] shrink-0 flex-col border-l border-white/8 bg-[#0c0c0c]">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/8 px-3 py-2.5">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">

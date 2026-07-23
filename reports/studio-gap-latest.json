@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-22 20:35:00 Asia/Shanghai",
+  "updatedAt": "2026-07-23 10:18:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "references": {
@@ -120,9 +120,9 @@
       "area": "ui_studio",
       "route": "/world-builder/stories/[storyId]",
       "gap": "故事工作台右侧助手 vs Studio World builder 全量流水线 UI 仍有差距",
-      "evidence": "Local uses publish checklist; Studio uses chat pipeline cards",
+      "evidence": "2026-07-23: embedded CharacterStudioWorldBuilderPanel + publish strip on story desk",
       "suggestedFix": "Optional: embed CharacterStudioWorldBuilderPanel on story desk",
-      "status": "open"
+      "status": "fixed"
     }
   ]
 }
