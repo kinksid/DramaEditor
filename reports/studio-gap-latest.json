@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-23 10:35:00 Asia/Shanghai",
+  "updatedAt": "2026-07-23 18:20:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "references": {
@@ -122,6 +122,16 @@
       "gap": "故事工作台右侧助手 vs Studio World builder 全量流水线 UI 仍有差距",
       "evidence": "2026-07-23: user removed World builder + publish rail from story desk; panel remains on Character/Location Studio",
       "suggestedFix": "Keep World builder on Character/Location Studio only",
+      "status": "fixed"
+    },
+    {
+      "id": "G25",
+      "priority": "high",
+      "area": "feature_flow",
+      "route": "/world-builder/stories/[storyId]",
+      "gap": "未知 storyId 误展示当前 active 项目而非「未找到故事」",
+      "evidence": "2026-07-23: /stories/019ef8e1-4811-71d0-a9b5-0e27de58810d 渲染 seed 霓虹东京而非 missing 态；对比 Studio 外链 story 路由",
+      "suggestedFix": "Remove activeProject fallback; setMissing(true) when ID unresolved",
       "status": "fixed"
     }
   ]

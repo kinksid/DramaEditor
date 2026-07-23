@@ -87,15 +87,12 @@ function StoryProjectContent() {
     const projects = listProjects();
     const byId = projects.find((p) => p.id === storyId);
     const byEpisode = projects.find((p) => p.episodes.some((e) => e.id === storyId));
-    const target = byId?.id ?? byEpisode?.id ?? (storyId === activeProjectId ? activeProjectId : undefined);
-    if (target) {
-      ensureProjectLoaded(target);
+    const target = byId?.id ?? byEpisode?.id;
+    if (target && ensureProjectLoaded(target)) {
       markProjectOpened(target);
       setMissing(false);
-    } else if (projects.length && activeProjectId) {
-      setMissing(false);
     } else {
-      setMissing(!ensureProjectLoaded(storyId));
+      setMissing(true);
     }
   }, [storyId, ensureProjectLoaded, listProjects, activeProjectId, markProjectOpened]);
 
