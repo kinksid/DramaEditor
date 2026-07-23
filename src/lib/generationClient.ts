@@ -4,7 +4,12 @@ export type PendingGenerationTask = {
   taskId: string;
   kind: "image" | "video";
   nodeId?: string;
-  targetField?: "videoUrl" | "firstFrameRef" | "referenceImage" | "loopVideoUrl";
+  targetField?:
+    | "videoUrl"
+    | "firstFrameRef"
+    | "lastFrameRef"
+    | "referenceImage"
+    | "loopVideoUrl";
   targetEntityId?: string;
   entityType?: "character" | "location";
   prompt: string;

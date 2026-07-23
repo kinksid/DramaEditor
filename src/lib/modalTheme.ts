@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** 全站弹窗：黑色底 + 粉紫描边 */
+/** 全站弹窗：TapNow 近黑面板 + 细白描边（见 .cursor/rules/design-system.mdc） */
 export const MODAL_OVERLAY_FROSTED =
   "de-modal-overlay-frosted de-modal-z-80 fixed inset-0 flex items-center justify-center p-4 sm:p-6";
 export const MODAL_OVERLAY = "de-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6";

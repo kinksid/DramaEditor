@@ -107,6 +107,7 @@ export function buildBlankProject(
     name: title,
     createdAt: now,
     updatedAt: now,
+    lastOpenedAt: now,
     setupDraft,
     characters: [],
     locations: [],
@@ -130,6 +131,7 @@ export function cloneWorldProject(source: WorldProject): WorldProject {
   cloned.name = cloneTitle;
   cloned.createdAt = now;
   cloned.updatedAt = now;
+  cloned.lastOpenedAt = now;
   cloned.world = {
     ...cloned.world,
     id: projectId,

@@ -37,8 +37,22 @@ export type CharacterProfile = {
   form?: string;
   skin?: string;
   face?: string;
+  eyes?: string;
+  hair?: string;
+  looksLike?: string;
+  distinguishingMark?: string;
+  /** @deprecated prefer figure/height/movement/bodyMark */
   body?: string;
+  figure?: string;
+  height?: string;
+  movement?: string;
+  bodyMark?: string;
+  /** @deprecated prefer silhouette/palette/materials/signaturePiece */
   wardrobe?: string;
+  silhouette?: string;
+  palette?: string;
+  materials?: string;
+  signaturePiece?: string;
   others?: string;
 };
 
@@ -76,12 +90,23 @@ export type Location = {
   profile?: LocationProfile;
 };
 
+export type EpisodeFrameRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type Episode = {
   id: string;
   index: number;
   label?: string;
   title: string;
   description?: string;
+  /** 高光剧集（大纲/画布星标） */
+  highlight?: boolean;
+  /** 剧集框手动位置/尺寸；缺省时按子节点自动包住 */
+  frame?: EpisodeFrameRect;
 };
 
 export type GenerationHistoryEntry = {
@@ -101,6 +126,13 @@ export type SceneNodeData = {
   clipKind?: "scene" | "highlight";
   videoUrl?: string;
   firstFrameRef?: string;
+  lastFrameRef?: string;
+  /** 生成参数（UI） */
+  videoModel?: string;
+  aspectRatio?: "9:16" | "16:9" | "1:1";
+  durationSec?: 4 | 5 | 8;
+  mentionedCharacterIds?: string[];
+  mentionedLocationIds?: string[];
   status: "empty" | "draft" | "generating" | "ready" | "failed";
   generationHistory?: GenerationHistoryEntry[];
   activeGenerationTaskId?: string;
@@ -127,6 +159,11 @@ export type InteractionNodeData = {
   loopVideoUrl?: string;
   firstFrameRef?: string;
   lastFrameRef?: string;
+  videoModel?: string;
+  aspectRatio?: "9:16" | "16:9" | "1:1";
+  durationSec?: 4 | 5 | 8;
+  mentionedCharacterIds?: string[];
+  mentionedLocationIds?: string[];
   options: InteractionOption[];
   generationHistory?: GenerationHistoryEntry[];
   activeGenerationTaskId?: string;
@@ -158,6 +195,8 @@ export type StoryEdge = {
   target: string;
   label: string;
   actionType?: InteractionOption["actionType"] | "ending";
+  /** Interaction 节点上对应 option 的 Handle id */
+  sourceHandle?: string;
 };
 
 export type SetupDraft = {
@@ -216,6 +255,8 @@ export type WorldProject = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  /** 最近打开 / 退出编辑器的时间；工作空间「最近的项目」与首页继续工作据此排序 */
+  lastOpenedAt?: string;
   setupDraft: SetupDraft;
   characters: Character[];
   locations: Location[];

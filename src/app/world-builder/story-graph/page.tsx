@@ -32,6 +32,7 @@ function StoryGraphBootstrap() {
     addEpisode,
     episodes,
     setupDraft,
+    world,
     activeProjectId,
     nodes,
     selectNode,
@@ -50,10 +51,11 @@ function StoryGraphBootstrap() {
   useEffect(() => {
     if (!activeProjectId || scaffoldedRef.current === activeProjectId) return;
     if (episodes.length === 0) {
-      addEpisode({ title: "未命名剧集", label: "1" });
+      const title = world.title?.trim() || setupDraft.worldTitle?.trim() || "未命名项目";
+      addEpisode({ title, label: "1" });
       scaffoldedRef.current = activeProjectId;
     }
-  }, [activeProjectId, episodes.length, addEpisode]);
+  }, [activeProjectId, episodes.length, addEpisode, world.title, setupDraft.worldTitle]);
 
   useEffect(() => {
     if (episodes.length === 0 && setupDraft.script.trim()) {
@@ -83,7 +85,7 @@ function StoryGraphBootstrap() {
 
   return (
     <StoryGraphShell>
-      <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <GraphToolbar
           variant="studio"
           readOnly={readOnly}
@@ -91,36 +93,39 @@ function StoryGraphBootstrap() {
           onPreview={() => setPreviewOpen(true)}
           onCloneProject={handleCloneProject}
         />
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <GraphOutline readOnly={readOnly} />
-          <div className="relative min-w-0 flex-1 bg-[#050505]">
-            {nodes.length === 0 && episodes.length <= 1 && !readOnly && (
-              <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
-                <p className="rounded-full border border-white/10 bg-black/60 px-4 py-2 text-sm text-white/45 backdrop-blur">
-                  双击画布自由编排，或从左侧拖入素材
-                </p>
-              </div>
-            )}
-            {readOnly && nodes.length === 0 && (
-              <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
-                <p className="rounded-full border border-white/10 bg-black/60 px-4 py-2 text-sm text-white/45 backdrop-blur">
-                  该项目暂无故事图节点
-                </p>
-              </div>
-            )}
-            <StoryGraphCanvas
-              readOnly={readOnly}
-              agentPanelInset={!readOnly && agentMinimized && agentFloatingOpen}
-              onOpenNode={() => {
-                if (!readOnly) setEditorOpen(true);
-              }}
-            />
-            {!readOnly && agentMinimized && (
-              <StoryGraphAgentFab onClick={() => setAgentFloatingOpen(true)} />
-            )}
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            <div className="relative size-full bg-stage">
+              {nodes.length === 0 && episodes.length <= 1 && !readOnly && (
+                <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+                  <p className="rounded-full border border-card-border bg-black/60 px-4 py-2 text-sm text-ink-muted backdrop-blur">
+                    双击画布自由编排，或从左侧拖入素材
+                  </p>
+                </div>
+              )}
+              {readOnly && nodes.length === 0 && (
+                <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+                  <p className="rounded-full border border-card-border bg-black/60 px-4 py-2 text-sm text-ink-muted backdrop-blur">
+                    该项目暂无故事图节点
+                  </p>
+                </div>
+              )}
+              <StoryGraphCanvas
+                readOnly={readOnly}
+                onOpenNode={() => {
+                  if (!readOnly) setEditorOpen(true);
+                }}
+              />
+              {!readOnly && agentMinimized && (
+                <StoryGraphAgentFab onClick={() => setAgentFloatingOpen(true)} />
+              )}
+            </div>
           </div>
           {!readOnly && !agentMinimized && (
-            <StoryGraphAgentPanel onMinimize={() => setAgentMinimized(true)} />
+            <div className="relative flex h-full shrink-0">
+              <StoryGraphAgentPanel onMinimize={() => setAgentMinimized(true)} />
+            </div>
           )}
         </div>
       </div>

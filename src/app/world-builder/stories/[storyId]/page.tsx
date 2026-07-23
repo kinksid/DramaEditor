@@ -6,16 +6,12 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronRight,
   GitBranch,
-  MousePointerClick,
-  PenLine,
   Play,
   Plus,
-  Send,
   Settings2,
-  Trash2,
 } from "lucide-react";
-import { AddAssetCard, portraitGridClass, portraitAspectClass, portraitShellClass, WorldAssetEditor, type WorldAssetEditorActions } from "@/components/world-builder/WorldAssetEditor";
-import { CharacterStudioWorldBuilderPanel } from "@/components/world-builder/CharacterStudioWorldBuilderPanel";
+import { AssetsDock, type AssetTab, type AssetsDockActions } from "@/components/world-builder/AssetsDock";
+import { AddAssetCard, portraitGridClass, portraitAspectClass, portraitShellClass } from "@/components/world-builder/WorldAssetEditor";
 import { EditWorldModal } from "@/components/world-builder/EditWorldModal";
 import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
 import { cn } from "@/lib/utils";
@@ -26,10 +22,13 @@ const tabs = [
   { id: "episodes", label: "剧集" },
   { id: "characters", label: "角色" },
   { id: "locations", label: "地点" },
+  { id: "videos", label: "视频" },
   { id: "interactions", label: "交互" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
+
+const ASSET_TABS = new Set<TabId>(["characters", "locations", "videos", "interactions"]);
 
 export default function StoryProjectPage() {
   return (
@@ -50,34 +49,32 @@ function StoryProjectContent() {
 
   const {
     world,
-    characters,
-    locations,
     episodes,
     nodes,
-    edges,
     activeProjectId,
     ensureProjectLoaded,
     listProjects,
-    validateStory,
-    publishStory,
+    markProjectOpened,
     addEpisode,
-    addInteractionNode,
-    deleteNode,
   } = useWorldBuilderStore();
 
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [missing, setMissing] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const [editWorldOpen, setEditWorldOpen] = useState(false);
-  const assetActionsRef = useRef<WorldAssetEditorActions | null>(null);
-  const registerAssetActions = useCallback((actions: WorldAssetEditorActions) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const assetActionsRef = useRef<AssetsDockActions | null>(null);
+  const registerAssetActions = useCallback((actions: AssetsDockActions) => {
     assetActionsRef.current = actions;
   }, []);
 
   useEffect(() => {
+    // 旧链接 ?tab=assets → 角色（资产库已由本页 Tabs 覆盖）
     if (tabParam === "assets") {
-      setActiveTab("overview");
-      router.replace(`/world-builder/stories/${storyId}?tab=overview`, { scroll: false });
+      setActiveTab("characters");
+      router.replace(`/world-builder/stories/${storyId}?tab=characters`, { scroll: false });
       return;
     }
     if (tabParam && validTabIds.includes(tabParam as TabId)) {
@@ -93,26 +90,44 @@ function StoryProjectContent() {
     const target = byId?.id ?? byEpisode?.id ?? (storyId === activeProjectId ? activeProjectId : undefined);
     if (target) {
       ensureProjectLoaded(target);
+      markProjectOpened(target);
       setMissing(false);
     } else if (projects.length && activeProjectId) {
       setMissing(false);
     } else {
       setMissing(!ensureProjectLoaded(storyId));
     }
-  }, [storyId, ensureProjectLoaded, listProjects, activeProjectId]);
+  }, [storyId, ensureProjectLoaded, listProjects, activeProjectId, markProjectOpened]);
 
-  const interactionNodes = useMemo(
-    () => nodes.filter((node) => node.kind === "interaction"),
-    [nodes],
-  );
-  const issues = useMemo(() => validateStory(), [validateStory, nodes, edges, episodes]);
-  const readyScenes = nodes.filter((node) => node.kind === "scene" && node.data.status === "ready").length;
-  const sceneCount = nodes.filter((node) => node.kind === "scene").length;
-  const interactionCount = nodes.filter((node) => node.kind === "interaction").length;
-  const errorCount = issues.filter((issue) => issue.severity === "error").length;
-  const warningCount = issues.filter((issue) => issue.severity === "warning").length;
+  useEffect(() => {
+    if (!activeProjectId) return;
+    return () => {
+      markProjectOpened(activeProjectId);
+    };
+  }, [activeProjectId, markProjectOpened]);
+
   const worldId = activeProjectId || storyId;
-  const storyTitle = episodes[0]?.title || world.title || "未命名故事";
+  const currentProject = listProjects().find((p) => p.id === worldId);
+  const projectName = currentProject?.name || world.title || "未命名项目";
+  // 主标题与项目同名（不再用「未命名剧集」）
+  const storyTitle = projectName;
+  const lastModifiedLabel = useMemo(() => {
+    const iso = currentProject?.updatedAt || currentProject?.lastOpenedAt || world.createdAt;
+    if (!iso) return "上次修改于 刚刚";
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return "上次修改于 刚刚";
+    const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (sec < 60) return "上次修改于 刚刚";
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `上次修改于 ${min} 分钟前`;
+    const hour = Math.floor(min / 60);
+    if (hour < 24) return `上次修改于 ${hour} 小时前`;
+    const day = Math.floor(hour / 24);
+    if (day < 30) return `上次修改于 ${day} 天前`;
+    const month = Math.floor(day / 30);
+    if (month < 12) return `上次修改于 ${month} 个月前`;
+    return `上次修改于 ${Math.floor(month / 12)} 年前`;
+  }, [currentProject?.updatedAt, currentProject?.lastOpenedAt, world.createdAt]);
   const storyGraphHref = `/world-builder/story-graph?project=${worldId}`;
 
   const selectTab = (tab: TabId) => {
@@ -120,23 +135,9 @@ function StoryProjectContent() {
     router.replace(`/world-builder/stories/${storyId}?tab=${tab}`, { scroll: false });
   };
 
-  const handlePublish = () => {
-    const result = publishStory();
-    setNotice(
-      result.some((i) => i.severity === "error")
-        ? `发布检查：${result.length} 项待处理`
-        : "发布检查通过",
-    );
-  };
-
   const handleAddEpisode = () => {
     addEpisode({ title: `第 ${episodes.length + 1} 集`, description: "" });
     selectTab("episodes");
-  };
-
-  const handleAddInteraction = () => {
-    addInteractionNode();
-    router.push(storyGraphHref);
   };
 
   const tabAddAction =
@@ -146,9 +147,11 @@ function StoryProjectContent() {
         ? { label: "添加角色", onClick: () => assetActionsRef.current?.openAdd() }
         : activeTab === "locations"
           ? { label: "添加地点", onClick: () => assetActionsRef.current?.openAdd() }
-          : activeTab === "interactions"
-            ? { label: "添加交互", onClick: handleAddInteraction }
-            : null;
+          : activeTab === "videos"
+            ? { label: "添加视频", onClick: () => assetActionsRef.current?.openAdd() }
+            : activeTab === "interactions"
+              ? { label: "添加交互", onClick: () => assetActionsRef.current?.openAdd() }
+              : null;
 
   if (missing) {
     return (
@@ -169,8 +172,24 @@ function StoryProjectContent() {
     <WorldBuilderLayout agentMode="none">
       <main className="min-h-screen bg-stage">
         <section className="bg-stage">
-          <div className="relative min-h-[320px] bg-[linear-gradient(135deg,#0a0a0a_0%,#161218_42%,#b94a6a_115%)] px-6 py-5 text-white">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(212,120,147,0.28),transparent_34%)]" />
+          <div
+            className={cn(
+              "relative min-h-[320px] overflow-hidden px-6 py-5 text-white",
+              !world.coverImage && "de-canvas-surface rounded-none border-0 border-b border-white/10 shadow-none",
+              world.coverImage && "bg-[#121214]",
+            )}
+          >
+            {world.coverImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={world.coverImage}
+                alt=""
+                className="absolute inset-0 z-0 size-full object-cover"
+              />
+            ) : null}
+            {world.coverImage ? (
+              <div className="absolute inset-0 z-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />
+            ) : null}
             <Link
               href={storyGraphHref}
               className="absolute inset-0 z-0 cursor-pointer"
@@ -178,32 +197,33 @@ function StoryProjectContent() {
             />
             <div className="relative z-10 flex h-full min-h-[280px] flex-col justify-between pointer-events-none">
               <div className="flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
-                <nav className="flex flex-wrap items-center gap-1.5 text-sm text-white/65">
-                  <Link href="/world-builder/worlds" className="hover:text-white">
+                <nav className="flex flex-wrap items-center gap-1.5 text-sm text-white/55">
+                  <Link
+                    href="/world-builder/worlds"
+                    className="transition-colors duration-press ease-de-out hover:text-white"
+                  >
                     我的工作空间
                   </Link>
-                  <ChevronRight size={14} className="text-white/35" />
-                  <span className="text-white">{world.title}</span>
-                  <ChevronRight size={14} className="text-white/35" />
-                  <span className="text-white">{storyTitle}</span>
+                  <ChevronRight size={14} className="text-white/30" />
+                  <span className="text-white/90">{storyTitle}</span>
                 </nav>
                 <div className="flex flex-wrap gap-2">
                   <Link
                     href={storyGraphHref}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-deep"
+                    className="btn-cta btn-press inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold"
                   >
                     <GitBranch size={16} /> 故事图
                   </Link>
                   <button
                     type="button"
                     onClick={() => setEditWorldOpen(true)}
-                    className="inline-flex items-center rounded-lg bg-black px-3 py-2 text-sm font-medium text-white transition hover:bg-[#1a1a1a]"
+                    className="btn-press inline-flex items-center rounded-lg border border-white/12 bg-black/40 px-3 py-2 text-sm font-medium text-white/85 backdrop-blur-sm transition-colors duration-press ease-de-out hover:bg-white/[0.08]"
                   >
                     世界观编辑
                   </button>
                   <Link
                     href={`/world-builder/setup?project=${worldId}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#1a1a1a]"
+                    className="btn-press inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/40 px-3 py-2 text-sm font-semibold text-white/85 backdrop-blur-sm transition-colors duration-press ease-de-out hover:bg-white/[0.08]"
                   >
                     <Settings2 size={16} /> 世界设置
                   </Link>
@@ -211,12 +231,19 @@ function StoryProjectContent() {
               </div>
 
               <div className="max-w-3xl cursor-pointer">
-                <p className="text-xs font-semibold tracking-[0.18em] text-white/55">{world.title}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                  资产库
+                </p>
                 <h1 className="mt-3 font-display text-5xl tracking-tight">{storyTitle}</h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">{world.description}</p>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-white/50" suppressHydrationWarning>
+                  {mounted ? lastModifiedLabel : "上次修改于 —"}
+                </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {world.genre.concat(world.tags.slice(0, 4)).map((tag) => (
-                    <span key={tag} className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs text-white/75">
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/65"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -225,8 +252,7 @@ function StoryProjectContent() {
             </div>
           </div>
 
-          <div className="grid gap-0 xl:grid-cols-[1fr_320px]">
-            <div className="p-6">
+          <div className="p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 overflow-x-auto">
                   {tabs.map((tab) => (
@@ -235,10 +261,10 @@ function StoryProjectContent() {
                       type="button"
                       onClick={() => selectTab(tab.id)}
                       className={cn(
-                        "shrink-0 rounded-lg border px-4 py-2 text-sm font-medium transition",
+                        "btn-press shrink-0 rounded-lg border px-4 py-2 text-sm font-medium transition-[border-color,background-color,color,transform] duration-press ease-de-out",
                         activeTab === tab.id
-                          ? "border-white/20 bg-[#2a2a2a] font-semibold text-white"
-                          : "border-white/10 bg-transparent text-white/50 hover:border-white/15 hover:bg-white/[0.03] hover:text-white/75",
+                          ? "border-white/[0.08] bg-[#2a2a2a] font-semibold text-white"
+                          : "border-transparent bg-transparent text-white/50 hover:bg-white/[0.04] hover:text-white/75",
                       )}
                     >
                       {tab.label}
@@ -249,7 +275,7 @@ function StoryProjectContent() {
                   <button
                     type="button"
                     onClick={tabAddAction.onClick}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-deep"
+                    className="btn-cta btn-press inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold"
                   >
                     <Plus size={14} /> {tabAddAction.label}
                   </button>
@@ -281,37 +307,61 @@ function StoryProjectContent() {
                     const isPublished = episodeNodes.some(
                       (node) => node.kind === "scene" && node.data.status === "ready",
                     );
+                    const sceneCover = episodeNodes.find(
+                      (node) =>
+                        node.kind === "scene" &&
+                        (node.data.firstFrameRef || node.data.videoUrl),
+                    );
+                    const poster =
+                      sceneCover?.kind === "scene"
+                        ? sceneCover.data.firstFrameRef || sceneCover.data.videoUrl
+                        : undefined;
                     return (
                       <Link
                         href={storyGraphHref}
                         key={episode.id}
                         className={cn(
+                          "group relative isolate block",
                           portraitAspectClass,
                           portraitShellClass,
-                          "group block transition hover:border-white/20",
                         )}
                       >
-                        <div className="relative flex h-full flex-col justify-between bg-gradient-to-br from-[#121018] via-[#1a1218] to-[#3a1f2c] p-4 text-white">
-                          <div className="flex flex-wrap gap-2">
-                            {!isPublished && (
-                              <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-white/70">
-                                草稿
-                              </span>
-                            )}
-                            {hasNodes && (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-200">
-                                <span className="size-1.5 rounded-full bg-amber-400" />
-                                进行中
-                              </span>
-                            )}
+                        {poster && !String(poster).startsWith("mock://") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={String(poster)}
+                            alt=""
+                            className="pointer-events-none absolute inset-0 z-0 size-full object-cover transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                          />
+                        ) : (
+                          <div className="de-project-matrix absolute inset-0 z-0 size-full">
+                            <div className="de-project-matrix-shine absolute inset-0" aria-hidden />
                           </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                              第 {episode.index} 集
-                            </p>
-                            <h3 className="mt-2 font-display text-2xl leading-tight">{episode.title}</h3>
-                            <p className="mt-2 text-xs text-white/55">{episodeNodes.length} 个节点</p>
+                        )}
+                        <div className="absolute left-3 top-3 z-30 flex flex-wrap gap-1.5">
+                          {!isPublished && (
+                            <span className="rounded-md bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white/75 backdrop-blur-sm">
+                              草稿
+                            </span>
+                          )}
+                          {hasNodes && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+                              <span className="size-1.5 rounded-full bg-signal" />
+                              进行中
+                            </span>
+                          )}
+                        </div>
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 p-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[11px] text-white/55">第 {episode.index} 集</p>
+                            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-5 text-white">
+                              {episode.title}
+                            </h3>
                           </div>
+                          <span className="shrink-0 text-[11px] text-white/55">
+                            {episodeNodes.length} 节点
+                          </span>
                         </div>
                       </Link>
                     );
@@ -320,100 +370,22 @@ function StoryProjectContent() {
                 </div>
               )}
 
-              {activeTab === "characters" && (
-                <WorldAssetEditor mode="characters" storyId={storyId} onRegisterActions={registerAssetActions} />
-              )}
-              {activeTab === "locations" && (
-                <WorldAssetEditor mode="locations" storyId={storyId} onRegisterActions={registerAssetActions} />
-              )}
-
-              {activeTab === "interactions" && (
-                <div className={portraitGridClass}>
-                  {interactionNodes.map((node) => (
-                    <article
-                      key={node.id}
-                      className="group rounded-xl border border-card-border bg-card p-4 hover:border-accent/35"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
-                          <MousePointerClick size={18} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-ink-muted">交互节点</p>
-                          <h2 className="mt-1 text-lg font-semibold text-ink-strong">{node.data.title}</h2>
-                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink-muted">{node.data.instruction}</p>
-                          <p className="mt-3 text-xs text-ink-muted">{node.data.options.length} 个选项</p>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                        <Link
-                          href={storyGraphHref}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-card-border bg-stage px-3 py-2 text-sm text-ink-muted transition hover:border-accent/35 hover:text-ink-strong"
-                        >
-                          <PenLine size={14} /> 编辑
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => deleteNode(node.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-card-border bg-stage px-3 py-2 text-sm text-red-400 transition hover:border-red-400/40 hover:bg-red-500/10"
-                        >
-                          <Trash2 size={14} /> 删除
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                  <AddAssetCard label="添加交互" onClick={handleAddInteraction} />
-                </div>
-              )}
-            </div>
-
-            <div className="flex min-h-[calc(100vh-4rem)] flex-col xl:sticky xl:top-0 xl:h-[100vh] xl:self-start">
-              <div className="min-h-0 flex-1">
-                <CharacterStudioWorldBuilderPanel
-                  zh
-                  world={world}
-                  characters={characters}
-                  locations={locations}
-                  activeCharacterId={characters[0]?.id ?? ""}
-                  coverImage={world.coverImage}
-                  hasScript={episodes.length > 0 || nodes.some((n) => n.kind === "scene")}
-                  onGenerateImages={() => selectTab("characters")}
-                  onGenerateStory={() => router.push(storyGraphHref)}
+              {ASSET_TABS.has(activeTab) && (
+                <AssetsDock
+                  pageMode
+                  projectId={worldId}
+                  activeTab={activeTab as AssetTab}
+                  onTabChange={(tab) => selectTab(tab as TabId)}
+                  onRegisterActions={registerAssetActions}
                 />
-              </div>
-              <div className="shrink-0 border-l border-white/8 bg-[#0c0c0c] px-3 pb-4 pt-1">
-                <p className="mb-2 text-[11px] leading-5 text-white/35">
-                  {errorCount > 0
-                    ? `还有 ${errorCount} 个错误需修复后才能发布。`
-                    : warningCount > 0
-                      ? `可发布，但有 ${warningCount} 条提醒 · ${readyScenes}/${sceneCount} 视频就绪`
-                      : `检查通过 · ${interactionCount} 互动 · ${readyScenes}/${sceneCount} 视频就绪`}
-                </p>
-                <button
-                  type="button"
-                  onClick={handlePublish}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep"
-                >
-                  <Send size={15} /> 发布剧集
-                </button>
-              </div>
-            </div>
+              )}
           </div>
         </section>
       </main>
 
-      {notice && (
-        <div className="fixed right-5 top-5 z-50 rounded-xl border border-card-border bg-card px-4 py-3 text-sm shadow-soft">
-          {notice}
-          <button type="button" className="ml-3 text-ink-muted" onClick={() => setNotice(null)}>
-            ×
-          </button>
-        </div>
-      )}
       <EditWorldModal
         open={editWorldOpen}
         onClose={() => setEditWorldOpen(false)}
-        episodeId={episodes[0]?.id}
       />
     </WorldBuilderLayout>
   );
@@ -433,13 +405,13 @@ function StudioAction({
   description: string;
 }) {
   const className =
-    "rounded-xl border border-card-border bg-card p-4 text-left hover:border-accent/35 block w-full";
+    "btn-press block w-full rounded-xl border border-white/10 bg-card p-4 text-left transition-[border-color,background-color,transform] duration-popover ease-de-out hover:border-white/20 hover:bg-white/[0.03]";
   const inner = (
     <>
-      <div className="grid size-10 place-items-center rounded-lg bg-accent-soft text-accent">
+      <div className="grid size-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-white/80">
         <Icon size={18} />
       </div>
-      <h2 className="mt-4 font-semibold">{title}</h2>
+      <h2 className="mt-4 font-semibold text-ink-strong">{title}</h2>
       <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
     </>
   );

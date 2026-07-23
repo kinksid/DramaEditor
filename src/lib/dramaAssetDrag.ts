@@ -1,14 +1,22 @@
-export type DramaAssetKind = "video" | "character" | "location" | "scene-template";
+export type DramaAssetKind =
+  | "video"
+  | "character"
+  | "location"
+  | "scene-template"
+  | "interaction";
 
 export type DramaAssetPayload = {
   kind: DramaAssetKind;
   title?: string;
   prompt?: string;
+  instruction?: string;
   videoUrl?: string;
   poster?: string;
   characterId?: string;
   locationId?: string;
   referenceImage?: string;
+  /** 已有节点：拖到画布时移动归属/位置，而不是新建 */
+  nodeId?: string;
 };
 
 export const DRAMA_ASSET_MIME = "application/drama-asset";

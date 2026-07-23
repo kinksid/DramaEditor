@@ -78,7 +78,7 @@ export function WorldPromptComposer({
             type="button"
             onClick={onCreate}
             disabled={creating || !prompt.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white shadow-glow transition hover:bg-accent-deep disabled:opacity-60"
+            className="btn-cta btn-press inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold disabled:opacity-40"
           >
             {creating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             {t("home.createBtn")}

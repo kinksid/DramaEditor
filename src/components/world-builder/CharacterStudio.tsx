@@ -24,6 +24,83 @@ type VisualTab = (typeof visualTabs)[number];
 
 const roleOptions = ["Character", "Protagonist", "Antagonist", "Supporting", "NPC"];
 
+const visualEmptyCopy: Record<
+  VisualTab,
+  { title: string; titleZh: string; description: string; descriptionZh: string; cols: number; rows: number; aspect: "square" | "tall" }
+> = {
+  Face: {
+    title: "Build a head turnaround",
+    titleZh: "生成头部三视图",
+    description: "Three angles of the face. Used as the canonical reference for downstream gens.",
+    descriptionZh: "三个角度的面部参考，用作下游生成的标准参考。",
+    cols: 3,
+    rows: 1,
+    aspect: "square",
+  },
+  Body: {
+    title: "Build a body turnaround",
+    titleZh: "生成全身三视图",
+    description: "Front, three quarter, and back to keep videos on model.",
+    descriptionZh: "正面、四分之三与背面，保证下游视频角色一致。",
+    cols: 3,
+    rows: 1,
+    aspect: "tall",
+  },
+  Mood: {
+    title: "Build an expression set",
+    titleZh: "生成表情组",
+    description: "Six moods that give scenes performance to draw from.",
+    descriptionZh: "六种情绪表情，供场景表演取用。",
+    cols: 3,
+    rows: 2,
+    aspect: "square",
+  },
+  Outfit: {
+    title: "Add an outfit",
+    titleZh: "添加服装",
+    description: "Dress the character. Add as many alternates as the story needs.",
+    descriptionZh: "为角色搭配服装；可按剧情添加多套造型。",
+    cols: 3,
+    rows: 1,
+    aspect: "tall",
+  },
+  Stickers: {
+    title: "Add a sticker",
+    titleZh: "添加贴纸",
+    description: "Stylized cut-outs of the character. Add as many as you like.",
+    descriptionZh: "角色风格化剪贴；可任意添加。",
+    cols: 3,
+    rows: 1,
+    aspect: "square",
+  },
+  Others: {
+    title: "Add a reference",
+    titleZh: "添加参考",
+    description: "Anything else that helps keep this character on model.",
+    descriptionZh: "其他有助于保持角色一致性的参考。",
+    cols: 3,
+    rows: 1,
+    aspect: "square",
+  },
+};
+
+function normalizeRole(role?: string) {
+  const value = (role ?? "").trim();
+  if (!value) return "Character";
+  const map: Record<string, string> = {
+    主角: "Protagonist",
+    反派: "Antagonist",
+    配角: "Supporting",
+    路人: "NPC",
+    protagonist: "Protagonist",
+    antagonist: "Antagonist",
+    supporting: "Supporting",
+    npc: "NPC",
+    character: "Character",
+  };
+  return map[value.toLowerCase()] ?? map[value] ?? (roleOptions.includes(value) ? value : "Character");
+}
+
 function buildCharacterPrompt(character: Character) {
   const profile = character.profile ?? {};
   const parts = [
@@ -37,6 +114,16 @@ function buildCharacterPrompt(character: Character) {
     profile.ethnicity,
     profile.skin,
     profile.face,
+    profile.eyes,
+    profile.hair,
+    profile.looksLike,
+    profile.figure,
+    profile.height,
+    profile.movement,
+    profile.silhouette,
+    profile.palette,
+    profile.materials,
+    profile.signaturePiece,
     profile.body,
     profile.wardrobe,
     profile.vibe,
@@ -182,11 +269,25 @@ export function CharacterStudio({
   const [visualTab, setVisualTab] = useState<VisualTab>("Face");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [resolvedStoryId, setResolvedStoryId] = useState(storyId);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     ensureProjectLoaded(storyId);
-  }, [storyId, ensureProjectLoaded]);
+    const state = useWorldBuilderStore.getState();
+    const inStory = state.characters.some((item) => item.id === characterId);
+    if (inStory) {
+      setResolvedStoryId(storyId);
+      return;
+    }
+    const host = state.listProjects().find((project) =>
+      project.characters.some((item) => item.id === characterId),
+    );
+    if (host) {
+      ensureProjectLoaded(host.id);
+      setResolvedStoryId(host.id);
+    }
+  }, [storyId, characterId, ensureProjectLoaded]);
 
   const isGenerating = useMemo(
     () =>
@@ -229,6 +330,18 @@ export function CharacterStudio({
     Form: "form",
     Skin: "skin",
     Face: "face",
+    Eyes: "eyes",
+    Hair: "hair",
+    "Looks Like": "looksLike",
+    "Distinguishing Mark": "distinguishingMark",
+    Figure: "figure",
+    Height: "height",
+    Movement: "movement",
+    "Body Mark": "bodyMark",
+    Silhouette: "silhouette",
+    Palette: "palette",
+    Materials: "materials",
+    "Signature Piece": "signaturePiece",
   };
 
   const handleProfileEdit = (label: string, value: string) => {
@@ -263,7 +376,7 @@ export function CharacterStudio({
       const url = typeof reader.result === "string" ? reader.result : "";
       if (!url) return;
       const existing = character.turnaroundImages ?? [];
-      const next = [...existing, url].slice(0, 4);
+      const next = [...existing, url].slice(0, 3);
       patch({
         referenceImage: character.referenceImage || url,
         previewImage: character.previewImage || url,
@@ -275,11 +388,13 @@ export function CharacterStudio({
 
   const previewUrl = character.previewImage || character.referenceImage;
   const faceSlots = character.turnaroundImages?.length
-    ? [...character.turnaroundImages, ...Array(4)].slice(0, 4)
+    ? [...character.turnaroundImages, ...Array(3)].slice(0, 3)
     : character.referenceImage
-      ? [character.referenceImage, character.referenceImage, character.referenceImage, character.referenceImage]
-      : [null, null, null, null];
+      ? [character.referenceImage, character.referenceImage, character.referenceImage]
+      : [null, null, null];
   const hasFaceImages = faceSlots.some(Boolean);
+  const roleValue = normalizeRole(character.role);
+  const emptyCopy = visualEmptyCopy[visualTab];
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col bg-[#0a0a0a] text-white">
@@ -288,11 +403,11 @@ export function CharacterStudio({
           {zh ? "我的世界" : "My Worlds"}
         </Link>
         <ChevronRight size={12} />
-        <Link href={`/world-builder/stories/${storyId}`} className="transition hover:text-white/75">
+        <Link href={`/world-builder/stories/${resolvedStoryId}`} className="transition hover:text-white/75">
           {world.title || (zh ? "未命名世界" : "Untitled World")}
         </Link>
         <ChevronRight size={12} />
-        <Link href={`/world-builder/stories/${storyId}?tab=characters`} className="transition hover:text-white/75">
+        <Link href={`/world-builder/stories/${resolvedStoryId}?tab=characters`} className="transition hover:text-white/75">
           {zh ? "角色" : "Characters"}
         </Link>
         <ChevronRight size={12} />
@@ -300,56 +415,60 @@ export function CharacterStudio({
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {/* Left profile */}
-        <aside className="w-[300px] shrink-0 overflow-y-auto border-r border-white/8 px-5 py-5">
-          <div className="flex gap-3">
-            <div className="grid size-[52px] shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
-              {previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={previewUrl} alt="" className="size-full object-cover" />
-              ) : (
-                <UserRound size={20} className="text-white/25" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
+        {/* Left profile — Studio w-[360px] */}
+        <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-white/8 px-5 py-5">
+          <div className="overflow-hidden rounded-xl border border-white/8 bg-white/[0.03]">
+            <div className="h-16 bg-gradient-to-br from-[#2a1a22] via-[#181018] to-[#0c0c0c]" />
+            <div className="px-5 pb-5">
+              <div className="-mt-10 mb-2 flex items-end justify-between gap-2">
+                <div className="grid size-[72px] shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-lg">
+                  {previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={previewUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <UserRound size={28} className="text-white/25" />
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 pb-0.5">
+                  <select
+                    value={roleValue}
+                    onChange={(e) => patch({ role: e.target.value })}
+                    className="rounded-md border border-white/10 bg-[#141414] px-2 py-1 text-[11px] text-white/70 outline-none"
+                  >
+                    {roleOptions.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="grid size-7 place-items-center rounded-md border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
+                    aria-label="AI suggest"
+                  >
+                    <Wand2 size={13} />
+                  </button>
+                </div>
+              </div>
+
               <input
                 value={character.name}
                 onChange={(e) => patch({ name: e.target.value })}
                 placeholder={zh ? "未命名" : "Untitled"}
-                className="w-full bg-transparent font-display text-[26px] leading-tight text-white outline-none placeholder:text-white/25"
+                className="h-11 w-full border-b border-transparent bg-transparent font-display text-[36px] font-semibold leading-none tracking-tight text-white outline-none placeholder:text-white/25 focus:border-white/20"
               />
-              <div className="mt-2 flex items-center gap-2">
-                <select
-                  value={character.role || "Character"}
-                  onChange={(e) => patch({ role: e.target.value })}
-                  className="rounded-md border border-white/10 bg-[#141414] px-2 py-1 text-[11px] text-white/70 outline-none"
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="grid size-7 place-items-center rounded-md border border-white/10 text-white/40 hover:bg-white/5"
-                  aria-label="AI suggest"
-                >
-                  <Wand2 size={13} />
-                </button>
-              </div>
               <input
                 value={profile.tagline ?? ""}
                 onChange={(e) => patchProfile({ tagline: e.target.value })}
-                placeholder={zh ? "Their north star, in one line." : "Their north star, in one line."}
-                className="mt-2 w-full bg-transparent text-[12px] italic leading-5 text-white/40 outline-none placeholder:text-white/25"
+                placeholder="Their north star, in one line."
+                className="mt-2 w-full bg-transparent text-sm italic leading-relaxed text-white/55 outline-none placeholder:text-white/25"
               />
             </div>
           </div>
 
           <button
             type="button"
-            className="mt-5 flex w-full items-center gap-2 rounded-xl border border-dashed border-white/12 px-3 py-2.5 text-[13px] text-white/45 transition hover:border-white/20 hover:text-white/65"
+            className="mt-4 flex w-full items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[13px] text-rose-200 transition hover:bg-rose-500/10"
           >
             <Plus size={14} />
             {zh ? "添加声音" : "Add voice"}
@@ -397,20 +516,32 @@ export function CharacterStudio({
               rows={[
                 { label: "Skin", value: profile.skin },
                 { label: "Face", value: profile.face },
+                { label: "Eyes", value: profile.eyes },
+                { label: "Hair", value: profile.hair },
+                { label: "Looks Like", value: profile.looksLike },
+                { label: "Distinguishing Mark", value: profile.distinguishingMark },
               ]}
               onEdit={handleProfileEdit}
             />
-            <ProfileTextSection
-              title="WARDROBE"
-              value={profile.wardrobe}
-              placeholder={zh ? "服装、配饰与标志性单品…" : "Outfit, palette, signature pieces…"}
-              onChange={(value) => patchProfile({ wardrobe: value.trim() || undefined })}
-            />
-            <ProfileTextSection
+            <ProfileSection
               title="BODY"
-              value={profile.body}
-              placeholder={zh ? "体态、站姿与动作习惯…" : "Build, posture, movement…"}
-              onChange={(value) => patchProfile({ body: value.trim() || undefined })}
+              rows={[
+                { label: "Figure", value: profile.figure ?? profile.body },
+                { label: "Height", value: profile.height },
+                { label: "Movement", value: profile.movement },
+                { label: "Body Mark", value: profile.bodyMark },
+              ]}
+              onEdit={handleProfileEdit}
+            />
+            <ProfileSection
+              title="WARDROBE"
+              rows={[
+                { label: "Silhouette", value: profile.silhouette ?? profile.wardrobe },
+                { label: "Palette", value: profile.palette },
+                { label: "Materials", value: profile.materials },
+                { label: "Signature Piece", value: profile.signaturePiece },
+              ]}
+              onEdit={handleProfileEdit}
             />
             <ProfileTextSection
               title="OTHERS"
@@ -465,65 +596,69 @@ export function CharacterStudio({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            {visualTab === "Face" ? (
-              hasFaceImages ? (
-                <div>
-                  <div className="mb-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleGenerateFace}
-                      disabled={isGenerating}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs text-white/75 hover:bg-white/5 disabled:opacity-50"
-                    >
-                      {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      {zh ? "重新生成" : "Regenerate"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => uploadRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs text-white/75 hover:bg-white/5"
-                    >
-                      <Upload size={12} />
-                      {zh ? "替换" : "Replace"}
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {faceSlots.map((url, index) => (
-                      <div
-                        key={index}
-                        className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-[#141414]"
-                      >
-                        {url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={url} alt="" className="size-full object-cover" />
-                        ) : (
-                          <div className="grid size-full place-items-center text-white/15">
-                            <UserRound size={24} strokeWidth={1} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            {visualTab === "Face" && hasFaceImages ? (
+              <div>
+                <div className="mb-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateFace}
+                    disabled={isGenerating}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs text-white/75 hover:bg-white/5 disabled:opacity-50"
+                  >
+                    {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                    {zh ? "重新生成" : "Regenerate"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => uploadRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs text-white/75 hover:bg-white/5"
+                  >
+                    <Upload size={12} />
+                    {zh ? "替换" : "Replace"}
+                  </button>
                 </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-white/12 bg-[#111111] p-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {[0, 1, 2, 3].map((index) => (
-                      <div
-                        key={index}
-                        className="aspect-square rounded-xl border border-white/8 bg-white/[0.02]"
-                      />
-                    ))}
-                  </div>
-                  <h3 className="mt-4 text-sm font-medium text-white">
-                    {zh ? "生成头部三视图" : "Build a head turnaround"}
-                  </h3>
-                  <p className="mt-1 text-xs leading-5 text-white/40">
-                    {zh
-                      ? "四个角度的面部参考，用作下游生成的标准参考。"
-                      : "Four angles of the face. Used as the canonical reference for downstream gens."}
-                  </p>
-                  {genError && <p className="mt-2 text-xs text-red-400">{genError}</p>}
+                <div className="grid grid-cols-3 gap-2">
+                  {faceSlots.map((url, index) => (
+                    <div
+                      key={index}
+                      className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-[#141414]"
+                    >
+                      {url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt="" className="size-full object-cover" />
+                      ) : (
+                        <div className="grid size-full place-items-center text-white/15">
+                          <UserRound size={24} strokeWidth={1} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/12 bg-[#111111] p-4">
+                <div
+                  className="grid gap-2"
+                  style={{ gridTemplateColumns: `repeat(${emptyCopy.cols}, minmax(0, 1fr))` }}
+                >
+                  {Array.from({ length: emptyCopy.cols * emptyCopy.rows }).map((_, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "rounded-xl border border-white/8 bg-white/[0.02]",
+                        emptyCopy.aspect === "tall" ? "aspect-[3/4]" : "aspect-square",
+                      )}
+                    />
+                  ))}
+                </div>
+                <h3 className="mt-4 text-sm font-medium text-white">
+                  {zh ? emptyCopy.titleZh : emptyCopy.title}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/40">
+                  {zh ? emptyCopy.descriptionZh : emptyCopy.description}
+                </p>
+                {visualTab === "Face" && genError && <p className="mt-2 text-xs text-red-400">{genError}</p>}
+                {visualTab === "Face" && (
                   <div className="mt-4 flex gap-2">
                     <button
                       type="button"
@@ -543,11 +678,7 @@ export function CharacterStudio({
                       {zh ? "上传" : "Upload"}
                     </button>
                   </div>
-                </div>
-              )
-            ) : (
-              <div className="grid min-h-[280px] place-items-center rounded-2xl border border-dashed border-white/10 bg-[#111111] text-sm text-white/35">
-                {visualTab} · {zh ? "即将上线" : "Coming soon"}
+                )}
               </div>
             )}
           </div>

@@ -20,11 +20,12 @@ function isSuccessMessage(message: string) {
 
 export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
   const {
-    config,
     selectedLlmPresetId,
     setSelectedLlmPresetId,
+    llmApiKey,
     imageApiKey,
     videoApiKey,
+    setLlmApiKey,
     setImageApiKey,
     setVideoApiKey,
     loadFromServer,
@@ -33,12 +34,13 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
     llmTaskProfiles,
   } = useProviderSettingsStore();
 
-  const [tab, setTab] = useState<ProviderTab>("image");
+  const [tab, setTab] = useState<ProviderTab>("llm");
   const [draft, setDraft] = useState<PublicProviderConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testingCharacter, setTestingCharacter] = useState(false);
+  const [showLlmKey, setShowLlmKey] = useState(false);
   const [showImageKey, setShowImageKey] = useState(false);
   const [showVideoKey, setShowVideoKey] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -87,6 +89,12 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
       const saved = await saveToServer({
         llmPresetId: selectedLlmPresetId || undefined,
         llmTaskProfiles,
+        llm: {
+          provider: draft.llm.provider,
+          baseUrl: draft.llm.baseUrl,
+          model: draft.llm.model,
+          think: draft.llm.think,
+        },
         image: {
           provider: draft.image.provider,
           baseUrl: draft.image.baseUrl,
@@ -161,6 +169,11 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
   };
 
   const activeLlmPreset = draft?.llm.presets?.find((item) => item.id === selectedLlmPresetId);
+  const llmReady = Boolean(activeLlmPreset?.available);
+  const imageReady = Boolean(draft?.image.hasApiKey || draft?.image.provider === "comfyui");
+  const videoReady = Boolean(
+    draft?.video.hasApiKey || draft?.video.provider === "comfyui" || draft?.enableMockGeneration,
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -169,8 +182,8 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
           <h2 className="text-xl font-semibold text-white">{zh ? "API 自定义设置" : "API Settings"}</h2>
           <p className="mt-2 text-sm text-white/45">
             {zh
-              ? "切换 LLM / 图像 / 视频供应商，接入本地 ComfyUI 局域网服务。"
-              : "Switch LLM, image, and video providers; connect local ComfyUI."}
+              ? "分通道配置 LLM / 图像 / 视频；密钥仅存本地与服务端运行时，页面不回显明文。"
+              : "Configure LLM / image / video channels; keys stay local + server runtime."}
           </p>
         </div>
         <Link
@@ -182,27 +195,55 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
         </Link>
       </div>
 
-      <div className="mt-6 inline-flex rounded-full border border-white/10 bg-[#1a1a1a] p-1 text-xs">
-        {(
-          [
-            { id: "llm" as const, label: "LLM" },
-            { id: "image" as const, label: zh ? "图像" : "Image" },
-            { id: "video" as const, label: zh ? "视频" : "Video" },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className={cn(
-              "rounded-full px-4 py-1.5 transition",
-              tab === item.id ? "bg-white text-black" : "text-white/55 hover:text-white/80",
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {!loading && draft && (
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          {(
+            [
+              {
+                id: "llm" as const,
+                label: "LLM",
+                detail: activeLlmPreset?.label ?? draft.llm.provider,
+                ready: llmReady,
+              },
+              {
+                id: "image" as const,
+                label: zh ? "图像" : "Image",
+                detail: draft.image.provider,
+                ready: imageReady,
+              },
+              {
+                id: "video" as const,
+                label: zh ? "视频" : "Video",
+                detail: draft.video.provider,
+                ready: videoReady,
+              },
+            ] as const
+          ).map((channel) => (
+            <button
+              key={channel.id}
+              type="button"
+              onClick={() => setTab(channel.id)}
+              className={cn(
+                "rounded-xl border px-3 py-3 text-left transition",
+                tab === channel.id
+                  ? "border-white/25 bg-white/10"
+                  : "border-white/10 bg-[#151515] hover:border-white/18",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-white">{channel.label}</span>
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    channel.ready ? "bg-emerald-400" : "bg-amber-400/80",
+                  )}
+                />
+              </div>
+              <p className="mt-1 truncate text-[11px] text-white/45">{channel.detail}</p>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-5 space-y-4 rounded-2xl border border-white/10 bg-[#1a1a1a] p-5">
         {loading || !draft ? (
@@ -215,7 +256,7 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
             {tab === "llm" && (
               <>
                 <label className={labelClass}>
-                  {zh ? "LLM 接入点" : "LLM endpoint"}
+                  {zh ? "LLM 接入点（预设）" : "LLM preset"}
                   <select
                     className={fieldClass}
                     value={selectedLlmPresetId}
@@ -229,14 +270,43 @@ export function ApiCustomSettingsPanel({ zh }: { zh: boolean }) {
                   </select>
                 </label>
                 {activeLlmPreset && (
-                  <p className="text-xs text-white/45">
-                    {zh ? "状态" : "Status"}：
-                    <span className={activeLlmPreset.available ? "text-emerald-400" : "text-red-400"}>
-                      {activeLlmPreset.available ? (zh ? "可用" : "Available") : zh ? "不可用" : "Unavailable"}
-                    </span>
-                    {activeLlmPreset.error ? ` · ${activeLlmPreset.error}` : ""}
-                  </p>
+                  <div className="rounded-xl border border-white/8 bg-black/25 px-4 py-3 text-xs text-white/55">
+                    <p>
+                      {zh ? "状态" : "Status"}：
+                      <span className={activeLlmPreset.available ? "text-emerald-400" : "text-red-400"}>
+                        {activeLlmPreset.available
+                          ? zh
+                            ? "可用"
+                            : "Available"
+                          : zh
+                            ? "不可用"
+                            : "Unavailable"}
+                      </span>
+                      {activeLlmPreset.latencyMs ? ` · ${activeLlmPreset.latencyMs}ms` : ""}
+                      {activeLlmPreset.error ? ` · ${activeLlmPreset.error}` : ""}
+                    </p>
+                    <p className="mt-1 break-all">
+                      {draft.llm.provider} · {draft.llm.model}
+                    </p>
+                    <p className="mt-1 break-all text-white/35">{draft.llm.baseUrl}</p>
+                  </div>
                 )}
+                <SecretInput
+                  label={zh ? "LLM API Key（可选，OpenAI 兼容）" : "LLM API Key (optional)"}
+                  value={llmApiKey}
+                  onChange={setLlmApiKey}
+                  show={showLlmKey}
+                  onToggle={() => setShowLlmKey((v) => !v)}
+                  placeholder={
+                    draft.llm.hasApiKey
+                      ? zh
+                        ? "已配置（留空不变）"
+                        : "Configured"
+                      : zh
+                        ? "本地 Ollama 可留空"
+                        : "Leave empty for local Ollama"
+                  }
+                />
               </>
             )}
 

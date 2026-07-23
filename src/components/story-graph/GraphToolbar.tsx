@@ -132,18 +132,11 @@ export function GraphToolbar({
         className={cn(
           "relative flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5",
           isStudio
-            ? "border-b border-white/8 bg-[#0a0a0a] text-white"
+            ? "border-b border-white/[0.04] bg-[#0a0a0a] text-white"
             : "rounded-3xl border border-pink-100 bg-white px-4 py-3 shadow-soft",
         )}
       >
-        {isStudio && !readOnly && (
-          <Link
-            href={storyDetailHref}
-            className="absolute inset-0 z-0 cursor-pointer"
-            aria-label="查看故事详情"
-          />
-        )}
-        <div className="relative z-10 min-w-0 pointer-events-none">
+        <div className="relative z-10 min-w-0">
           <div
             className={cn(
               "flex flex-wrap items-center gap-2 text-sm",
@@ -152,36 +145,34 @@ export function GraphToolbar({
           >
             <Link
               href={returnHref ?? "/world-builder/worlds"}
-              className={cn("pointer-events-auto", isStudio ? "hover:text-white" : "hover:text-ink-strong")}
+              className={isStudio ? "hover:text-white" : "hover:text-ink-strong"}
             >
-              {readOnly && returnHref ? "App 预览" : world.title || "未命名世界"}
+              {readOnly && returnHref ? "App 预览" : "工作空间"}
             </Link>
             <span>/</span>
             {readOnly ? (
-              <span className="pointer-events-auto">创作过程</span>
+              <span>创作过程</span>
             ) : (
               <Link
                 href={storyDetailHref}
-                className={cn("pointer-events-auto", isStudio ? "hover:text-white" : "hover:text-ink-strong")}
+                className={isStudio ? "hover:text-white" : "hover:text-ink-strong"}
               >
-                故事线
+                资产库
               </Link>
             )}
             <span>/</span>
-            <span className={cn("pointer-events-auto font-semibold", isStudio ? "text-white" : "text-ink-strong")}>
+            <span className={cn("font-semibold", isStudio ? "text-white" : "text-ink-strong")}>
               {storyTitle}
             </span>
             {isStudio && readOnly && (
-              <span className="pointer-events-auto rounded-md bg-white/8 px-2 py-0.5 text-[11px] font-medium text-white/55">
+              <span className="rounded-md bg-white/8 px-2 py-0.5 text-[11px] font-medium text-white/55">
                 只读
               </span>
             )}
             {isStudio && !readOnly && (
-              <>
-                <span className="pointer-events-auto rounded-md bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
-                  进行中
-                </span>
-              </>
+              <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                进行中
+              </span>
             )}
           </div>
           {!isStudio && (
@@ -208,7 +199,7 @@ export function GraphToolbar({
               </button>
               <Link
                 href={returnHref ?? "/world-builder/app-preview"}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 px-3 py-1.5 text-sm text-white/85 hover:bg-white/8"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-3 py-1.5 text-sm text-white/85 hover:bg-white/8"
               >
                 返回预览
               </Link>
@@ -229,12 +220,12 @@ export function GraphToolbar({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-accent/15 px-2.5 py-1.5 text-sm font-medium text-accent"
               >
                 <AlertTriangle size={15} />
-                {errorCount + warningCount}
+                <span suppressHydrationWarning>{errorCount + warningCount}</span>
               </button>
               <button
                 type="button"
                 onClick={onPreview}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 px-3 py-1.5 text-sm text-white/85 hover:bg-white/8"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-3 py-1.5 text-sm text-white/85 hover:bg-white/8"
               >
                 <Eye size={15} />
                 预览
@@ -242,7 +233,7 @@ export function GraphToolbar({
               <button
                 type="button"
                 onClick={handlePublish}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-black hover:bg-white/90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-deep"
               >
                 <Send size={15} />
                 发布
@@ -253,7 +244,7 @@ export function GraphToolbar({
               <select className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" value={selectedEpisodeId} onChange={(e) => selectEpisode(e.target.value)}>
                 {episodes.map((episode) => (
                   <option key={episode.id} value={episode.id}>
-                    第 {episode.label ?? episode.index} 集：{episode.title}
+                    {episode.label ?? episode.index} · {episode.title}
                   </option>
                 ))}
               </select>
@@ -297,7 +288,7 @@ export function GraphToolbar({
           <div
             className={cn(
               "fixed right-5 top-5 z-50 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-soft",
-              isStudio ? "border border-white/10 bg-[#161616] text-white" : "border border-slate-200 bg-white",
+              isStudio ? "border border-white/[0.06] bg-[#161616] text-white" : "border border-slate-200 bg-white",
             )}
           >
             <Check size={16} className="text-emerald-600" />

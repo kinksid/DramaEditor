@@ -32,7 +32,7 @@ export function BuildWorldModal({ open, onClose, onProjectCreated }: BuildWorldM
   const { createFromPrompt, creating, error, warning } = useCreateWorldFromPrompt({
     onSuccess: (projectId) => {
       onProjectCreated?.(projectId);
-      onClose();
+      // 不先关弹窗：关掉会先露出工作空间，产生「闪回上一级」
     },
   });
 
@@ -54,8 +54,8 @@ export function BuildWorldModal({ open, onClose, onProjectCreated }: BuildWorldM
     setCreatingBlank(true);
     const projectId = createProjectFromSession();
     onProjectCreated?.(projectId);
-    onClose();
-    router.push(`/world-builder/story-graph?project=${projectId}`);
+    // 保持遮罩直到路由切换，直接进故事图
+    router.replace(`/world-builder/story-graph?project=${projectId}`);
   };
 
   const handleStartBlankWorld = () => {
@@ -64,8 +64,7 @@ export function BuildWorldModal({ open, onClose, onProjectCreated }: BuildWorldM
     updateCreationSession({ prompt });
     const projectId = createProjectFromSession();
     onProjectCreated?.(projectId);
-    onClose();
-    router.push(`/world-builder/setup?project=${projectId}`);
+    router.replace(`/world-builder/setup?project=${projectId}`);
   };
 
   const handleCreate = () => {

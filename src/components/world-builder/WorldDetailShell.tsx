@@ -131,23 +131,28 @@ export function WorldDetailShell({ tab }: WorldDetailShellProps) {
   return (
     <div className="min-h-full bg-stage">
       <section className="relative overflow-hidden border-b border-card-border">
-        <div className="relative min-h-[280px] bg-[linear-gradient(135deg,#0a0a0a_0%,#1a1218_45%,#b94a6a_120%)] px-6 py-5 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(212,120,147,0.35),transparent_36%)]" />
-          <div className="relative z-10 flex min-h-[248px] flex-col justify-between">
-            <nav className="flex flex-wrap items-center gap-1.5 text-sm text-white/65">
-              <Link href="/world-builder/worlds" className="hover:text-white">
+        <div className="de-canvas-surface relative min-h-[280px] rounded-none border-0 border-b border-white/10 px-6 py-5 text-white shadow-none">
+          <div className="flex min-h-[248px] flex-col justify-between">
+            <nav className="flex flex-wrap items-center gap-1.5 text-sm text-white/55">
+              <Link
+                href="/world-builder/worlds"
+                className="transition-colors duration-press ease-de-out hover:text-white"
+              >
                 My Worlds
               </Link>
-              <ChevronRight size={14} className="text-white/35" />
-              <span className="text-white">{world.title || project?.name}</span>
+              <ChevronRight size={14} className="text-white/30" />
+              <span className="text-white/90">{world.title || project?.name}</span>
             </nav>
 
             <div className="max-w-3xl">
               <h1 className="font-display text-5xl tracking-tight">{world.title || project?.name}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">{world.description}</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-white/50">{world.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {[...world.genre, ...world.tags.slice(0, 4)].map((tag) => (
-                  <span key={tag} className="rounded-full border border-white/18 bg-white/10 px-3 py-1 text-xs text-white/75">
+                  <span
+                    key={tag}
+                    className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/65"
+                  >
                     {tag}
                   </span>
                 ))}
@@ -158,18 +163,18 @@ export function WorldDetailShell({ tab }: WorldDetailShellProps) {
               <button
                 type="button"
                 onClick={handlePublish}
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-ink-strong"
+                className="btn-cta btn-press inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
               >
                 <Upload size={15} /> Publish world
               </button>
               {published && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-1 text-xs text-white/70">
                   Published
                 </span>
               )}
               <Link
                 href={`/world-builder/stories/${worldId}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/85 hover:bg-white/16"
+                className="btn-press inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-black/35 px-3 py-2 text-xs text-white/80 transition-colors duration-press ease-de-out hover:bg-white/[0.08]"
               >
                 Open story desk <ExternalLink size={12} />
               </Link>

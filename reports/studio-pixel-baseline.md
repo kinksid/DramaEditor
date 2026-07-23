@@ -45,7 +45,7 @@ Note: 每轮优先对照该世界详情及其子层级；登录态页面待实�
 | `/worlds/:id/locations/:lid` | `/world-builder/stories/:id/locations/:lid` (+ rewrite) |
 | Story graph canvas | `/world-builder/story-graph?project=:id` |
 | Add node menu | Episode/Highlight on canvas; Video/Interaction inside episode frame |
-| Character Studio | IDENTITY/PERSONALITY/Face 2×2 + World builder panel |
+| Character Studio | Identity→Wardrobe 结构化字段 + Face 3-up turnaround + World builder panel |
 | Location Studio | IDENTITY/SETTING/IMAGES + angle strip + World builder panel |
 
 ## Gaps deferred to 15-min automation

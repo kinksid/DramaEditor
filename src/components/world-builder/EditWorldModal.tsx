@@ -13,8 +13,6 @@ type TabId = "details" | "lore";
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** When set, the title field edits this episode (e.g. 「未命名剧集」) instead of world title */
-  episodeId?: string;
 };
 
 const LORE_MAX = 5000;
@@ -83,8 +81,8 @@ function TagEditor({
   );
 }
 
-export function EditWorldModal({ open, onClose, episodeId }: Props) {
-  const { world, setupDraft, activeProjectId, episodes, updateWorld, updateSetupDraft, updateEpisode, renameProject } =
+export function EditWorldModal({ open, onClose }: Props) {
+  const { world, setupDraft, activeProjectId, updateWorld, updateSetupDraft, renameProject, listProjects } =
     useWorldBuilderStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -102,8 +100,8 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
   useEffect(() => {
     if (!open) return;
     setTab("details");
-    const episode = episodeId ? episodes.find((item) => item.id === episodeId) : undefined;
-    setTitle(episode ? episode.title : setupDraft.worldTitle || world.title);
+    const project = listProjects().find((item) => item.id === activeProjectId);
+    setTitle(project?.name || setupDraft.worldTitle || world.title);
     setLogline(setupDraft.worldDescription || world.description);
     setEra(setupDraft.tone || world.subtitle || "");
     setGenres(
@@ -116,7 +114,7 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
     );
     setLore(setupDraft.script || "");
     setCoverImage(world.coverImage);
-  }, [open, setupDraft, world, episodeId, episodes]);
+  }, [open, setupDraft, world, activeProjectId, listProjects]);
 
   useEffect(() => {
     if (!open) return;
@@ -128,10 +126,10 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
   }, [open]);
 
   const handleSave = () => {
-    const trimmedTitle = title.trim() || (episodeId ? "未命名剧集" : "未命名世界");
+    const trimmedTitle = title.trim() || "未命名项目";
 
     updateSetupDraft({
-      ...(episodeId ? {} : { worldTitle: trimmedTitle }),
+      worldTitle: trimmedTitle,
       worldDescription: logline.trim(),
       tone: era.trim(),
       genre: genres.join(", "),
@@ -139,12 +137,8 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
       script: lore,
     });
 
-    if (episodeId) {
-      updateEpisode(episodeId, { title: trimmedTitle });
-    }
-
     updateWorld({
-      ...(episodeId ? {} : { title: trimmedTitle }),
+      title: trimmedTitle,
       description: logline.trim(),
       subtitle: era.trim() || undefined,
       genre: genres,
@@ -152,7 +146,7 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
       coverImage,
     });
 
-    if (!episodeId && activeProjectId) {
+    if (activeProjectId) {
       renameProject(activeProjectId, trimmedTitle);
     }
 
@@ -210,7 +204,7 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
               <h2 className="text-2xl font-semibold text-white">{tab === "details" ? "详情" : "世界观"}</h2>
               <p className="mt-1 text-sm text-white/45">
                 {tab === "details"
-                  ? "封面、标题、简介与世界分类信息。"
+                  ? "封面、项目名称、简介与世界分类信息。"
                   : "世界观圣经：设定、规则与背景历史。"}
               </p>
             </div>
@@ -230,7 +224,12 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
                 <div>
                   <p className="mb-3 text-sm text-white/55">封面</p>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-                    <div className="aspect-[16/9] max-h-[220px] w-full bg-[linear-gradient(135deg,#1a1218,#3d1f2c)]">
+                    <div
+                      className={cn(
+                        "relative aspect-[16/9] max-h-[220px] w-full overflow-hidden",
+                        coverImage ? "bg-[#121214]" : "de-canvas-surface rounded-none border-0 shadow-none",
+                      )}
+                    >
                       {coverImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={coverImage} alt="" className="size-full object-cover" />
@@ -265,7 +264,7 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
                 </div>
 
                 <label className="block">
-                  <span className="text-sm text-white/55">{episodeId ? "剧集标题" : "标题"}</span>
+                  <span className="text-sm text-white/55">项目名称</span>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -298,7 +297,7 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
                   values={genres}
                   max={GENRE_MAX}
                   onChange={setGenres}
-                  placeholder="输入类型后回车"
+                  placeholder="输入后回车添加类型"
                 />
 
                 <TagEditor
@@ -306,11 +305,11 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
                   values={tags}
                   max={TAG_MAX}
                   onChange={setTags}
-                  placeholder="输入标签后回车"
+                  placeholder="输入后回车添加标签"
                 />
               </div>
             ) : (
-              <label className="block h-full">
+              <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm text-white/55">世界观圣经</span>
                   <span className="text-xs text-white/35">
@@ -320,26 +319,26 @@ export function EditWorldModal({ open, onClose, episodeId }: Props) {
                 <textarea
                   value={lore}
                   onChange={(e) => setLore(e.target.value.slice(0, LORE_MAX))}
-                  rows={16}
-                  className="min-h-[360px] w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-7 text-white outline-none focus:border-white/25"
-                  placeholder="描述世界设定、规则、历史与视觉基调…"
+                  rows={18}
+                  placeholder="写下世界设定、规则、历史与禁忌…"
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-7 text-white outline-none placeholder:text-white/30 focus:border-white/25"
                 />
-              </label>
+              </div>
             )}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-white/10 px-6 py-4">
+          <div className="flex justify-end gap-3 border-t border-white/10 px-6 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/12 px-4 py-2 text-sm text-white/70 transition hover:bg-white/5"
+              className="rounded-lg px-4 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white/85"
             >
               取消
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-lg bg-[#d8d2cb] px-4 py-2 text-sm font-semibold text-[#141414] transition hover:bg-[#ece7e1]"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-deep"
             >
               保存
             </button>

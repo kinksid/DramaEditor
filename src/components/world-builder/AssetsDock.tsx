@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Camera, Film, ImagePlus, MapPin, MousePointerClick,
-  PenLine, Plus, Search, Trash2, Upload, UserRound, Wand2, X, ZoomIn,
+  PenLine, Search, Trash2, Upload, UserRound, Wand2, X,
 } from "lucide-react";
 import Link from "next/link";
 import { setDramaAssetDragData } from "@/lib/dramaAssetDrag";
@@ -14,8 +14,18 @@ import { uploadReference } from "@/lib/worldBuilderApi";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Character, InteractionNodeData, Location, SceneNodeData, StoryNode } from "@/types/worldBuilder";
 import type { ReactNode } from "react";
+import {
+  AddAssetCard,
+  portraitAspectClass,
+  portraitGridClass,
+  portraitShellClass,
+} from "@/components/world-builder/WorldAssetEditor";
 
-type AssetTab = "characters" | "locations" | "videos" | "interactions" | "references";
+export type AssetTab = "characters" | "locations" | "videos" | "interactions" | "references";
+
+export type AssetsDockActions = {
+  openAdd: () => void;
+};
 
 const tabInfo: Record<AssetTab, { label: string; icon: typeof UserRound }> = {
   characters: { label: "角色参考", icon: UserRound },
@@ -27,13 +37,34 @@ const tabInfo: Record<AssetTab, { label: string; icon: typeof UserRound }> = {
 
 type AssetsDockProps = {
   embedded?: boolean;
+  /** 由故事页 Tabs 驱动：隐藏 Dock 自带侧栏/标题，只渲染内容 */
+  pageMode?: boolean;
   projectId?: string;
+  activeTab?: AssetTab;
+  onTabChange?: (tab: AssetTab) => void;
+  onRegisterActions?: (actions: AssetsDockActions) => void;
 };
 
-export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
-  const [tab, setTab] = useState<AssetTab>("characters");
+export function AssetsDock({
+  embedded = false,
+  pageMode = false,
+  projectId,
+  activeTab,
+  onTabChange,
+  onRegisterActions,
+}: AssetsDockProps) {
+  const [internalTab, setInternalTab] = useState<AssetTab>(activeTab ?? "characters");
+  const tab = activeTab ?? internalTab;
+  const setTab = (next: AssetTab) => {
+    if (activeTab === undefined) setInternalTab(next);
+    onTabChange?.(next);
+  };
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab) setInternalTab(activeTab);
+  }, [activeTab]);
 
   const {
     characters, locations, nodes,
@@ -74,6 +105,17 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
     setIntForm({ id: n.id, title: n.data.title, instruction: n.data.instruction });
     setPanel({ mode: "interaction", id: n.id });
   };
+
+  const openAdd = () => {
+    if (tab === "characters") openCharPanel();
+    else if (tab === "locations") openLocPanel();
+    else if (tab === "videos") addSceneNode();
+    else if (tab === "interactions") addInteractionNode();
+  };
+
+  useEffect(() => {
+    onRegisterActions?.({ openAdd });
+  }, [onRegisterActions, tab, addSceneNode, addInteractionNode]);
 
   /* Save handlers */
   const saveChar = () => {
@@ -190,8 +232,17 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
           e.target.value = "";
         }}
       />
-      <div className={cn("flex min-h-full flex-col text-white", embedded ? "bg-stage rounded-2xl border border-card-border" : "bg-[#0c0a0f]")}>
-        {!embedded && (
+      <div
+        className={cn(
+          "flex min-h-full flex-col text-white",
+          pageMode
+            ? "bg-transparent"
+            : embedded
+              ? "bg-stage rounded-2xl border border-card-border"
+              : "bg-[#0c0a0f]",
+        )}
+      >
+        {!embedded && !pageMode && (
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-5 py-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">素材库</p>
@@ -223,7 +274,7 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
         </header>
         )}
 
-        {embedded && (
+        {embedded && !pageMode && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border px-5 py-3">
             <p className="text-sm font-semibold text-ink-strong">素材库</p>
             <div className="flex flex-wrap items-center gap-2">
@@ -246,9 +297,29 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
           </div>
         )}
 
+        {pageMode && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] text-ink-muted">
+              拖拽卡片到故事图画布，可生成或移动节点。
+            </p>
+            <label className="inline-flex items-center gap-2 rounded-xl border border-card-border bg-panel px-3 py-2 text-sm text-ink-strong">
+              <Search size={14} className="text-ink-muted" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜索素材"
+                className="w-40 bg-transparent text-sm outline-none placeholder:text-ink-muted"
+              />
+            </label>
+          </div>
+        )}
+
         <div className="flex min-h-0 flex-1">
+          {!pageMode && (
           <aside className={cn("hidden w-44 shrink-0 border-r p-3 md:block", embedded ? "border-card-border" : "border-white/8")}>
-            <p className="px-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">类别</p>
+            <p className={cn("px-2 text-[10px] font-semibold uppercase tracking-wider", embedded ? "text-ink-muted" : "text-white/35")}>
+              类别
+            </p>
             <div className="mt-2 space-y-1">
               {(Object.keys(tabInfo) as AssetTab[]).map((key) => {
                 const { label, icon: Icon } = tabInfo[key];
@@ -268,7 +339,11 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                     onClick={() => setTab(key)}
                     className={cn(
                       "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition",
-                      tab === key ? "bg-accent/20 text-accent" : "text-white/50 hover:bg-white/6 hover:text-white/80",
+                      tab === key
+                        ? "bg-accent/20 text-accent"
+                        : embedded
+                          ? "text-ink-muted hover:bg-white/5 hover:text-ink-strong"
+                          : "text-white/50 hover:bg-white/6 hover:text-white/80",
                     )}
                   >
                     <Icon size={14} />
@@ -282,8 +357,10 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
               拖拽卡片到故事图画布空白处，即可生成节点（TapNow 式投放）。
             </p>
           </aside>
+          )}
 
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className={cn("flex-1 overflow-y-auto", pageMode ? "p-0" : "p-5")}>
+            {!pageMode && (
             <div className="mb-4 flex flex-wrap gap-1 md:hidden">
               {(Object.keys(tabInfo) as AssetTab[]).map((key) => {
                 const { label, icon: Icon } = tabInfo[key];
@@ -301,10 +378,11 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                 );
               })}
             </div>
+            )}
 
         {/* === Characters === */}
         {tab === "characters" && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className={portraitGridClass}>
             {filteredChars.map((c) => (
               <article
                 key={c.id}
@@ -318,21 +396,37 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                     referenceImage: c.referenceImage,
                   })
                 }
-                className="group cursor-grab overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft active:cursor-grabbing hover:border-accent/40 transition-all"
+                className={cn(
+                  "group relative isolate cursor-grab active:cursor-grabbing",
+                  portraitAspectClass,
+                  portraitShellClass,
+                )}
               >
-                <AssetPreviewFrame
-                  imageUrl={c.referenceImage}
-                  alt={c.name}
-                  placeholder={<Camera size={40} />}
-                  emptyHint="点击上传参考图"
-                  filledHint="点击预览"
-                  onAreaClick={() =>
+                <button
+                  type="button"
+                  className="absolute inset-0 z-0"
+                  title={c.referenceImage ? "点击预览" : "点击上传参考图"}
+                  onClick={() =>
                     handlePreviewAreaClick(c.referenceImage, c.name, {
                       type: "character",
                       id: c.id,
                     })
                   }
                 >
+                  {c.referenceImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.referenceImage}
+                      alt={c.name}
+                      className="size-full object-cover transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                    />
+                  ) : (
+                    <div className="de-project-matrix flex size-full items-center justify-center text-white/35">
+                      <Camera size={28} />
+                    </div>
+                  )}
+                </button>
+                <div className="absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-press ease-de-out group-hover:opacity-100">
                   <AssetCardActions>
                     <button
                       type="button"
@@ -340,7 +434,7 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         e.stopPropagation();
                         void handleGenerateReference("character", c);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
                       title="AI 生成参考图"
                     >
                       <Wand2 size={14} />
@@ -351,7 +445,7 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         e.stopPropagation();
                         openCharPanel(c);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
                     >
                       <PenLine size={14} />
                     </button>
@@ -362,29 +456,29 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         deleteCharacter(c.id);
                         setNotice(`已删除「${c.name}」`);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-red-500/85 text-white hover:bg-red-500"
                     >
                       <Trash2 size={14} />
                     </button>
                   </AssetCardActions>
-                </AssetPreviewFrame>
-                <div className="p-4">
-                  <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{c.role || "未设定"}</span>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{c.name}</h3>
-                  <p className="mt-1 line-clamp-3 text-sm leading-6 text-white/50">{c.description}</p>
-                  {c.age && <p className="mt-2 text-xs text-white/35">{c.age} 岁</p>}
+                </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3">
+                  <p className="truncate text-[11px] text-white/55">{c.role || "未设定"}</p>
+                  <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-5 text-white">{c.name}</h3>
+                  {c.age ? (
+                    <p className="mt-1 text-[11px] text-white/45">{c.age} 岁</p>
+                  ) : null}
                 </div>
               </article>
             ))}
-            <button onClick={() => openCharPanel()} className="grid min-h-[320px] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-white/35 hover:border-accent hover:text-accent hover:bg-accent/5 transition">
-              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加角色</span>
-            </button>
+            <AddAssetCard label="添加角色" onClick={() => openCharPanel()} />
           </div>
         )}
 
         {/* === Locations === */}
         {tab === "locations" && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className={portraitGridClass}>
             {filteredLocs.map((l) => (
               <article
                 key={l.id}
@@ -398,22 +492,37 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                     referenceImage: l.referenceImage,
                   })
                 }
-                className="group cursor-grab overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft active:cursor-grabbing hover:border-accent/40 transition-all"
+                className={cn(
+                  "group relative isolate cursor-grab active:cursor-grabbing",
+                  portraitAspectClass,
+                  portraitShellClass,
+                )}
               >
-                <AssetPreviewFrame
-                  imageUrl={l.referenceImage}
-                  alt={l.name}
-                  gradient="bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d_48%,#5a3d6e)]"
-                  placeholder={<MapPin size={40} />}
-                  emptyHint="点击上传参考图"
-                  filledHint="点击预览"
-                  onAreaClick={() =>
+                <button
+                  type="button"
+                  className="absolute inset-0 z-0"
+                  title={l.referenceImage ? "点击预览" : "点击上传参考图"}
+                  onClick={() =>
                     handlePreviewAreaClick(l.referenceImage, l.name, {
                       type: "location",
                       id: l.id,
                     })
                   }
                 >
+                  {l.referenceImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={l.referenceImage}
+                      alt={l.name}
+                      className="size-full object-cover transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                    />
+                  ) : (
+                    <div className="de-project-matrix flex size-full items-center justify-center text-white/35">
+                      <MapPin size={28} />
+                    </div>
+                  )}
+                </button>
+                <div className="absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-press ease-de-out group-hover:opacity-100">
                   <AssetCardActions>
                     <button
                       type="button"
@@ -421,7 +530,7 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         e.stopPropagation();
                         void handleGenerateReference("location", l);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-accent/90 text-white hover:bg-accent"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
                       title="AI 生成参考图"
                     >
                       <Wand2 size={14} />
@@ -432,7 +541,7 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         e.stopPropagation();
                         openLocPanel(l);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
                     >
                       <PenLine size={14} />
                     </button>
@@ -443,107 +552,207 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
                         deleteLocation(l.id);
                         setNotice(`已删除「${l.name}」`);
                       }}
-                      className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"
+                      className="btn-press grid size-8 place-items-center rounded-lg bg-red-500/85 text-white hover:bg-red-500"
                     >
                       <Trash2 size={14} />
                     </button>
                   </AssetCardActions>
-                </AssetPreviewFrame>
-                <div className="p-4">
-                  <span className="rounded-lg bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">{locationTypeLabels[l.type]}</span>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{l.name}</h3>
-                  <p className="mt-1 line-clamp-3 text-sm leading-6 text-white/50">{l.description}</p>
+                </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3">
+                  <p className="truncate text-[11px] text-white/55">{locationTypeLabels[l.type]}</p>
+                  <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-5 text-white">{l.name}</h3>
                 </div>
               </article>
             ))}
-            <button onClick={() => openLocPanel()} className="grid min-h-[320px] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-white/35 hover:border-accent hover:text-accent hover:bg-accent/5 transition">
-              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加地点</span>
-            </button>
+            <AddAssetCard label="添加地点" onClick={() => openLocPanel()} />
           </div>
         )}
 
         {/* === Videos === */}
         {tab === "videos" && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredScenes.map((s) => (
-              <article
-                key={s.id}
-                draggable
-                onDragStart={(e) =>
-                  setDramaAssetDragData(e.dataTransfer, {
-                    kind: "video",
-                    title: s.data.title,
-                    prompt: s.data.prompt,
-                    videoUrl: s.data.videoUrl,
-                    poster: s.data.firstFrameRef,
-                  })
-                }
-                className="group cursor-grab overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft active:cursor-grabbing hover:border-accent/40 transition-all"
-              >
-                <div className="relative aspect-[9/16] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#b94a6a)]">
-                  {s.data.videoUrl ? (
-                    <video src={s.data.videoUrl} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-white/40"><Film size={36} /></div>
+          <div className={portraitGridClass}>
+            {filteredScenes.map((s) => {
+              const poster = s.data.firstFrameRef;
+              return (
+                <article
+                  key={s.id}
+                  draggable
+                  onDragStart={(e) =>
+                    setDramaAssetDragData(e.dataTransfer, {
+                      kind: "video",
+                      title: s.data.title,
+                      prompt: s.data.prompt,
+                      videoUrl: s.data.videoUrl,
+                      poster: s.data.firstFrameRef,
+                    })
+                  }
+                  className={cn(
+                    "group relative isolate cursor-grab active:cursor-grabbing",
+                    portraitAspectClass,
+                    portraitShellClass,
                   )}
-                  <span className={cn("absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    s.data.status === "ready" ? "bg-emerald-500/90 text-white" : s.data.status === "generating" ? "bg-blue-500/90 text-white" : "bg-white/90 text-slate-700")}>{statusLabels[s.data.status]}</span>
-                  <div className="absolute bottom-0 right-0 z-10 p-3 opacity-0 transition group-hover:opacity-100">
+                >
+                  {s.data.videoUrl ? (
+                    <video
+                      src={s.data.videoUrl}
+                      className="absolute inset-0 z-0 size-full object-cover"
+                      muted
+                      playsInline
+                    />
+                  ) : poster && !poster.startsWith("mock://") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={poster}
+                      alt=""
+                      className="absolute inset-0 z-0 size-full object-cover transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                    />
+                  ) : (
+                    <div className="de-project-matrix absolute inset-0 z-0 flex size-full items-center justify-center text-white/35">
+                      <Film size={28} />
+                    </div>
+                  )}
+                  <span
+                    className={cn(
+                      "absolute right-2 top-2 z-30 rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 backdrop-blur-sm",
+                      s.data.status === "ready" && "text-emerald-200",
+                      s.data.status === "generating" && "text-sky-200",
+                    )}
+                  >
+                    {statusLabels[s.data.status]}
+                  </span>
+                  <div className="absolute left-2 top-2 z-30 opacity-0 transition-opacity duration-press ease-de-out group-hover:opacity-100">
                     <AssetCardActions>
-                      <button onClick={() => openVideoPanel(s as StoryNode & { kind: "scene" })} className="grid size-8 place-items-center rounded-lg bg-white/90 text-ink hover:bg-white"><PenLine size={14} /></button>
-                      <button onClick={() => { useWorldBuilderStore.getState().deleteNode(s.id); setNotice(`已删除「${s.data.title}」`); }} className="grid size-8 place-items-center rounded-lg bg-red-500/90 text-white hover:bg-red-600"><Trash2 size={14} /></button>
+                      <button
+                        type="button"
+                        onClick={() => openVideoPanel(s as StoryNode & { kind: "scene" })}
+                        className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
+                      >
+                        <PenLine size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          useWorldBuilderStore.getState().deleteNode(s.id);
+                          setNotice(`已删除「${s.data.title}」`);
+                        }}
+                        className="btn-press grid size-8 place-items-center rounded-lg bg-red-500/85 text-white hover:bg-red-500"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </AssetCardActions>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-white">{s.data.title}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-white/50">{s.data.prompt}</p>
-                </div>
-              </article>
-            ))}
-            <button onClick={() => addSceneNode()} className="grid min-h-[400px] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-white/35 hover:border-accent hover:text-accent hover:bg-accent/5 transition">
-              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加视频节点</span>
-            </button>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-white">{s.data.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-white/50">{s.data.prompt}</p>
+                  </div>
+                </article>
+              );
+            })}
+            <AddAssetCard label="添加视频" onClick={() => addSceneNode()} />
           </div>
         )}
 
         {/* === Interactions === */}
         {tab === "interactions" && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredInts.map((n) => (
-              <article key={n.id} className="group overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft hover:border-accent/40 transition-all">
-                <div className="bg-[linear-gradient(135deg,#1a0f2e,#2d1b3d,#3d1b4e)] p-5 text-white">
-                  <MousePointerClick size={24} className="text-accent" />
-                  <h3 className="mt-3 text-lg font-semibold">{n.data.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/60">{n.data.instruction}</p>
-                  <p className="mt-3 text-xs text-white/40">{(n.data as InteractionNodeData).options.length} 个选项</p>
-                </div>
-                <div className="flex justify-end gap-1 p-3 opacity-0 group-hover:opacity-100 transition">
-                  <button onClick={() => openIntPanel(n as StoryNode & { kind: "interaction" })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 hover:bg-white/8"><PenLine size={12} /> 编辑</button>
-                  <button onClick={() => { useWorldBuilderStore.getState().deleteNode(n.id); setNotice(`已删除「${n.data.title}」`); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"><Trash2 size={12} /> 删除</button>
-                </div>
-              </article>
-            ))}
-            <button onClick={() => addInteractionNode()} className="grid min-h-[200px] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-white/35 hover:border-accent hover:text-accent hover:bg-accent/5 transition">
-              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加交互节点</span>
-            </button>
+          <div className={portraitGridClass}>
+            {filteredInts.map((n) => {
+              const optionCount = (n.data as InteractionNodeData).options.length;
+              const preview = n.data.firstFrameRef || n.data.lastFrameRef || n.data.loopVideoUrl;
+              return (
+                <article
+                  key={n.id}
+                  draggable
+                  onDragStart={(e) =>
+                    setDramaAssetDragData(e.dataTransfer, {
+                      kind: "interaction",
+                      title: n.data.title,
+                      instruction: n.data.instruction,
+                      prompt: n.data.instruction,
+                      nodeId: n.id,
+                    })
+                  }
+                  className={cn(
+                    "group relative isolate cursor-grab active:cursor-grabbing",
+                    portraitAspectClass,
+                    portraitShellClass,
+                  )}
+                >
+                  {preview && !String(preview).startsWith("mock://") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={String(preview)}
+                      alt=""
+                      className="absolute inset-0 z-0 size-full object-cover transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                    />
+                  ) : (
+                    <div className="de-project-matrix absolute inset-0 z-0 flex size-full flex-col items-center justify-center gap-2 text-white/35">
+                      <MousePointerClick size={28} />
+                    </div>
+                  )}
+                  <div className="absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-press ease-de-out group-hover:opacity-100">
+                    <AssetCardActions>
+                      <button
+                        type="button"
+                        onClick={() => openIntPanel(n as StoryNode & { kind: "interaction" })}
+                        className="btn-press grid size-8 place-items-center rounded-lg bg-black/55 text-white backdrop-blur-sm hover:bg-black/70"
+                      >
+                        <PenLine size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          useWorldBuilderStore.getState().deleteNode(n.id);
+                          setNotice(`已删除「${n.data.title}」`);
+                        }}
+                        className="btn-press grid size-8 place-items-center rounded-lg bg-red-500/85 text-white hover:bg-red-500"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </AssetCardActions>
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] text-white/55">交互</p>
+                      <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-5 text-white">
+                        {n.data.title}
+                      </h3>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-white/55">{optionCount} 选项</span>
+                  </div>
+                </article>
+              );
+            })}
+            <AddAssetCard label="添加交互" onClick={() => addInteractionNode()} />
           </div>
         )}
 
         {/* === References === */}
         {tab === "references" && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <article className="overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft">
-              <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#b94a6a)] flex items-center justify-center"><ImagePlus size={40} className="text-white/40" /></div>
-              <div className="p-4"><h3 className="font-semibold text-white">世界封面</h3><p className="mt-1 text-sm text-white/50">App 首页、故事详情页和分享卡片</p></div>
+          <div className={portraitGridClass}>
+            <article className={cn("group relative isolate", portraitAspectClass, portraitShellClass)}>
+              <div className="de-project-matrix absolute inset-0 z-0 flex size-full items-center justify-center text-white/35">
+                <ImagePlus size={28} />
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 z-30 p-3">
+                <h3 className="text-sm font-semibold text-white">世界封面</h3>
+                <p className="mt-1 text-[11px] text-white/50">App 首页与分享卡片</p>
+              </div>
             </article>
-            <article className="overflow-hidden rounded-2xl border border-white/10 bg-[#16141c] shadow-soft">
-              <div className="relative aspect-[4/3] bg-[linear-gradient(135deg,#2d1b3d,#1a0f2e_48%,#3d1b4e)] flex items-center justify-center"><Wand2 size={40} className="text-white/40" /></div>
-              <div className="p-4"><h3 className="font-semibold text-white">风格参考板</h3><p className="mt-1 text-sm text-white/50">统一视觉风格，确保生成内容一致性</p></div>
+            <article className={cn("group relative isolate", portraitAspectClass, portraitShellClass)}>
+              <div className="de-project-matrix absolute inset-0 z-0 flex size-full items-center justify-center text-white/35">
+                <Wand2 size={28} />
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 z-30 p-3">
+                <h3 className="text-sm font-semibold text-white">风格参考板</h3>
+                <p className="mt-1 text-[11px] text-white/50">统一视觉风格</p>
+              </div>
             </article>
-            <button className="grid min-h-[280px] place-items-center rounded-2xl border-2 border-dashed border-white/15 text-white/35 hover:border-accent hover:text-accent hover:bg-accent/5 transition">
-              <span className="flex flex-col items-center gap-3"><Plus size={28} />添加参考</span>
-            </button>
+            <AddAssetCard label="添加参考" onClick={() => undefined} />
           </div>
         )}
 
@@ -702,67 +911,5 @@ export function AssetsDock({ embedded = false, projectId }: AssetsDockProps) {
 }
 
 function AssetCardActions({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex gap-1 rounded-xl bg-gradient-to-t from-black/40 to-transparent p-1">
-      {children}
-    </div>
-  );
-}
-
-function AssetPreviewFrame({
-  imageUrl,
-  alt,
-  placeholder,
-  emptyHint,
-  filledHint,
-  onAreaClick,
-  gradient = "bg-[linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)]",
-  aspectClass = "aspect-[4/3]",
-  children,
-}: {
-  imageUrl?: string;
-  alt: string;
-  placeholder: ReactNode;
-  emptyHint: string;
-  filledHint: string;
-  onAreaClick: () => void;
-  gradient?: string;
-  aspectClass?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <div className={cn("relative overflow-hidden", aspectClass, gradient)}>
-      <button
-        type="button"
-        onClick={onAreaClick}
-        title={imageUrl ? filledHint : emptyHint}
-        className="group/preview relative z-0 block h-full w-full cursor-pointer text-left"
-      >
-        {imageUrl ? (
-          <>
-            <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover/preview:bg-black/20 group-hover/preview:opacity-100">
-              <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white">
-                <ZoomIn size={14} /> {filledHint}
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex h-full items-center justify-center text-white/40">{placeholder}</div>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover/preview:bg-black/15 group-hover/preview:opacity-100">
-              <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white">
-                <Upload size={14} /> {emptyHint}
-              </span>
-            </div>
-          </>
-        )}
-      </button>
-      {children && (
-        <div className="absolute bottom-0 right-0 z-10 p-3 opacity-0 transition group-hover:opacity-100">
-          {children}
-        </div>
-      )}
-    </div>
-  );
+  return <div className="flex gap-1">{children}</div>;
 }

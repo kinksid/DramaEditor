@@ -16,10 +16,21 @@ export function StoryGraphShell({ children }: Props) {
   const pollGenerationTasks = useWorldBuilderStore((state) => state.pollGenerationTasks);
   const hasHydrated = useWorldBuilderStore((state) => state.hasHydrated);
   const resetStaleGenerationStates = useWorldBuilderStore((state) => state.resetStaleGenerationStates);
+  const activeProjectId = useWorldBuilderStore((state) => state.activeProjectId);
+  const markProjectOpened = useWorldBuilderStore((state) => state.markProjectOpened);
 
   useEffect(() => {
     void useProviderSettingsStore.getState().loadFromServer();
   }, []);
+
+  // 进入 / 退出故事图时刷新 lastOpenedAt，工作空间「最近的项目」按最后退出排序
+  useEffect(() => {
+    if (!activeProjectId) return;
+    markProjectOpened(activeProjectId);
+    return () => {
+      markProjectOpened(activeProjectId);
+    };
+  }, [activeProjectId, markProjectOpened]);
 
   useEffect(() => {
     if (hasHydrated) {
@@ -37,7 +48,7 @@ export function StoryGraphShell({ children }: Props) {
   }, [pendingGenerationTasks.length, pollGenerationTasks]);
 
   return (
-    <div className="h-screen overflow-hidden bg-black text-white">
+    <div className="flex h-screen flex-col overflow-hidden bg-black text-white">
       {children}
       <AccountModalHost />
     </div>

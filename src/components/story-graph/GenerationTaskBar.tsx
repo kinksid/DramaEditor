@@ -53,7 +53,7 @@ export function GenerationTaskBar() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-3">
-      <div className="pointer-events-auto flex max-w-[min(920px,94%)] items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#121016]/92 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <div className="pointer-events-auto flex max-w-[min(920px,94%)] items-center gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#121016]/92 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
         <div className="flex shrink-0 items-center gap-1.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
           <Clapperboard size={12} />
           任务

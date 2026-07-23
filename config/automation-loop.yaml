@@ -1,12 +1,13 @@
-# DramaEditor 15-minute loop — Studio 世界详情功能+UI/UX 复刻
+# DramaEditor daily sync loop — Studio 世界详情功能+UI/UX 复刻
+# Skills: webapp-testing + skills-zh/diagnose (+ emil-design-eng for UI)
 # Primary: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
 # 流程：Inspect → List → Modify → Debug → Review → Verify → Commit
 
 automation:
-  interval_cron: "*/15 * * * *"
+  interval_cron: "0 9 * * *"
   timezone: Asia/Shanghai
   max_items_per_run: 1
-  max_iterations_per_day: 288
+  max_iterations_per_day: 1
   early_exit_if_no_high: true
   branch: automation/hourly-inspection
   repo: kinksid/DramaEditor
@@ -90,15 +91,22 @@ drama_editor:
   verify:
     always:
       - npm run typecheck
+      - npm run test:webapp
     when_ui_changed:
       - npm run inspect:hourly
+  skills:
+    - .cursor/skills/webapp-testing
+    - .cursor/skills/skills-zh/skills/engineering/diagnose
+    - .cursor/skills/emil-design-eng
   reference_primary: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
   prompt_file: config/automation-prompt.md
 
 rules:
   - 每轮必须对照主目标世界页 https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee 及其子层级 + 本地对应路由（能开则开）
   - 功能/像素差写入 gap（area=feature_flow|ui_studio|visual_ia），每轮最多修 1 条 high
+  - 先 `npm run test:webapp`；失败按 skills-zh/diagnose 建反馈环再改
+  - UI 改动遵守 emil-design-eng + cinema dark 可读对比（禁止白底白字 / accent 白字）
   - 遵守 C1–C4；勿推翻 confirmed_decisions
   - 无 high/open 且验证通过 → 心跳总结后退出
   - 本机：pull + 验证 + 心跳；默认不 push
-  - 门禁文件：reports/studio-gap-latest.json
+  - 门禁文件：reports/studio-gap-latest.json / reports/webapp-smoke/latest.json

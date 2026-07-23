@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-07-23 10:18:00 Asia/Shanghai",
+  "updatedAt": "2026-07-23 10:35:00 Asia/Shanghai",
   "sourceRepo": "kinksid/DramaEditor",
   "branch": "automation/hourly-inspection",
   "references": {
@@ -50,7 +50,7 @@
       "area": "ui_studio",
       "route": "/world-builder/stories/[storyId]/characters|locations/:id",
       "gap": "Character/Location Studio 子页与 Studio 像素细节仍有微差",
-      "evidence": "2026-07-22 audit: 四栏布局+World builder 侧栏已落地；Face/IMAGES 生成依赖 API",
+      "evidence": "2026-07-23: CharacterStudio aligned to Studio field schema (Physical Eyes/Hair/…, Body/Wardrobe structured), w-[360px] header card, Face 3-up turnaround copy",
       "suggestedFix": "15-min loop 继续像素微调",
       "status": "fixed"
     },
@@ -120,8 +120,8 @@
       "area": "ui_studio",
       "route": "/world-builder/stories/[storyId]",
       "gap": "故事工作台右侧助手 vs Studio World builder 全量流水线 UI 仍有差距",
-      "evidence": "2026-07-23: embedded CharacterStudioWorldBuilderPanel + publish strip on story desk",
-      "suggestedFix": "Optional: embed CharacterStudioWorldBuilderPanel on story desk",
+      "evidence": "2026-07-23: user removed World builder + publish rail from story desk; panel remains on Character/Location Studio",
+      "suggestedFix": "Keep World builder on Character/Location Studio only",
       "status": "fixed"
     }
   ]

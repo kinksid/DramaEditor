@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Local half of the dual 15-minute loop.
+ * Local half of the dual daily sync loop.
  * - Pulls cloud commits into /Volumes/YANG/DramaEditor (ff-only)
  * - Writes heartbeat
- * - Runs typecheck when high gaps exist (or always light check)
+ * - Runs typecheck + webapp smoke when high gaps exist
  * Does NOT push to GitHub (cloud Automation owns remote writes).
  */
 import { spawn } from "node:child_process";
@@ -16,7 +16,7 @@ const ROOT = process.env.DRAMAEDITOR_ROOT ?? "/Volumes/YANG/DramaEditor";
 const LOGS = path.join(ROOT, "logs");
 const HEARTBEAT = path.join(LOGS, "automation_heartbeat.log");
 const GAP_FILE = path.join(ROOT, "reports", "studio-gap-latest.json");
-const BRANCH = "main";
+const BRANCH = "automation/hourly-inspection";
 
 function stamp() {
   return new Intl.DateTimeFormat("sv-SE", {
@@ -98,14 +98,21 @@ async function main() {
 
   const highOpen = await readHighOpenGaps();
   let verifyNote = "verify_skipped_no_high";
+  // Light smoke every local tick (webapp-testing); typecheck when high gaps open
+  const smoke = await run("npm", ["run", "test:webapp"]);
+  const smokeNote =
+    smoke.code === 0
+      ? "webapp_smoke_ok"
+      : `webapp_smoke_failed:${(smoke.stderr || smoke.stdout).slice(0, 160).replace(/\s+/g, " ")}`;
+
   if (highOpen.length > 0) {
     const tc = await run("npm", ["run", "typecheck"]);
     verifyNote =
       tc.code === 0
-        ? `typecheck_ok gaps=${highOpen.map((g) => g.id).join(",")}`
-        : `typecheck_failed gaps=${highOpen.map((g) => g.id).join(",")}`;
+        ? `typecheck_ok gaps=${highOpen.map((g) => g.id).join(",")} ${smokeNote}`
+        : `typecheck_failed gaps=${highOpen.map((g) => g.id).join(",")} ${smokeNote}`;
   } else {
-    verifyNote = "early_exit_no_high_open";
+    verifyNote = `early_exit_no_high_open ${smokeNote}`;
   }
 
   const head = await run("git", ["rev-parse", "--short", "HEAD"]);

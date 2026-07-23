@@ -50,7 +50,12 @@ export type GenerateTask = {
   resultUrl?: string;
   error?: string;
   nodeId?: string;
-  targetField?: "videoUrl" | "firstFrameRef" | "referenceImage" | "loopVideoUrl";
+  targetField?:
+    | "videoUrl"
+    | "firstFrameRef"
+    | "lastFrameRef"
+    | "referenceImage"
+    | "loopVideoUrl";
   targetEntityId?: string;
   createdAt: string;
   updatedAt: string;
@@ -128,6 +133,7 @@ export type VideoGenerateInput = {
   duration?: number;
   aspectRatio?: string;
   firstFrameRef?: string;
+  lastFrameRef?: string;
   referenceImageUrls?: string[];
 };
 

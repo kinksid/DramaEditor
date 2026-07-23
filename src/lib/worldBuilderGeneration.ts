@@ -57,22 +57,30 @@ export function applyCompletedTaskToState(
         };
         if (task.targetField === "firstFrameRef") {
           patch.firstFrameRef = resultUrl;
+          if (!node.data.lastFrameRef) patch.lastFrameRef = resultUrl;
+        } else if (task.targetField === "lastFrameRef") {
+          patch.lastFrameRef = resultUrl;
         } else {
           patch.videoUrl = resultUrl;
           patch.status = "ready";
         }
         return { ...node, data: { ...node.data, ...patch } };
       }
-      if (node.kind === "interaction" && task.targetField === "loopVideoUrl") {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            loopVideoUrl: resultUrl,
-            activeGenerationTaskId: undefined,
-            generationHistory: appendGenerationHistory(node.data.generationHistory, historyEntry),
-          },
+      if (node.kind === "interaction") {
+        const patch: Partial<typeof node.data> = {
+          activeGenerationTaskId: undefined,
+          generationHistory: appendGenerationHistory(node.data.generationHistory, historyEntry),
         };
+        if (task.targetField === "firstFrameRef") {
+          patch.firstFrameRef = resultUrl;
+          // 互动循环默认首尾同帧，便于无缝 loop
+          if (!node.data.lastFrameRef) patch.lastFrameRef = resultUrl;
+        } else if (task.targetField === "lastFrameRef") {
+          patch.lastFrameRef = resultUrl;
+        } else if (task.targetField === "loopVideoUrl" || task.kind === "video") {
+          patch.loopVideoUrl = resultUrl;
+        }
+        return { ...node, data: { ...node.data, ...patch } };
       }
       return node;
     });

@@ -1,16 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { WorldBuilderLayout } from "@/components/world-builder/WorldBuilderLayout";
-import { WorldHero } from "@/components/world-builder/WorldHero";
-import { WorldTabs } from "@/components/world-builder/WorldTabs";
-
+/** 旧世界桌面入口已废弃，统一进入工作空间 */
 export default function WorldBuilderPage() {
-  return (
-    <WorldBuilderLayout>
-      <div className="mx-auto max-w-7xl px-6 py-6">
-        <WorldHero />
-        <WorldTabs />
-      </div>
-    </WorldBuilderLayout>
-  );
+  redirect("/world-builder/worlds");
 }

@@ -7,7 +7,7 @@ import { Bell, Clapperboard, Home, LayoutGrid, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TopBarUserMenu } from "@/components/world-builder/TopBarUserMenu";
 
-const TOP_BAR_HEIGHT = "h-14";
+const TOP_BAR_HEIGHT = "h-16";
 
 function TopBarInner() {
   const pathname = usePathname();
@@ -92,11 +92,15 @@ function TopBarInner() {
           <div className="flex h-full min-w-0 flex-1 items-center justify-start gap-2">
             <Link
               href="/world-builder/home"
-              className="inline-flex items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-accent-soft/60"
+              className="inline-flex items-center gap-2.5 rounded-lg px-1 py-1 transition hover:bg-white/[0.04]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="DramaEditor" className="size-8 object-contain" />
-              <span className="hidden text-sm font-semibold tracking-tight text-ink-strong sm:inline">
+              <img
+                src="/logo.png"
+                alt="DramaEditor"
+                className="size-[3.2rem] object-contain"
+              />
+              <span className="henny-penny-regular hidden text-[1.4rem] leading-none text-ink-strong sm:inline">
                 DramaEditor
               </span>
             </Link>
@@ -157,4 +161,4 @@ export function TopBar() {
   );
 }
 
-export const TOP_BAR_OFFSET_CLASS = "pt-14";
+export const TOP_BAR_OFFSET_CLASS = "pt-16";

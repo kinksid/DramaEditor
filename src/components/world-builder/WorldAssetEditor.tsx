@@ -9,9 +9,12 @@ import { cn } from "@/lib/utils";
 import { useWorldBuilderStore } from "@/stores/worldBuilderStore";
 import type { Character, CharacterChatConfig, Location } from "@/types/worldBuilder";
 
-export const portraitGridClass = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4";
+/** 与工作空间项目卡同一套网格 / 比例 / 壳层 */
+export const portraitGridClass =
+  "grid w-full max-w-[1020px] grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4";
 export const portraitAspectClass = "aspect-[9/16] w-full";
-export const portraitShellClass = "overflow-hidden rounded-[16px] border border-white/10 bg-[#18181B]";
+export const portraitShellClass =
+  "overflow-hidden rounded-[16px] border border-transparent bg-[#18181B] transition hover:border-white/30";
 export const landscapeGridClass = "grid grid-cols-1 gap-3 sm:grid-cols-2";
 export const landscapeAspectClass = "aspect-[16/9] w-full";
 
@@ -32,16 +35,16 @@ export function AddAssetCard({
       type="button"
       onClick={onClick}
       className={cn(
+        "btn-press group flex flex-col items-center justify-center gap-2",
         aspectClass,
         portraitShellClass,
-        "group flex flex-col border-white/10 bg-gradient-to-br from-[#121018] via-[#141014] to-[#1a1218] text-white/55 transition hover:border-white/20 hover:text-white/80",
         className,
       )}
     >
-      <span className="flex flex-1 flex-col items-center justify-center gap-3">
-        <Plus size={28} strokeWidth={1.25} />
-        <span className="text-sm">{label}</span>
+      <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition-transform duration-press ease-de-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100">
+        <Plus size={22} strokeWidth={2.5} className="text-black" />
       </span>
+      <span className="text-sm font-medium text-white/90">{label}</span>
     </button>
   );
 }
@@ -118,7 +121,7 @@ function CharacterPortraitCard({
 
   return (
     <article
-      className={cn(portraitAspectClass, portraitShellClass, "flex cursor-pointer flex-col bg-[#0a0a0a] transition hover:border-white/20")}
+      className={cn(portraitAspectClass, portraitShellClass, "relative isolate flex cursor-pointer flex-col")}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

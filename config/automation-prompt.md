@@ -1,10 +1,11 @@
-# DramaEditor · 15 分钟 Studio 世界详情复刻环
+# DramaEditor · 每日 Studio 世界详情复刻同步环
 
-你是 DramaEditor 的定时云端 Agent。
+你是 DramaEditor 的定时云端 Agent（每天一次）。
 仓库：kinksid/DramaEditor · 分支：automation/hourly-inspection
-门禁：reports/studio-gap-latest.json
+门禁：reports/studio-gap-latest.json · reports/webapp-smoke/latest.json
 基线：reports/studio-pixel-baseline.md
 配置：config/automation-loop.yaml
+技能：`.cursor/skills/webapp-testing` · `.cursor/skills/skills-zh/skills/engineering/diagnose` · `.cursor/skills/emil-design-eng`
 
 ## 对照源
 
@@ -16,31 +17,34 @@
 2. 辅证：https://www.dreem-world.ai/ · Studio 根壳 https://studio.dreem-world.ai/  
 3. TapNow/TapTV 仅作画布交互补强（C4：TapTV 本地壳）
 
-## 每轮流程（≤15 分钟）
+## 每轮流程（每天一次）
 
 **Inspect → List → Modify → Debug → Review → Verify → Commit**
 
-1. **Inspect**  
+1. **Inspect**（webapp-testing）  
+   - 跑 `npm run test:webapp`；读 `reports/webapp-smoke/latest.json`  
    - 读 `reports/studio-gap-latest.json`、`reports/studio-pixel-baseline.md`、`errors/`、`fixes/fix_log.json`  
    - 尽量用浏览器打开主目标世界页 + 本地对应页，对比布局/字号/间距/色板/组件态  
    - SPA 登录墙：用基线 + 公开壳写证据，不臆造未证实控件
 
 2. **List**  
-   - 刷新 gap：像素差 `area=ui_studio|visual_ia`，功能差 `feature_flow`（相对主目标世界页）  
+   - 刷新 gap：像素差 `area=ui_studio|visual_ia`，功能差 `feature_flow`，冒烟失败 `webapp_smoke`  
    - 字段：`id, priority, area, route, gap, evidence, suggestedFix, status`  
    - 未确认产品项保持 open，勿擅自关闭
 
-3. **Modify**  
+3. **Modify**（diagnose：先反馈环再改）  
    - 每轮最多 **1** 条：`priority=high` 且 `status=open`  
-   - 优先主目标世界详情及其子层级；禁止无关全站大重构
+   - 优先主目标世界详情及其子层级；禁止无关全站大重构  
+   - UI：cinema dark 可读对比；禁止白底白字 / `bg-accent`+`text-white`
 
 4. **Debug**  
    - `npm run typecheck`  
-   - UI 改动尽量 `npm run inspect:hourly`（超时记报告，勿假绿）
+   - 再跑 `npm run test:webapp`  
+   - UI 大改可加 `npm run inspect:hourly`（超时记报告，勿假绿）
 
-5. **Review**  
-   - 路由回归（worlds / world detail tabs / stories params）  
-   - 主题勿回潮粉紫；字体保持 Public Sans / Instrument Serif  
+5. **Review**（emil-design-eng）  
+   - 路由回归（worlds / world detail tabs / stories / setup / story-graph）  
+   - 主题勿回潮粉紫；press / ease-out 不滥动画键盘动作  
    - 密钥不进仓
 
 6. **Verify → Commit**  

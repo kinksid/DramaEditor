@@ -63,6 +63,7 @@ async function runSeedanceVideo(taskId: string, config: ProviderConfig, input: V
       duration: input.duration ?? 5,
       aspectRatio: input.aspectRatio ?? "9:16",
       firstFrameRef: input.firstFrameRef,
+      lastFrameRef: input.lastFrameRef,
       referenceImages: input.referenceImageUrls,
     }),
   });

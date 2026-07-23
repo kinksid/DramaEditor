@@ -7,7 +7,14 @@ dist
 !.env.example
 !.env.local.example
 
-.cursor/
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
 public/uploads
 data/
 .DS_Store
+**/._*
+._*
+logs/*.log
+logs/*.pid
+reports/webapp-smoke/

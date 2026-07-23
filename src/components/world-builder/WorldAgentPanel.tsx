@@ -98,26 +98,28 @@ export function WorldAgentPanel({ mode }: Props) {
           );
         })}
       </div>
-      <div className="mt-5 rounded-2xl bg-accent-soft p-4">
-        <p className="text-sm leading-6 text-slate-700">
+      <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+        <p className="text-sm leading-6 text-white/65">
           根据剧本建议 scene / interaction 节点链，手动触发生成视频。
         </p>
         <div className="mt-3 flex gap-2">
           <button
+            type="button"
             onClick={handleSuggestChain}
             disabled={loading}
-            className="rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="btn-cta btn-press rounded-xl px-3 py-2 text-sm font-semibold disabled:opacity-60"
           >
-            {loading ? "分析中..." : "建链建议"}
+            {loading ? "分析中…" : "建链建议"}
           </button>
           <button
+            type="button"
             onClick={generateAllMockVideos}
-            className="rounded-xl border border-card-border bg-card px-3 py-2 text-sm text-ink-muted"
+            className="btn-press rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white"
           >
             批量生成
           </button>
         </div>
-        {agentMessage && <p className="mt-3 text-xs leading-5 text-ink-muted">{agentMessage}</p>}
+        {agentMessage && <p className="mt-3 text-xs leading-5 text-white/45">{agentMessage}</p>}
       </div>
       <div className="mt-4 space-y-2 text-sm">
         {[
@@ -145,9 +147,10 @@ export function WorldAgentPanel({ mode }: Props) {
             <Plus size={16} />
           </button>
           <button
+            type="button"
             onClick={handleSuggestChain}
             disabled={loading}
-            className="grid size-8 place-items-center rounded-lg bg-accent text-white disabled:opacity-60"
+            className="btn-cta btn-press grid size-8 place-items-center rounded-lg disabled:opacity-60"
           >
             <SendHorizontal size={15} />
           </button>

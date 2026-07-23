@@ -11,7 +11,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     if (activeProjectId) {
-      router.replace(`/world-builder/stories/${activeProjectId}?tab=assets`);
+      router.replace(`/world-builder/stories/${activeProjectId}?tab=characters`);
       return;
     }
     router.replace("/world-builder/worlds");

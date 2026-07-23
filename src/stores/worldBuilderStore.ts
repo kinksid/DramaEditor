@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import {
   seedCharacters,
@@ -28,6 +28,8 @@ import {
 } from "@/lib/worldBuilderSyncClient";
 import type { SharedWorldBuilderState } from "@/types/worldBuilderSync";
 import { analyzeScript, buildStoryGraphFromAnalysis } from "@/lib/scriptAnalysis";
+import { applyEpisodeBranchLabels } from "@/lib/episodeBranchLabels";
+import { layoutConnectedStoryGraph } from "@/lib/storyGraphLayout";
 import {
   collectReferenceImageUrls,
   applyCompletedTaskToState,
@@ -63,6 +65,132 @@ import type {
 
 const STORE_VERSION = 6;
 
+/** 过大的 data URL 不进 localStorage，避免 QuotaExceeded 拖垮页面 */
+const stripHeavyDataUrl = (value?: string) => {
+  if (!value) return value;
+  if (value.startsWith("data:") && value.length > 24_000) return undefined;
+  return value;
+};
+
+const slimProjectForPersist = <T extends WorldProject>(project: T): T =>
+  ({
+    ...project,
+    world: {
+      ...project.world,
+      coverImage: stripHeavyDataUrl(project.world.coverImage),
+    },
+    characters: project.characters.map((c) => ({
+      ...c,
+      referenceImage: stripHeavyDataUrl(c.referenceImage),
+      previewImage: stripHeavyDataUrl(c.previewImage),
+      turnaroundImages: c.turnaroundImages?.map((img) => stripHeavyDataUrl(img) ?? ""),
+    })),
+    locations: project.locations.map((l) => ({
+      ...l,
+      referenceImage: stripHeavyDataUrl(l.referenceImage),
+      angleImages: l.angleImages?.map((img) => stripHeavyDataUrl(img) ?? ""),
+    })),
+    nodes: project.nodes.map((node) => {
+      if (node.kind === "scene") {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            firstFrameRef: stripHeavyDataUrl(node.data.firstFrameRef),
+            videoUrl: stripHeavyDataUrl(node.data.videoUrl),
+            generationHistory: undefined,
+          },
+        };
+      }
+      if (node.kind === "interaction") {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            firstFrameRef: stripHeavyDataUrl(node.data.firstFrameRef),
+            lastFrameRef: stripHeavyDataUrl(node.data.lastFrameRef),
+            loopVideoUrl: stripHeavyDataUrl(node.data.loopVideoUrl),
+            generationHistory: undefined,
+          },
+        };
+      }
+      return node;
+    }),
+    references: (project.references ?? []).map((ref) => ({
+      ...ref,
+      url: stripHeavyDataUrl(ref.url) ?? ref.url,
+    })),
+  }) as T;
+
+const safePersistStorage = createJSONStorage(() => ({
+  getItem: (name) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch {
+      // 配额满：尝试瘦身后写入；仍失败则放弃持久化，避免抛穿 React
+      try {
+        const parsed = JSON.parse(value) as { state?: PersistedWorldBuilderState };
+        if (parsed?.state) {
+          const slim = {
+            ...parsed,
+            state: {
+              ...parsed.state,
+              world: {
+                ...parsed.state.world,
+                coverImage: stripHeavyDataUrl(parsed.state.world?.coverImage),
+              },
+              projects: (parsed.state.projects ?? []).map((p) => slimProjectForPersist(p)),
+              characters: (parsed.state.characters ?? []).map((c) => ({
+                ...c,
+                referenceImage: stripHeavyDataUrl(c.referenceImage),
+                previewImage: stripHeavyDataUrl(c.previewImage),
+              })),
+              locations: (parsed.state.locations ?? []).map((l) => ({
+                ...l,
+                referenceImage: stripHeavyDataUrl(l.referenceImage),
+              })),
+              nodes: slimProjectForPersist({
+                id: "tmp",
+                name: "",
+                createdAt: "",
+                updatedAt: "",
+                setupDraft: parsed.state.setupDraft!,
+                characters: [],
+                locations: [],
+                episodes: parsed.state.episodes ?? [],
+                nodes: parsed.state.nodes ?? [],
+                edges: parsed.state.edges ?? [],
+                world: parsed.state.world!,
+                references: [],
+                decomposeStatus: "idle" as const,
+              }).nodes,
+            },
+          };
+          localStorage.setItem(name, JSON.stringify(slim));
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      console.warn("[persist] localStorage quota exceeded; skip write for", name);
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {
+      /* ignore */
+    }
+  },
+}));
+
 export type WorldBuilderState = {
   world: World;
   characters: Character[];
@@ -88,6 +216,13 @@ export type WorldBuilderState = {
     prompt: string,
   ) => Promise<string | null>;
   submitSceneFirstFrame: (nodeId: string) => Promise<string | null>;
+  /** 生成/重绘节点首帧或尾帧 */
+  submitNodeFrame: (
+    nodeId: string,
+    field: "firstFrameRef" | "lastFrameRef",
+  ) => Promise<string | null>;
+  /** 互动节点：用首尾帧生成数秒循环视频 */
+  submitInteractionLoopVideo: (nodeId: string) => Promise<string | null>;
   pollGenerationTasks: () => Promise<void>;
   resetStaleGenerationStates: () => void;
   applyGenerationHistory: (nodeId: string, entryId: string) => void;
@@ -105,9 +240,15 @@ export type WorldBuilderState = {
   addLocation: (location: Omit<Location, "id">) => string;
   updateLocation: (id: string, location: Partial<Location>) => void;
   deleteLocation: (id: string) => void;
-  addEpisode: (episode: Omit<Episode, "id" | "index">) => void;
+  addEpisode: (episode: Omit<Episode, "id" | "index">) => string;
   updateEpisode: (id: string, episode: Partial<Episode>) => void;
   deleteEpisode: (id: string) => void;
+  /** 复制整集（含节点与集内连线） */
+  duplicateEpisode: (id: string) => string | null;
+  /** 将整集复制到其他项目 */
+  copyEpisodeToProject: (episodeId: string, projectId: string) => boolean;
+  /** 按连线拓扑同步并列分支标签（2a/2b） */
+  syncEpisodeBranchLabels: () => void;
   addSceneNode: (episodeId?: string) => void;
   addInteractionNode: (episodeId?: string) => void;
   addEndingNode: (episodeId?: string) => void;
@@ -119,18 +260,32 @@ export type WorldBuilderState = {
   updateNodePositions: (positions: Array<{ id: string; position: CanvasPosition }>) => void;
   autoLayoutEpisodes: () => void;
   deleteNode: (id: string) => void;
+  /** 删除连线；同步清理 interaction option.targetNodeId */
+  deleteEdges: (ids: string[]) => void;
+  /** 为 true 时不自动合成「开始→第一集」连线（用户删过开始边后） */
+  suppressAutoStartEdge: boolean;
   duplicateNode: (id: string) => void;
   addOption: (nodeId: string) => void;
   updateOption: (nodeId: string, optionId: string, option: Partial<InteractionOption>) => void;
   deleteOption: (nodeId: string, optionId: string) => void;
-  connectNodes: (source: string, target: string, label?: string, actionType?: StoryEdge["actionType"]) => void;
+  connectNodes: (
+    source: string,
+    target: string,
+    label?: string,
+    actionType?: StoryEdge["actionType"],
+    sourceHandle?: string | null,
+  ) => void;
   createConnectedNode: (
     sourceNodeId: string,
     kind: StoryNode["kind"],
     position: CanvasPosition,
+    sourceHandle?: string | null,
   ) => string | null;
   selectNode: (id?: string) => void;
   selectEpisode: (id: string) => void;
+  /** 大纲点击：选中并请求画布定位（可重复点击同一项） */
+  canvasFocusRequest: { kind: "episode" | "node"; id: string; nonce: number };
+  requestCanvasFocus: (kind: "episode" | "node", id: string) => void;
   exportStoryJson: () => string;
   exportAppJson: () => string;
   exportThirdPartyWorkflow: (target: ThirdPartyWorkflowTarget) => string;
@@ -152,6 +307,7 @@ export type WorldBuilderState = {
   cloneProject: (sourceProjectId?: string) => string | null;
   renameProject: (id: string, name: string) => void;
   switchProject: (id: string) => void;
+  markProjectOpened: (id?: string) => void;
   deleteProject: (id: string) => void;
   listProjects: () => WorldProject[];
   commitSetupToWorld: () => void;
@@ -198,13 +354,17 @@ const cloneSeed = () => ({
   lastPublishedAt: undefined,
 });
 
+/** 与画布固定「开始」节点对齐：剧集从右侧排布 */
+const EPISODE_ORIGIN_X = 280;
+
 const episodeFramePosition = (episode: Episode, episodeIndex: number) => {
-  if (episode.id === "ep2b") return { x: 1280, y: -40 };
-  if (episode.id === "ep2") return { x: 1280, y: 700 };
-  if (episode.id === "ep3") return { x: 2560, y: 700 };
-  if (episode.id === "ep4") return { x: 3840, y: 700 };
+  // 单集框高度约 800px，纵向错开避免默认重叠
+  if (episode.id === "ep2b") return { x: EPISODE_ORIGIN_X + 1280, y: -40 };
+  if (episode.id === "ep2") return { x: EPISODE_ORIGIN_X + 1280, y: 920 };
+  if (episode.id === "ep3") return { x: EPISODE_ORIGIN_X + 2560, y: 920 };
+  if (episode.id === "ep4") return { x: EPISODE_ORIGIN_X + 3840, y: 920 };
   return {
-    x: episodeIndex * 1280,
+    x: EPISODE_ORIGIN_X + episodeIndex * 1280,
     y: 330,
   };
 };
@@ -216,8 +376,8 @@ const defaultNodePosition = (
 ): CanvasPosition => {
   const frame = episodeFramePosition(episode, episodeIndex);
   return {
-    x: frame.x + 140 + nodeIndex * 390,
-    y: frame.y + 150,
+    x: frame.x + 96 + nodeIndex * 390,
+    y: frame.y + 108,
   };
 };
 
@@ -245,6 +405,7 @@ const buildSeedProject = (): WorldProject => {
     name: seed.world.title,
     createdAt: now,
     updatedAt: now,
+    lastOpenedAt: now,
     setupDraft: seed.setupDraft,
     characters: seed.characters,
     locations: seed.locations,
@@ -328,6 +489,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       _remoteApplying: false,
       historyIndex: -1,
       historyLength: 0,
+      suppressAutoStartEdge: false,
+      canvasFocusRequest: { kind: "episode" as const, id: "", nonce: 0 },
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       pushHistory: () => {
         const state = get();
@@ -411,8 +574,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             nodeId,
             prompt: node.data.prompt,
             style: state.setupDraft.visualStyle,
-            duration: 5,
-            aspectRatio: "9:16",
+            duration: node.data.durationSec ?? 5,
+            aspectRatio: node.data.aspectRatio ?? "9:16",
             firstFrameRef: node.data.firstFrameRef,
             referenceImageUrls,
           });
@@ -465,26 +628,41 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           return null;
         }
       },
-      submitSceneFirstFrame: async (nodeId) => {
+      submitSceneFirstFrame: async (nodeId) => get().submitNodeFrame(nodeId, "firstFrameRef"),
+      submitNodeFrame: async (nodeId, field) => {
         const state = get();
-        const node = state.nodes.find((item) => item.id === nodeId && item.kind === "scene");
-        if (!node || node.kind !== "scene" || !node.data.prompt.trim()) return null;
+        const node = state.nodes.find((item) => item.id === nodeId);
+        if (!node || (node.kind !== "scene" && node.kind !== "interaction")) return null;
+
+        const basePrompt =
+          node.kind === "scene" ? node.data.prompt : node.data.instruction;
+        if (!basePrompt.trim()) return null;
+
+        const isLast = field === "lastFrameRef";
+        const framePrompt = isLast
+          ? `${basePrompt}\n\nStill keyframe for the LAST frame of a seamless ${node.data.durationSec ?? 4}s loop. Match the first frame composition exactly; only allow micro subject motion readiness. No UI, no captions.`
+          : `${basePrompt}\n\nStill keyframe for the FIRST frame of a seamless ${node.data.durationSec ?? 4}s loop. Locked camera, cinematic still. No UI, no captions.`;
 
         const referenceImageUrls = collectReferenceImageUrls(state.characters, state.locations);
+        const referenceImageUrl =
+          (isLast ? node.data.firstFrameRef : undefined) ??
+          referenceImageUrls[0];
+
         try {
           const { taskId } = await submitImageGenerationApi({
             nodeId,
-            prompt: node.data.prompt,
+            prompt: framePrompt,
             style: state.setupDraft.visualStyle,
-            referenceImageUrl: referenceImageUrls[0],
-            targetField: "firstFrameRef",
+            referenceImageUrl,
+            aspectRatio: node.data.aspectRatio ?? "9:16",
+            targetField: field,
           });
           const task: PendingGenerationTask = {
             taskId,
             kind: "image",
             nodeId,
-            targetField: "firstFrameRef",
-            prompt: node.data.prompt,
+            targetField: field,
+            prompt: framePrompt,
           };
           set((current) => ({
             nodes: markNodeGenerating(current.nodes, nodeId, taskId),
@@ -492,6 +670,92 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           }));
           return taskId;
         } catch {
+          if (node.kind === "scene") {
+            set((current) => ({ nodes: markNodeGenerationFailed(current.nodes, nodeId) }));
+          }
+          return null;
+        }
+      },
+      submitInteractionLoopVideo: async (nodeId) => {
+        const state = get();
+        const node = state.nodes.find((item) => item.id === nodeId && item.kind === "interaction");
+        if (!node || node.kind !== "interaction") return null;
+
+        const first = node.data.firstFrameRef;
+        if (!first) return null;
+        const last = node.data.lastFrameRef ?? first;
+        const duration = node.data.durationSec ?? 4;
+        const prompt = [
+          node.data.instruction.trim() || "Subtle living still for a seamless loop.",
+          "Locked off camera. No pan, tilt, zoom, or camera breathing.",
+          "Only micro movements (blink, breath, fingers). Environment fully static.",
+          "The first and last frames must match exactly so the clip loops seamlessly.",
+          "Forbidden: UI, captions, camera motion, zoom, composition changes.",
+        ].join(" ");
+
+        const referenceImageUrls = collectReferenceImageUrls(state.characters, state.locations);
+        try {
+          const { taskId } = await submitVideoGenerationApi({
+            nodeId,
+            prompt,
+            style: state.setupDraft.visualStyle,
+            duration,
+            aspectRatio: node.data.aspectRatio ?? "9:16",
+            firstFrameRef: first,
+            lastFrameRef: last,
+            referenceImageUrls,
+          });
+          const task: PendingGenerationTask = {
+            taskId,
+            kind: "video",
+            nodeId,
+            targetField: "loopVideoUrl",
+            prompt,
+          };
+          set((current) => ({
+            nodes: markNodeGenerating(current.nodes, nodeId, taskId),
+            pendingGenerationTasks: [...current.pendingGenerationTasks, task],
+          }));
+          // 若尚未设尾帧，写回与首帧一致，保证 UI 与循环语义一致
+          if (!node.data.lastFrameRef) {
+            set((current) => ({
+              nodes: current.nodes.map((n) =>
+                n.id === nodeId && n.kind === "interaction"
+                  ? { ...n, data: { ...n.data, lastFrameRef: first } }
+                  : n,
+              ),
+            }));
+          }
+          return taskId;
+        } catch {
+          // mock 回退：本地无 API 时仍给出可预览循环占位
+          const mockUrl = `mock://loop/${nodeId}/${Date.now()}`;
+          set((current) => ({
+            nodes: current.nodes.map((n) =>
+              n.id === nodeId && n.kind === "interaction"
+                ? {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      loopVideoUrl: mockUrl,
+                      lastFrameRef: last,
+                      activeGenerationTaskId: undefined,
+                      generationHistory: [
+                        {
+                          id: `hist-${Date.now()}`,
+                          kind: "video" as const,
+                          provider: "mock",
+                          prompt,
+                          url: mockUrl,
+                          createdAt: new Date().toISOString(),
+                        },
+                        ...(n.data.generationHistory ?? []),
+                      ].slice(0, 12),
+                    },
+                  }
+                : n,
+            ),
+          }));
           return null;
         }
       },
@@ -800,31 +1064,239 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       },
       addEpisode: (episode) => {
         get().pushHistory();
+        const id = uuidv4();
         set((state) => ({
-          episodes: [
-            ...state.episodes,
-            { ...episode, id: uuidv4(), index: state.episodes.length + 1 },
-          ],
+          episodes: applyEpisodeBranchLabels(
+            [
+              ...state.episodes,
+              { ...episode, id, index: state.episodes.length + 1 },
+            ],
+            state.nodes,
+            state.edges,
+          ),
         }));
+        return id;
       },
       updateEpisode: (id, episode) =>
         set((state) => ({
           episodes: state.episodes.map((item) =>
-            item.id === id ? { ...item, ...episode } : item,
+            item.id === id
+              ? {
+                  ...item,
+                  ...episode,
+                  frame: episode.frame
+                    ? { ...item.frame, ...episode.frame }
+                    : item.frame,
+                }
+              : item,
           ),
         })),
+      syncEpisodeBranchLabels: () =>
+        set((state) => {
+          const episodes = applyEpisodeBranchLabels(state.episodes, state.nodes, state.edges);
+          return episodes === state.episodes ? state : { episodes };
+        }),
       deleteEpisode: (id) => {
         get().pushHistory();
-        set((state) => ({
-          episodes: state.episodes
-            .filter((episode) => episode.id !== id)
-            .map((episode, index) => ({ ...episode, index: index + 1 })),
-          nodes: state.nodes.filter((node) => node.data.episodeId !== id),
-          selectedEpisodeId:
-            state.selectedEpisodeId === id
-              ? state.episodes.find((episode) => episode.id !== id)?.id ?? "ep1"
-              : state.selectedEpisodeId,
-        }));
+        set((state) => {
+          const nodes = state.nodes.filter((node) => node.data.episodeId !== id);
+          const nodeIds = new Set(nodes.map((n) => n.id));
+          const edges = state.edges.filter(
+            (edge) =>
+              (edge.source === "__start__" || nodeIds.has(edge.source)) &&
+              nodeIds.has(edge.target),
+          );
+          const episodes = applyEpisodeBranchLabels(
+            state.episodes
+              .filter((episode) => episode.id !== id)
+              .map((episode, index) => ({ ...episode, index: index + 1 })),
+            nodes,
+            edges,
+          );
+          return {
+            episodes,
+            nodes,
+            edges,
+            selectedEpisodeId:
+              state.selectedEpisodeId === id
+                ? episodes[0]?.id ?? "ep1"
+                : state.selectedEpisodeId,
+          };
+        });
+      },
+      duplicateEpisode: (id) => {
+        const state = get();
+        const source = state.episodes.find((episode) => episode.id === id);
+        if (!source) return null;
+        get().pushHistory();
+        const newEpisodeId = uuidv4();
+        const sourceNodes = state.nodes.filter((node) => node.data.episodeId === id);
+        const idMap = new Map<string, string>();
+        for (const node of sourceNodes) {
+          idMap.set(node.id, `${node.kind}-${uuidv4()}`);
+        }
+        const offset = 48;
+        const clonedNodes: StoryNode[] = sourceNodes.map((node) => {
+          const nextId = idMap.get(node.id)!;
+          const cloned = structuredClone(node) as StoryNode;
+          cloned.id = nextId;
+          cloned.data = { ...cloned.data, id: nextId, episodeId: newEpisodeId };
+          cloned.position = {
+            x: (node.position?.x ?? 0) + offset,
+            y: (node.position?.y ?? 0) + offset,
+          };
+          if (cloned.kind === "interaction") {
+            cloned.data.options = cloned.data.options.map((option) => ({
+              ...option,
+              id: uuidv4(),
+              targetNodeId: option.targetNodeId
+                ? idMap.get(option.targetNodeId) ?? option.targetNodeId
+                : undefined,
+            }));
+          }
+          return cloned;
+        });
+        const sourceNodeIds = new Set(sourceNodes.map((node) => node.id));
+        const clonedEdges: StoryEdge[] = state.edges
+          .filter(
+            (edge) =>
+              sourceNodeIds.has(edge.source) && sourceNodeIds.has(edge.target),
+          )
+          .map((edge) => ({
+            ...edge,
+            id: `edge-${uuidv4()}`,
+            source: idMap.get(edge.source)!,
+            target: idMap.get(edge.target)!,
+            sourceHandle: edge.sourceHandle
+              ? undefined // remapped via option ids already new; keep unbound handle
+              : undefined,
+          }));
+        // Re-bind sourceHandle after option id remap when possible by matching target
+        const reboundEdges = clonedEdges.map((edge) => {
+          const src = clonedNodes.find((n) => n.id === edge.source);
+          if (src?.kind !== "interaction") return edge;
+          const opt = src.data.options.find((o) => o.targetNodeId === edge.target);
+          return opt ? { ...edge, sourceHandle: opt.id, label: opt.label || edge.label } : edge;
+        });
+
+        set((current) => {
+          const episodes = applyEpisodeBranchLabels(
+            [
+              ...current.episodes,
+              {
+                ...source,
+                id: newEpisodeId,
+                index: current.episodes.length + 1,
+                title: `${source.title} 副本`,
+                highlight: source.highlight,
+                frame: source.frame
+                  ? {
+                      ...source.frame,
+                      x: source.frame.x + offset,
+                      y: source.frame.y + offset,
+                    }
+                  : undefined,
+              },
+            ],
+            [...current.nodes, ...clonedNodes],
+            [...current.edges, ...reboundEdges],
+          );
+          return {
+            episodes,
+            nodes: [...current.nodes, ...clonedNodes],
+            edges: [...current.edges, ...reboundEdges],
+            selectedEpisodeId: newEpisodeId,
+          };
+        });
+        return newEpisodeId;
+      },
+      copyEpisodeToProject: (episodeId, projectId) => {
+        const state = get();
+        if (projectId === state.activeProjectId) {
+          return Boolean(get().duplicateEpisode(episodeId));
+        }
+        const sourceEpisode = state.episodes.find((episode) => episode.id === episodeId);
+        if (!sourceEpisode) return false;
+        const sourceNodes = state.nodes.filter((node) => node.data.episodeId === episodeId);
+        const sourceNodeIds = new Set(sourceNodes.map((node) => node.id));
+        const sourceEdges = state.edges.filter(
+          (edge) => sourceNodeIds.has(edge.source) && sourceNodeIds.has(edge.target),
+        );
+
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        const targetIndex = syncedProjects.findIndex((item) => item.id === projectId);
+        if (targetIndex < 0) return false;
+
+        get().pushHistory();
+        const newEpisodeId = uuidv4();
+        const idMap = new Map<string, string>();
+        for (const node of sourceNodes) {
+          idMap.set(node.id, `${node.kind}-${uuidv4()}`);
+        }
+        const clonedNodes: StoryNode[] = sourceNodes.map((node) => {
+          const nextId = idMap.get(node.id)!;
+          const cloned = structuredClone(node) as StoryNode;
+          cloned.id = nextId;
+          cloned.data = { ...cloned.data, id: nextId, episodeId: newEpisodeId };
+          if (cloned.kind === "interaction") {
+            cloned.data.options = cloned.data.options.map((option) => ({
+              ...option,
+              id: uuidv4(),
+              targetNodeId: option.targetNodeId
+                ? idMap.get(option.targetNodeId) ?? undefined
+                : undefined,
+            }));
+          }
+          return cloned;
+        });
+        const clonedEdges: StoryEdge[] = sourceEdges.map((edge) => {
+          const source = idMap.get(edge.source)!;
+          const target = idMap.get(edge.target)!;
+          const srcNode = clonedNodes.find((n) => n.id === source);
+          const opt =
+            srcNode?.kind === "interaction"
+              ? srcNode.data.options.find((o) => o.targetNodeId === target)
+              : undefined;
+          return {
+            ...edge,
+            id: `edge-${uuidv4()}`,
+            source,
+            target,
+            sourceHandle: opt?.id,
+            label: opt?.label || edge.label,
+          };
+        });
+
+        const target = syncedProjects[targetIndex];
+        const nextEpisodes = applyEpisodeBranchLabels(
+          [
+            ...target.episodes,
+            {
+              ...sourceEpisode,
+              id: newEpisodeId,
+              index: target.episodes.length + 1,
+              title: `${sourceEpisode.title} 副本`,
+            },
+          ],
+          [...target.nodes, ...clonedNodes],
+          [...target.edges, ...clonedEdges],
+        );
+        const now = new Date().toISOString();
+        const updated: WorldProject = {
+          ...target,
+          updatedAt: now,
+          episodes: nextEpisodes,
+          nodes: [...target.nodes, ...clonedNodes],
+          edges: [...target.edges, ...clonedEdges],
+        };
+        const nextProjects = [...syncedProjects];
+        nextProjects[targetIndex] = updated;
+        set({ projects: nextProjects });
+        return true;
       },
       addSceneNode: (episodeId) => {
         get().pushHistory();
@@ -872,8 +1344,29 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
                   id,
                   episodeId: targetEpisodeId,
                   title: "未命名互动节点",
-                  instruction: "描述互动限制、用户动作和触发后的剧情结果。",
-                  options: [],
+                  instruction:
+                    "Locked off camera. Only micro movements (blink, breath). Environment fully static. The first and last frames must match exactly so the clip loops seamlessly. Forbidden: UI, captions, camera motion.",
+                  aspectRatio: "9:16",
+                  durationSec: 4,
+                  videoModel: "seedance-2.0-fast",
+                  options: [
+                    {
+                      id: uuidv4(),
+                      label: "选项 A",
+                      actionType: "tap",
+                      actionValue: "(0.35, 0.50)",
+                      color: "#2f7df6",
+                      hotspot: { x: 0.35, y: 0.5 },
+                    },
+                    {
+                      id: uuidv4(),
+                      label: "选项 B",
+                      actionType: "tap",
+                      actionValue: "(0.65, 0.50)",
+                      color: "#22c55e",
+                      hotspot: { x: 0.65, y: 0.5 },
+                    },
+                  ],
                 },
                 position: defaultNodePosition(episode, episodeIndex, nodeIndex),
               },
@@ -938,30 +1431,81 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           };
         });
       },
-      autoLayoutEpisodes: () =>
-        set((state) => ({
-          nodes: state.nodes.map((node) => {
-            const episodeIndex = Math.max(state.episodes.findIndex((episode) => episode.id === node.data.episodeId), 0);
-            const episode = state.episodes[episodeIndex] ?? state.episodes[0];
-            const siblings = state.nodes.filter((item) => item.data.episodeId === node.data.episodeId);
-            const nodeIndex = Math.max(
-              siblings.findIndex((item) => item.id === node.id),
-              0,
-            );
-            return {
-              ...node,
-              position: defaultNodePosition(episode, episodeIndex, nodeIndex),
-            } as StoryNode;
-          }),
-          lastSavedAt: new Date().toISOString(),
-        })),
-      deleteNode: (id) => {
+      autoLayoutEpisodes: () => {
         get().pushHistory();
-        set((state) => ({
-          nodes: state.nodes.filter((node) => node.id !== id),
-          edges: state.edges.filter((edge) => edge.source !== id && edge.target !== id),
-          selectedNodeId: state.selectedNodeId === id ? undefined : state.selectedNodeId,
-        }));
+        set((state) => {
+          const laid = layoutConnectedStoryGraph(state.episodes, state.nodes, state.edges, {
+            startY: 360,
+          });
+          return {
+            nodes: laid.nodes,
+            episodes: applyEpisodeBranchLabels(laid.episodes, laid.nodes, state.edges),
+            lastSavedAt: new Date().toISOString(),
+          };
+        });
+      },
+      deleteNode: (id) => {
+        // 固定入口节点不可删
+        if (id === "__start__") return;
+        get().pushHistory();
+        set((state) => {
+          const nodes = state.nodes.filter((node) => node.id !== id);
+          const edges = state.edges.filter((edge) => edge.source !== id && edge.target !== id);
+          return {
+            nodes,
+            edges,
+            episodes: applyEpisodeBranchLabels(state.episodes, nodes, edges),
+            selectedNodeId: state.selectedNodeId === id ? undefined : state.selectedNodeId,
+          };
+        });
+      },
+      deleteEdges: (ids) => {
+        const unique = [...new Set(ids.filter(Boolean))];
+        if (!unique.length) return;
+        const idSet = new Set(unique);
+        const dropSyntheticStart = idSet.has("__start_edge__");
+        get().pushHistory();
+        set((state) => {
+          const removingStart =
+            dropSyntheticStart ||
+            state.edges.some((edge) => idSet.has(edge.id) && edge.source === "__start__");
+          const removed = state.edges.filter(
+            (edge) =>
+              idSet.has(edge.id) || (dropSyntheticStart && edge.source === "__start__"),
+          );
+          if (!removed.length && !dropSyntheticStart) return state;
+
+          const edges = state.edges.filter(
+            (edge) =>
+              !idSet.has(edge.id) && !(dropSyntheticStart && edge.source === "__start__"),
+          );
+
+          const nodes = state.nodes.map((node) => {
+            if (node.kind !== "interaction") return node;
+            let changed = false;
+            const options = node.data.options.map((opt) => {
+              const hit = removed.some(
+                (edge) =>
+                  edge.source === node.id &&
+                  ((edge.sourceHandle != null && edge.sourceHandle === opt.id) ||
+                    ((edge.sourceHandle == null || edge.sourceHandle === "") &&
+                      opt.targetNodeId === edge.target)),
+              );
+              if (!hit) return opt;
+              changed = true;
+              return { ...opt, targetNodeId: undefined };
+            });
+            if (!changed) return node;
+            return { ...node, data: { ...node.data, options } };
+          });
+
+          return {
+            nodes,
+            edges,
+            suppressAutoStartEdge: removingStart ? true : state.suppressAutoStartEdge,
+            episodes: applyEpisodeBranchLabels(state.episodes, nodes, edges),
+          };
+        });
       },
       duplicateNode: (id) =>
         set((state) => {
@@ -1005,8 +1549,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           }),
         })),
       updateOption: (nodeId, optionId, option) =>
-        set((state) => ({
-          nodes: state.nodes.map((node) => {
+        set((state) => {
+          const nodes = state.nodes.map((node) => {
             if (node.id !== nodeId || node.kind !== "interaction") return node;
             return {
               ...node,
@@ -1017,11 +1561,15 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
                 ),
               },
             };
-          }),
-        })),
+          });
+          return {
+            nodes,
+            episodes: applyEpisodeBranchLabels(state.episodes, nodes, state.edges),
+          };
+        }),
       deleteOption: (nodeId, optionId) =>
-        set((state) => ({
-          nodes: state.nodes.map((node) => {
+        set((state) => {
+          const nodes = state.nodes.map((node) => {
             if (node.id !== nodeId || node.kind !== "interaction") return node;
             return {
               ...node,
@@ -1030,16 +1578,41 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
                 options: node.data.options.filter((item) => item.id !== optionId),
               },
             };
-          }),
-        })),
-      connectNodes: (source, target, label = "继续", actionType) => {
+          });
+          return {
+            nodes,
+            episodes: applyEpisodeBranchLabels(state.episodes, nodes, state.edges),
+          };
+        }),
+      connectNodes: (source, target, label = "继续", actionType, sourceHandle) => {
+        if (source === "__start__") {
+          get().pushHistory();
+          set((state) => {
+            const withoutStart = state.edges.filter((edge) => edge.source !== "__start__");
+            const edges = [
+              ...withoutStart,
+              { id: `edge-${uuidv4()}`, source: "__start__", target, label: "开始", sourceHandle: undefined },
+            ];
+            return {
+              edges,
+              suppressAutoStartEdge: false,
+              episodes: applyEpisodeBranchLabels(state.episodes, state.nodes, edges),
+            };
+          });
+          return;
+        }
         get().pushHistory();
         set((state) => {
           const sourceNode = state.nodes.find((node) => node.id === source);
+          let boundHandle = sourceHandle ?? undefined;
           const nodes = state.nodes.map((node) => {
             if (node.id !== source || node.kind !== "interaction") return node;
-            const option = node.data.options.find((item) => !item.targetNodeId);
+            const byHandle = sourceHandle
+              ? node.data.options.find((item) => item.id === sourceHandle)
+              : undefined;
+            const option = byHandle ?? node.data.options.find((item) => !item.targetNodeId);
             if (!option) return node;
+            boundHandle = option.id;
             return {
               ...node,
               data: {
@@ -1050,22 +1623,45 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
               },
             };
           });
-          const edgeExists = state.edges.some((edge) => edge.source === source && edge.target === target);
+          const edgeExists = state.edges.some(
+            (edge) =>
+              edge.source === source &&
+              edge.target === target &&
+              (boundHandle ? edge.sourceHandle === boundHandle : true),
+          );
+          const inferredAction =
+            actionType ??
+            (sourceNode?.kind === "interaction" && boundHandle
+              ? sourceNode.data.options.find((item) => item.id === boundHandle)?.actionType
+              : undefined);
+          const edges = edgeExists
+            ? state.edges
+            : [
+                ...state.edges,
+                {
+                  id: `edge-${uuidv4()}`,
+                  source,
+                  target,
+                  label,
+                  actionType: inferredAction,
+                  sourceHandle: boundHandle,
+                },
+              ];
           return {
             nodes,
-            edges: edgeExists
-              ? state.edges
-              : [...state.edges, { id: `edge-${uuidv4()}`, source, target, label, actionType }],
+            edges,
+            episodes: applyEpisodeBranchLabels(state.episodes, nodes, edges),
           };
         });
       },
-      createConnectedNode: (sourceNodeId, kind, position) => {
+      createConnectedNode: (sourceNodeId, kind, position, sourceHandle) => {
         const state = get();
         const sourceNode = state.nodes.find((node) => node.id === sourceNodeId);
-        if (!sourceNode) return null;
+        if (!sourceNode && sourceNodeId !== "__start__") return null;
 
         get().pushHistory();
-        const targetEpisodeId = sourceNode.data.episodeId;
+        const targetEpisodeId =
+          sourceNode?.data.episodeId ?? state.selectedEpisodeId ?? state.episodes[0]?.id;
         const episodeIndex = Math.max(
           state.episodes.findIndex((episode) => episode.id === targetEpisodeId),
           0,
@@ -1099,8 +1695,16 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             };
             const nodes = [...current.nodes, newNode];
             const edges = [
-              ...current.edges,
-              { id: `edge-${uuidv4()}`, source: sourceNodeId, target: id, label: "继续" },
+              ...current.edges.filter((edge) =>
+                sourceNodeId === "__start__" ? edge.source !== "__start__" : true,
+              ),
+              {
+                id: `edge-${uuidv4()}`,
+                source: sourceNodeId,
+                target: id,
+                label: sourceNodeId === "__start__" ? "开始" : "继续",
+                sourceHandle: sourceHandle ?? undefined,
+              },
             ];
             const nextState = {
               ...current,
@@ -1108,6 +1712,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
               edges,
               selectedNodeId: id,
               selectedEpisodeId: targetEpisodeId,
+              suppressAutoStartEdge:
+                sourceNodeId === "__start__" ? false : current.suppressAutoStartEdge,
             };
             return {
               ...nextState,
@@ -1129,15 +1735,44 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
                 id,
                 episodeId: targetEpisodeId,
                 title: "未命名互动节点",
-                instruction: "描述互动限制、用户动作和触发后的剧情结果。",
-                options: [],
+                instruction:
+                  "Locked off camera. Only micro movements (blink, breath). Environment fully static. The first and last frames must match exactly so the clip loops seamlessly. Forbidden: UI, captions, camera motion.",
+                aspectRatio: "9:16",
+                durationSec: 4,
+                videoModel: "seedance-2.0-fast",
+                options: [
+                  {
+                    id: uuidv4(),
+                    label: "选项 A",
+                    actionType: "tap",
+                    actionValue: "(0.35, 0.50)",
+                    color: "#2f7df6",
+                    hotspot: { x: 0.35, y: 0.5 },
+                  },
+                  {
+                    id: uuidv4(),
+                    label: "选项 B",
+                    actionType: "tap",
+                    actionValue: "(0.65, 0.50)",
+                    color: "#22c55e",
+                    hotspot: { x: 0.65, y: 0.5 },
+                  },
+                ],
               },
               position: nextPosition,
             };
             const nodes = [...current.nodes, newNode];
             const edges = [
-              ...current.edges,
-              { id: `edge-${uuidv4()}`, source: sourceNodeId, target: id, label: "继续" },
+              ...current.edges.filter((edge) =>
+                sourceNodeId === "__start__" ? edge.source !== "__start__" : true,
+              ),
+              {
+                id: `edge-${uuidv4()}`,
+                source: sourceNodeId,
+                target: id,
+                label: sourceNodeId === "__start__" ? "开始" : "继续",
+                sourceHandle: sourceHandle ?? undefined,
+              },
             ];
             const nextState = {
               ...current,
@@ -1145,6 +1780,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
               edges,
               selectedNodeId: id,
               selectedEpisodeId: targetEpisodeId,
+              suppressAutoStartEdge:
+                sourceNodeId === "__start__" ? false : current.suppressAutoStartEdge,
             };
             return {
               ...nextState,
@@ -1172,21 +1809,27 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           };
           const nodes = [...current.nodes, newNode];
           const edges = [
-            ...current.edges,
+            ...current.edges.filter((edge) =>
+              sourceNodeId === "__start__" ? edge.source !== "__start__" : true,
+            ),
             {
               id: `edge-${uuidv4()}`,
               source: sourceNodeId,
               target: id,
               label: "结局",
               actionType: "ending" as const,
+              sourceHandle: sourceHandle ?? undefined,
             },
           ];
 
           const nodesWithOption =
-            sourceNode.kind === "interaction"
+            sourceNode?.kind === "interaction"
               ? nodes.map((node) => {
                   if (node.id !== sourceNodeId || node.kind !== "interaction") return node;
-                  const option = node.data.options.find((item) => !item.targetNodeId);
+                  const option =
+                    (sourceHandle
+                      ? node.data.options.find((item) => item.id === sourceHandle)
+                      : undefined) ?? node.data.options.find((item) => !item.targetNodeId);
                   if (!option) return node;
                   return {
                     ...node,
@@ -1206,6 +1849,8 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
             edges,
             selectedNodeId: id,
             selectedEpisodeId: targetEpisodeId,
+            suppressAutoStartEdge:
+              sourceNodeId === "__start__" ? false : current.suppressAutoStartEdge,
           };
           return {
             ...nextState,
@@ -1217,10 +1862,13 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           };
         });
 
-        if (sourceNode.kind === "interaction" && kind !== "ending") {
+        if (sourceNode?.kind === "interaction" && kind !== "ending" && createdId) {
           const latest = get().nodes.find((node) => node.id === sourceNodeId);
           if (latest?.kind === "interaction") {
-            const option = latest.data.options.find((item) => !item.targetNodeId);
+            const option =
+              (sourceHandle
+                ? latest.data.options.find((item) => item.id === sourceHandle)
+                : undefined) ?? latest.data.options.find((item) => !item.targetNodeId);
             if (option) {
               get().updateOption(sourceNodeId, option.id, { targetNodeId: createdId });
             } else {
@@ -1243,6 +1891,30 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       },
       selectNode: (id) => set({ selectedNodeId: id }),
       selectEpisode: (id) => set({ selectedEpisodeId: id }),
+      requestCanvasFocus: (kind, id) =>
+        set((state) => {
+          if (kind === "episode") {
+            return {
+              selectedEpisodeId: id,
+              selectedNodeId: undefined,
+              canvasFocusRequest: {
+                kind: "episode",
+                id,
+                nonce: state.canvasFocusRequest.nonce + 1,
+              },
+            };
+          }
+          const node = state.nodes.find((item) => item.id === id);
+          return {
+            selectedNodeId: id,
+            selectedEpisodeId: node?.data.episodeId ?? state.selectedEpisodeId,
+            canvasFocusRequest: {
+              kind: "node",
+              id,
+              nonce: state.canvasFocusRequest.nonce + 1,
+            },
+          };
+        }),
       exportStoryJson: () => {
         const state = get();
         return JSON.stringify(
@@ -1476,6 +2148,7 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
       },
       switchProject: (id) => {
         const state = get();
+        const now = new Date().toISOString();
         const syncedProjects = syncProjectsFromWorkspace(
           state.projects,
           state.activeProjectId,
@@ -1483,10 +2156,30 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
         );
         const project = syncedProjects.find((item) => item.id === id);
         if (!project) return;
+        const nextProjects = syncedProjects.map((item) =>
+          item.id === id ? { ...item, lastOpenedAt: now } : item,
+        );
         set({
-          projects: syncedProjects,
+          projects: nextProjects,
           activeProjectId: id,
-          ...projectToWorkspace(project),
+          ...projectToWorkspace({ ...project, lastOpenedAt: now }),
+        });
+      },
+      markProjectOpened: (id) => {
+        const state = get();
+        const targetId = id ?? state.activeProjectId;
+        if (!targetId) return;
+        const now = new Date().toISOString();
+        const syncedProjects = syncProjectsFromWorkspace(
+          state.projects,
+          state.activeProjectId,
+          workspaceSlice(state),
+        );
+        if (!syncedProjects.some((item) => item.id === targetId)) return;
+        set({
+          projects: syncedProjects.map((item) =>
+            item.id === targetId ? { ...item, lastOpenedAt: now } : item,
+          ),
         });
       },
       deleteProject: (id) => {
@@ -1527,9 +2220,9 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           state.activeProjectId,
           workspaceSlice(state),
         );
-        return [...synced].sort(
-          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        );
+        const recency = (project: WorldProject) =>
+          new Date(project.lastOpenedAt || project.updatedAt).getTime() || 0;
+        return [...synced].sort((a, b) => recency(b) - recency(a));
       },
       commitSetupToWorld: () => {
         const state = get();
@@ -1978,6 +2671,7 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
     {
       name: "drama-world-builder",
       version: STORE_VERSION,
+      storage: safePersistStorage,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<PersistedWorldBuilderState> & Record<string, unknown> | undefined;
         if (!state) return seedPersistedState();
@@ -2038,14 +2732,29 @@ export const useWorldBuilderStore = create<WorldBuilderState>()(
           state.projects,
           state.activeProjectId,
           workspaceSlice(state),
-        );
-        return {
-          world: state.world,
+        ).map((project) => slimProjectForPersist(project));
+        const active = slimProjectForPersist({
+          id: state.activeProjectId,
+          name: state.world.title,
+          createdAt: state.world.createdAt,
+          updatedAt: state.lastSavedAt ?? state.world.createdAt,
+          setupDraft: state.setupDraft,
           characters: state.characters,
           locations: state.locations,
           episodes: state.episodes,
           nodes: state.nodes,
           edges: state.edges,
+          world: state.world,
+          references: [],
+          decomposeStatus: "idle" as const,
+        });
+        return {
+          world: active.world,
+          characters: active.characters,
+          locations: active.locations,
+          episodes: active.episodes,
+          nodes: active.nodes,
+          edges: active.edges,
           selectedEpisodeId: state.selectedEpisodeId,
           setupDraft: state.setupDraft,
           lastSavedAt: state.lastSavedAt,

@@ -23,7 +23,7 @@ export function InspectorPanel() {
 
   if (!selectedNode) {
     return (
-      <aside className="h-full border-l border-white/8 bg-[#121016] p-5 text-white/90">
+      <aside className="h-full border-l border-white/[0.04] bg-[#121016] p-5 text-white/90">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/35">属性面板</p>
         <h2 className="mt-2 text-lg font-semibold text-white">选择一个节点</h2>
         <p className="mt-2 text-sm leading-6 text-white/45">
@@ -34,7 +34,7 @@ export function InspectorPanel() {
   }
 
   return (
-    <aside className="max-h-[calc(100vh-142px)] overflow-y-auto border-l border-white/8 bg-[#121016] p-5 text-white/90">
+    <aside className="max-h-[calc(100vh-142px)] overflow-y-auto border-l border-white/[0.04] bg-[#121016] p-5 text-white/90">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">属性面板</p>
       <h2 className="mt-2 text-lg font-semibold capitalize text-white">{nodeKindLabel(selectedNode.kind)}</h2>
       <div className="mt-5">

@@ -60,6 +60,8 @@ type LibraryItem = FolderItem | ProjectItem;
 
 const FOLDERS_KEY = "dramaeditor-project-folders";
 const FOLDER_MAP_KEY = "dramaeditor-project-folder-map";
+const HIDDEN_SAMPLES_KEY = "dramaeditor-hidden-samples";
+const SAMPLE_NAMES_KEY = "dramaeditor-sample-names";
 const DEMO_STORY_ID = "world-neon-tokyo-noir";
 
 function relativeZh(iso?: string) {
@@ -120,6 +122,38 @@ function writeFolderMap(map: Record<string, string>) {
   window.localStorage.setItem(FOLDER_MAP_KEY, JSON.stringify(map));
 }
 
+function readHiddenSamples(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_SAMPLES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHiddenSamples(ids: string[]) {
+  window.localStorage.setItem(HIDDEN_SAMPLES_KEY, JSON.stringify(ids));
+}
+
+function readSampleNames(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(SAMPLE_NAMES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSampleNames(map: Record<string, string>) {
+  window.localStorage.setItem(SAMPLE_NAMES_KEY, JSON.stringify(map));
+}
+
 export default function WorldsPage() {
   return (
     <Suspense fallback={<div className="grid min-h-[40vh] place-items-center text-sm text-ink-muted">加载工作空间…</div>}>
@@ -132,8 +166,15 @@ function WorldsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeFolderId = searchParams.get("folder");
-  const { listProjects, switchProject, deleteProject, renameProject, cloneProject, activeProjectId } =
-    useWorldBuilderStore();
+  const {
+    listProjects,
+    switchProject,
+    deleteProject,
+    renameProject,
+    cloneProject,
+    createProjectFromSession,
+    activeProjectId,
+  } = useWorldBuilderStore();
   const projects = listProjects();
 
   const [scope, setScope] = useState<ScopeTab>("personal");
@@ -147,9 +188,48 @@ function WorldsPageContent() {
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [folderMap, setFolderMap] = useState<Record<string, string>>({});
   const [teams, setTeams] = useState<LocalTeam[]>([]);
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    title: string;
+    isSample?: boolean;
+    kind?: "project" | "folder";
+  } | null>(null);
+  const [pendingRename, setPendingRename] = useState<{
+    id: string;
+    title: string;
+    isSample?: boolean;
+    kind: "project" | "folder";
+  } | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const [cardMenuId, setCardMenuId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [hiddenSamples, setHiddenSamples] = useState<string[]>([]);
+  const [sampleNames, setSampleNames] = useState<Record<string, string>>({});
   const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cardMenuId) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-project-card-menu]")) return;
+      setCardMenuId(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCardMenuId(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [cardMenuId]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     let next = readFolders();
@@ -169,6 +249,8 @@ function WorldsPageContent() {
     }
     setFolders(next);
     setFolderMap(readFolderMap());
+    setHiddenSamples(readHiddenSamples());
+    setSampleNames(readSampleNames());
     setTeams(readSession()?.teams ?? []);
     const sync = () => setTeams(readSession()?.teams ?? []);
     window.addEventListener("dramaeditor-session", sync);
@@ -185,45 +267,51 @@ function WorldsPageContent() {
   }, []);
 
   const sampleProjects: ProjectItem[] = useMemo(
-    () => [
-      ...dramaPlayAssets.map((asset, index) => ({
-        id: `sample-${asset.id ?? index}`,
-        name: asset.title,
-        kind: "project" as const,
-        genre: asset.genre,
-        description: asset.description,
-        poster: asset.poster,
-        createdAt: "2025-12-15T12:04:00.000Z",
-        updatedAt: "2025-12-15T12:04:00.000Z",
-        episodeCount: 1,
-        isSample: true,
-      })),
-      {
-        id: "sample-blood-city",
-        name: "血色之城",
-        kind: "project",
-        genre: "恐怖",
-        description: "一座明亮城市隐藏着百年吸血族与人类共存的秘密。",
-        tone: "from-[#1a1218] via-red-950 to-[#b94a6a]",
-        createdAt: "2026-01-08T10:00:00.000Z",
-        updatedAt: "2026-03-01T10:00:00.000Z",
-        episodeCount: 0,
-        isSample: true,
-      },
-      {
-        id: "sample-spring",
-        name: "春日盟约",
-        kind: "project",
-        genre: "爱情",
-        description: "外交、孤独与权力在一场王室峰会上相撞。",
-        tone: "from-[#f4f1f2] via-stone-300 to-[#b94a6a]",
-        createdAt: "2026-02-14T10:00:00.000Z",
-        updatedAt: "2026-04-20T10:00:00.000Z",
-        episodeCount: 0,
-        isSample: true,
-      },
-    ],
-    [],
+    () =>
+      [
+        ...dramaPlayAssets.map((asset, index) => ({
+          id: `sample-${asset.id ?? index}`,
+          name: asset.title,
+          kind: "project" as const,
+          genre: asset.genre,
+          description: asset.description,
+          poster: asset.poster,
+          createdAt: "2025-12-15T12:04:00.000Z",
+          updatedAt: "2025-12-15T12:04:00.000Z",
+          episodeCount: 1,
+          isSample: true,
+        })),
+        {
+          id: "sample-blood-city",
+          name: "血色之城",
+          kind: "project" as const,
+          genre: "恐怖",
+          description: "一座明亮城市隐藏着百年吸血族与人类共存的秘密。",
+          tone: "from-[#1a1218] via-red-950 to-[#b94a6a]",
+          createdAt: "2026-01-08T10:00:00.000Z",
+          updatedAt: "2026-03-01T10:00:00.000Z",
+          episodeCount: 0,
+          isSample: true,
+        },
+        {
+          id: "sample-spring",
+          name: "春日盟约",
+          kind: "project" as const,
+          genre: "爱情",
+          description: "外交、孤独与权力在一场王室峰会上相撞。",
+          tone: "from-[#f4f1f2] via-stone-300 to-[#b94a6a]",
+          createdAt: "2026-02-14T10:00:00.000Z",
+          updatedAt: "2026-04-20T10:00:00.000Z",
+          episodeCount: 0,
+          isSample: true,
+        },
+      ]
+        .filter((item) => !hiddenSamples.includes(item.id))
+        .map((item) => ({
+          ...item,
+          name: sampleNames[item.id] || item.name,
+        })),
+    [hiddenSamples, sampleNames],
   );
 
   const activeFolder = useMemo(
@@ -253,7 +341,8 @@ function WorldsPageContent() {
       description: project.setupDraft?.worldDescription || project.world?.description || "",
       poster: project.world?.coverImage,
       createdAt: project.createdAt,
-      updatedAt: project.updatedAt,
+      // 默认「按最近修改」优先用最后打开/退出时间，使刚退出的项目排在「测试」等之前
+      updatedAt: project.lastOpenedAt || project.updatedAt,
       episodeCount: project.episodes?.length ?? 0,
       active: project.id === activeProjectId,
     }));
@@ -340,6 +429,74 @@ function WorldsPageContent() {
     }
     switchProject(item.id);
     router.push(`/world-builder/stories/${item.id}`);
+  };
+
+  const openRename = (item: {
+    id: string;
+    name: string;
+    isSample?: boolean;
+    kind?: "project" | "folder";
+  }) => {
+    setCardMenuId(null);
+    setPendingRename({
+      id: item.id,
+      title: item.name,
+      isSample: item.isSample,
+      kind: item.kind ?? "project",
+    });
+    setRenameDraft(item.name);
+  };
+
+  const confirmRename = () => {
+    if (!pendingRename) return;
+    const next = renameDraft.trim().slice(0, 60);
+    if (!next) return;
+    if (pendingRename.kind === "folder") {
+      const updated = folders.map((folder) =>
+        folder.id === pendingRename.id
+          ? { ...folder, name: next, updatedAt: new Date().toISOString() }
+          : folder,
+      );
+      setFolders(updated);
+      writeFolders(updated);
+    } else if (pendingRename.isSample) {
+      const updated = { ...sampleNames, [pendingRename.id]: next };
+      setSampleNames(updated);
+      writeSampleNames(updated);
+    } else {
+      renameProject(pendingRename.id, next);
+    }
+    setPendingRename(null);
+    setNotice("已重命名");
+  };
+
+  const handleCopyProject = (item: ProjectItem) => {
+    setCardMenuId(null);
+    if (item.isSample) {
+      const createdId = createProjectFromSession();
+      if (createdId) {
+        renameProject(createdId, `${item.name} 副本`);
+        setNotice(`已复制「${item.name}」`);
+      }
+      return;
+    }
+    const clonedId = cloneProject(item.id);
+    if (clonedId) setNotice(`已复制「${item.name}」`);
+  };
+
+  const handleDeleteRequest = (item: {
+    id: string;
+    name: string;
+    isSample?: boolean;
+    kind?: "project" | "folder";
+  }) => {
+    setCardMenuId(null);
+    setPendingDelete({
+      id: item.id,
+      title: item.name,
+      isSample: item.isSample,
+      kind: item.kind ?? "project",
+    });
   };
 
   return (
@@ -494,7 +651,7 @@ function WorldsPageContent() {
             <button
               type="button"
               onClick={() => setBuildOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink-strong px-3.5 text-sm font-medium text-white hover:opacity-90"
+              className="btn-cta btn-press inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold"
             >
               <Plus size={15} />
               新建项目
@@ -513,7 +670,7 @@ function WorldsPageContent() {
               <button
                 type="button"
                 onClick={() => setBuildOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-ink-strong px-3.5 py-2 text-sm text-white hover:opacity-90"
+                className="btn-cta btn-press mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold"
               >
                 <Plus size={14} /> 新建项目
               </button>
@@ -526,7 +683,7 @@ function WorldsPageContent() {
                 onClick={() => setBuildOpen(true)}
                 className="group flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-[16px] border border-transparent bg-[#18181B] transition hover:border-white/30"
               >
-                <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#ffffff] shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition group-hover:scale-[1.03]">
+                <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#ffffff] shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden className="block">
                     <path
                       d="M12 5v14M5 12h14"
@@ -557,14 +714,16 @@ function WorldsPageContent() {
                     <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
                       <FolderStackIllustration />
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-2 top-2 z-20 grid size-8 place-items-center rounded-lg bg-black/55 text-white/85 backdrop-blur-sm transition hover:bg-black/70"
-                      aria-label="文件夹选项"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
+                    <ProjectCardMenu
+                      open={cardMenuId === item.id}
+                      onToggle={(e) => {
+                        e.stopPropagation();
+                        setCardMenuId((current) => (current === item.id ? null : item.id));
+                      }}
+                      onRename={() => openRename({ id: item.id, name: item.name, kind: "folder" })}
+                      onCopy={null}
+                      onDelete={() => handleDeleteRequest({ id: item.id, name: item.name, kind: "folder" })}
+                    />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 z-30 p-3">
                       <h2 className="truncate text-sm font-semibold leading-5 text-white">{item.name}</h2>
@@ -590,40 +749,43 @@ function WorldsPageContent() {
                       <img
                         src={item.poster}
                         alt={item.name}
-                        className="pointer-events-none absolute inset-0 z-0 size-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        className="pointer-events-none absolute inset-0 z-0 size-full object-cover transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                       />
                     ) : (
                       <div className="de-project-matrix absolute inset-0 z-0 size-full">
                         <div className="de-project-matrix-shine absolute inset-0" aria-hidden />
                       </div>
                     )}
-                    {!item.isSample && (
-                      <ProjectCardMenu
-                        open={cardMenuId === item.id}
-                        onToggle={(e) => {
-                          e.stopPropagation();
-                          setCardMenuId((current) => (current === item.id ? null : item.id));
-                        }}
-                        onRename={() => {
-                          setCardMenuId(null);
-                          const next = window.prompt("重命名项目", item.name);
-                          if (!next?.trim()) return;
-                          renameProject(item.id, next.trim());
-                        }}
-                        onCopy={() => {
-                          setCardMenuId(null);
-                          cloneProject(item.id);
-                        }}
-                        onDelete={() => {
-                          setCardMenuId(null);
-                          setPendingDelete({ id: item.id, title: item.name });
-                        }}
-                      />
-                    )}
+                    <ProjectCardMenu
+                      open={cardMenuId === item.id}
+                      onToggle={(e) => {
+                        e.stopPropagation();
+                        setCardMenuId((current) => (current === item.id ? null : item.id));
+                      }}
+                      onRename={() =>
+                        openRename({
+                          id: item.id,
+                          name: item.name,
+                          isSample: item.isSample,
+                          kind: "project",
+                        })
+                      }
+                      onCopy={() => handleCopyProject(item)}
+                      onDelete={() =>
+                        handleDeleteRequest({
+                          id: item.id,
+                          name: item.name,
+                          isSample: item.isSample,
+                          kind: "project",
+                        })
+                      }
+                    />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[42%] bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 p-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] text-ink-muted">{item.genre}</p>
+                        <p className="truncate text-[11px] text-ink-muted" suppressHydrationWarning>
+                          {item.genre}
+                        </p>
                         <h2 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-5 text-white">{item.name}</h2>
                       </div>
                       <span className="shrink-0 text-[11px] text-ink-muted">{item.episodeCount} 集</span>
@@ -689,6 +851,62 @@ function WorldsPageContent() {
         onProjectCreated={assignProjectToFolder}
       />
 
+      {pendingRename && (
+        <div className={MODAL_OVERLAY} onClick={() => setPendingRename(null)}>
+          <div
+            className={cn(MODAL_PANEL, "w-full max-w-md rounded-2xl p-6 text-ink")}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-lg font-semibold text-ink-strong">
+                {pendingRename.kind === "folder" ? "重命名文件夹" : "重命名项目"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPendingRename(null)}
+                className="grid size-8 place-items-center rounded-full text-ink-muted transition hover:bg-white/5 hover:text-ink-strong"
+                aria-label="关闭"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <label className="mt-4 block">
+              <span className="text-xs text-ink-muted">名称</span>
+              <input
+                autoFocus
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    confirmRename();
+                  }
+                }}
+                maxLength={60}
+                className="mt-2 w-full rounded-xl border border-card-border bg-panel px-3 py-2.5 text-sm text-ink-strong outline-none focus:border-accent"
+              />
+            </label>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingRename(null)}
+                className="flex-1 rounded-full border border-card-border bg-panel px-4 py-2.5 text-sm font-medium text-ink-strong transition hover:bg-white/5"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={confirmRename}
+                disabled={!renameDraft.trim()}
+                className="flex-1 rounded-full bg-ink-strong px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-40"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingDelete && (
         <div className={MODAL_OVERLAY} onClick={() => setPendingDelete(null)}>
           <div
@@ -696,7 +914,9 @@ function WorldsPageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-lg font-semibold text-ink-strong">删除项目</h2>
+              <h2 className="text-lg font-semibold text-ink-strong">
+                {pendingDelete.kind === "folder" ? "删除文件夹" : "删除项目"}
+              </h2>
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
@@ -708,7 +928,9 @@ function WorldsPageContent() {
             </div>
             <p className="mt-4 text-base font-medium text-ink-strong">「{pendingDelete.title}」</p>
             <p className="mt-2 text-sm leading-6 text-ink-muted">
-              该项目将被永久删除，此操作无法撤销。
+              {pendingDelete.kind === "folder"
+                ? "文件夹将被删除，其中的项目会回到工作空间根目录。此操作无法撤销。"
+                : "该项目将被永久删除，此操作无法撤销。"}
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -721,7 +943,29 @@ function WorldsPageContent() {
               <button
                 type="button"
                 onClick={() => {
-                  deleteProject(pendingDelete.id);
+                  if (pendingDelete.kind === "folder") {
+                    const nextFolders = folders.filter((folder) => folder.id !== pendingDelete.id);
+                    setFolders(nextFolders);
+                    writeFolders(nextFolders);
+                    const nextMap = { ...folderMap };
+                    Object.keys(nextMap).forEach((projectId) => {
+                      if (nextMap[projectId] === pendingDelete.id) delete nextMap[projectId];
+                    });
+                    setFolderMap(nextMap);
+                    writeFolderMap(nextMap);
+                    if (activeFolderId === pendingDelete.id) {
+                      router.push("/world-builder/worlds");
+                    }
+                    setNotice("已删除文件夹");
+                  } else if (pendingDelete.isSample) {
+                    const next = [...hiddenSamples, pendingDelete.id];
+                    setHiddenSamples(next);
+                    writeHiddenSamples(next);
+                    setNotice("已从工作空间隐藏");
+                  } else {
+                    deleteProject(pendingDelete.id);
+                    setNotice("已删除项目");
+                  }
                   setPendingDelete(null);
                 }}
                 className="flex-1 rounded-full bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500"
@@ -730,6 +974,12 @@ function WorldsPageContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="fixed bottom-6 right-6 z-[60] rounded-xl border border-card-border bg-card px-4 py-3 text-sm text-ink-strong shadow-2xl">
+          {notice}
         </div>
       )}
     </WorldBuilderLayout>
@@ -746,7 +996,7 @@ function ProjectCardMenu({
   open: boolean;
   onToggle: (e: React.MouseEvent) => void;
   onRename: () => void;
-  onCopy: () => void;
+  onCopy: (() => void) | null;
   onDelete: () => void;
 }) {
   return (
@@ -775,17 +1025,19 @@ function ProjectCardMenu({
             <Pencil size={14} className="text-white/55" />
             重命名
           </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy();
-            }}
-            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-white/90 transition hover:bg-white/8"
-          >
-            <Copy size={14} className="text-white/55" />
-            复制
-          </button>
+          {onCopy && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopy();
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-white/90 transition hover:bg-white/8"
+            >
+              <Copy size={14} className="text-white/55" />
+              复制
+            </button>
+          )}
           <button
             type="button"
             onClick={(e) => {

@@ -150,7 +150,6 @@ export default function StudioHomePage() {
     removeReference,
     createProjectFromSession,
     listProjects,
-    activeProjectId,
     switchProject,
   } = useWorldBuilderStore();
 
@@ -166,8 +165,8 @@ export default function StudioHomePage() {
     updateCreationSession({ prompt });
   }, [prompt, updateCreationSession]);
 
-  const projects = listProjects();
-  const continueProject = projects.find((item) => item.id === activeProjectId) ?? projects[0];
+  // 最近退出/打开的项目优先（与工作空间排序一致）；当前「测试」等会随退出顺序变化
+  const continueProject = listProjects()[0];
   const featuredCards = toFeaturedCards(sampleWorlds);
   const dramaTvCards = toDramaTvCards();
   const arenaCards = toArenaCards();
@@ -227,66 +226,64 @@ export default function StudioHomePage() {
       <div className="min-h-screen">
 
         <section className="mx-auto max-w-6xl px-6 pt-14">
-          <div className="overflow-hidden rounded-[28px] border border-pink-100 bg-white shadow-soft">
-            <div className="relative min-h-[360px] bg-[radial-gradient(circle_at_18%_18%,rgba(217,70,138,0.35),transparent_32%),radial-gradient(circle_at_82%_6%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)] p-10 text-white">
-              <div className="relative z-10 mx-auto max-w-3xl text-center pt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/60">
-                  Your Agentic Creative Canvas
-                </p>
-                <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight md:text-6xl">
-                  {t("home.heading")}
-                </h1>
-                <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-white/60">
-                  {t("home.subtitle")}
-                </p>
+          <div className="de-canvas-surface min-h-[360px] rounded-[28px] p-10 text-white">
+            <div className="mx-auto max-w-3xl pt-6 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/45">
+                Your Agentic Creative Canvas
+              </p>
+              <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight md:text-6xl">
+                {t("home.heading")}
+              </h1>
+              <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-white/50">
+                {t("home.subtitle")}
+              </p>
 
-                <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={t("home.promptPlaceholder")}
-                    className="min-h-28 w-full resize-none rounded-xl border-0 bg-transparent px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/40"
-                  />
-                  <ReferenceChips
-                    references={creationSession.references}
-                    onRemove={removeReference}
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
-                    <div className="flex flex-wrap gap-2">
-                      <ReferenceUploadMenu label={t("home.addRef")} />
-                      <DecomposePreviewPanel prompt={prompt} label={t("home.autoSplit")} />
-                      <VisualStylePicker label={t("home.visualStyle")} />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void handleCreate()}
-                      disabled={creating || !prompt.trim()}
-                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white shadow-glow hover:bg-accent-deep transition disabled:opacity-60"
-                    >
-                      {creating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                      {t("home.createBtn")}
-                    </button>
+              <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-white/12 bg-black/35 p-3 backdrop-blur-md">
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={t("home.promptPlaceholder")}
+                  className="min-h-28 w-full resize-none rounded-xl border-0 bg-transparent px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/35"
+                />
+                <ReferenceChips
+                  references={creationSession.references}
+                  onRemove={removeReference}
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
+                  <div className="flex flex-wrap gap-2">
+                    <ReferenceUploadMenu label={t("home.addRef")} />
+                    <DecomposePreviewPanel prompt={prompt} label={t("home.autoSplit")} />
+                    <VisualStylePicker label={t("home.visualStyle")} />
                   </div>
-                  {createError && (
-                    <p className="mt-2 text-left text-xs text-red-300">{createError}</p>
-                  )}
-                  {createWarning && (
-                    <p className="mt-2 text-left text-xs text-amber-200">{createWarning}</p>
-                  )}
-                  {creationSession.lastDecompose && (
-                    <p className="mt-2 text-left text-xs text-white/50">
-                      已应用拆解草稿：{creationSession.lastDecompose.worldview.worldTitle}
-                    </p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => void handleCreate()}
+                    disabled={creating || !prompt.trim()}
+                    className="btn-cta btn-press inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold disabled:opacity-40"
+                  >
+                    {creating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {t("home.createBtn")}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleStartBlank}
-                  className="mt-5 inline-flex items-center gap-2 text-sm text-white/40 hover:text-accent transition"
-                >
-                  {t("home.orStartBlank")} <ArrowRight size={14} />
-                </button>
+                {createError && (
+                  <p className="mt-2 text-left text-xs text-red-300">{createError}</p>
+                )}
+                {createWarning && (
+                  <p className="mt-2 text-left text-xs text-amber-200">{createWarning}</p>
+                )}
+                {creationSession.lastDecompose && (
+                  <p className="mt-2 text-left text-xs text-white/45">
+                    已应用拆解草稿：{creationSession.lastDecompose.worldview.worldTitle}
+                  </p>
+                )}
               </div>
+              <button
+                type="button"
+                onClick={handleStartBlank}
+                className="btn-press mt-5 inline-flex items-center gap-2 text-sm text-white/40 transition-colors duration-press ease-de-out hover:text-white/75"
+              >
+                {t("home.orStartBlank")} <ArrowRight size={14} />
+              </button>
             </div>
           </div>
         </section>
@@ -300,30 +297,30 @@ export default function StudioHomePage() {
               type="button"
               onClick={() => {
                 switchProject(continueProject.id);
-                router.push(`/world-builder/setup?project=${continueProject.id}`);
+                router.push(`/world-builder/story-graph?project=${continueProject.id}`);
               }}
-              className="group flex max-w-xl items-center gap-4 rounded-3xl border border-pink-100 bg-white p-3 text-left shadow-soft hover:border-pink-300 transition w-full"
+              className="btn-press group flex w-full max-w-xl items-center gap-4 rounded-3xl border border-white/10 bg-card p-3 text-left transition-[border-color,background-color] duration-popover ease-de-out hover:border-white/20 hover:bg-white/[0.04]"
             >
-              <div className="grid h-[120px] w-[84px] shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,#1a0f2e,#2d1b3d_45%,#d9468a)] text-white">
-                <Play size={22} fill="currentColor" />
+              <div className="de-canvas-surface grid h-[120px] w-[84px] shrink-0 place-items-center rounded-2xl text-white">
+                <Play size={22} fill="currentColor" className="opacity-80" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-accent">
+                <p className="text-xs font-semibold text-white/45">
                   {t("home.resumeWork", { level: inferWorkLevel(continueProject) })}
                 </p>
                 <h2 className="mt-2 truncate text-xl font-semibold text-ink-strong">{continueProject.name}</h2>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink-muted">
                   {continueProject.setupDraft.worldDescription || continueProject.world.description}
                 </p>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-accent"
+                    className="h-full rounded-full bg-white/70"
                     style={{
                       width: `${Math.min(100, Math.round((continueProject.characters.length + continueProject.locations.length) * 8 + (continueProject.setupDraft.script ? 20 : 0)))}%`,
                     }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-white/35">
                   {new Date(continueProject.updatedAt).toLocaleDateString()}
                 </p>
               </div>

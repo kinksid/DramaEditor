@@ -54,45 +54,44 @@ export function WorldHero() {
   };
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-pink-100 bg-white shadow-soft">
-      <div className="relative min-h-[310px] bg-[radial-gradient(circle_at_18%_18%,rgba(217,70,138,0.48),transparent_28%),radial-gradient(circle_at_82%_6%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(135deg,#1a0f2e,#3d1b4e_48%,#d9468a)] p-8 text-white">
-        <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]" />
-        <div className="relative z-10 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs backdrop-blur">
+    <section className="overflow-hidden rounded-[28px] border border-white/10 bg-card shadow-soft">
+      <div className="de-canvas-surface min-h-[310px] rounded-none border-0 p-8 text-white shadow-none">
+        <div className="max-w-3xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/30 px-3 py-1 text-xs text-white/70 backdrop-blur">
             <Radio size={14} />
             {t("world.cover")}
           </div>
-          <h1 className="text-5xl font-semibold tracking-normal">{world.title}</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/85">{world.description}</p>
+          <h1 className="text-5xl font-semibold tracking-tight">{world.title}</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/55">{world.description}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {[...world.genre, ...world.tags].map((tag) => (
-              <span key={tag} className="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-xs">
+              <span key={tag} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/70">
                 {tag}
               </span>
             ))}
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 p-5">
-        <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/8 p-5">
+        <div className="flex flex-wrap gap-3 text-sm text-ink-muted">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
             <Calendar size={15} /> {world.createdAt}
           </span>
-          <span className="rounded-full bg-slate-100 px-3 py-2">{characters.length} {t("world.characters")}</span>
-          <span className="rounded-full bg-slate-100 px-3 py-2">{locations.length} {t("world.locations")}</span>
-          <span className="rounded-full bg-slate-100 px-3 py-2">{episodes.length} {t("world.episodes")}</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">{characters.length} {t("world.characters")}</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">{locations.length} {t("world.locations")}</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">{episodes.length} {t("world.episodes")}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={openEdit} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-accent-soft">
+          <button onClick={openEdit} className="btn-press inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/[0.08]">
             <PenLine size={16} /> {t("world.editWorld")}
           </button>
-          <button onClick={resetWorld} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-accent-soft">
+          <button onClick={resetWorld} className="btn-press inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/[0.08]">
             <RotateCcw size={16} /> {t("world.resetWorld")}
           </button>
-          <button onClick={downloadAppJson} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-accent-soft">
+          <button onClick={downloadAppJson} className="btn-press inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/[0.08]">
             <Download size={16} /> {t("world.exportApp")}
           </button>
-          <button onClick={handlePublish} className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-soft hover:bg-accent-deep">
+          <button onClick={handlePublish} className="btn-cta btn-press inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold">
             <Upload size={16} /> {t("world.publish")}
           </button>
         </div>
