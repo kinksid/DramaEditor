@@ -59,12 +59,13 @@ async function waitForServer() {
 
 function isFatalConsole(text) {
   const t = text.toLowerCase();
-  // Hydration 时间文案/本地 store 差异记为警告，不阻断冒烟；深度更新与硬崩溃才失败
+  // Hydration mismatch 视为失败（工作空间已用 hasHydrated 门控）；深度更新与硬崩溃同级
   return (
     t.includes("maximum update depth exceeded") ||
+    t.includes("hydration") ||
     t.includes("is not defined") ||
     t.includes("minified react error #") ||
-    (t.includes("uncaught") && !t.includes("hydration"))
+    t.includes("uncaught")
   );
 }
 
@@ -159,6 +160,31 @@ async function routeSmoke(page, route) {
   }
 }
 
+async function seedWorldsHydrationTrap(page) {
+  // diagnose 反馈环：预置与 SSR 种子不同的项目名，确保 hydration 门控生效
+  await page.goto(`${BASE}/world-builder/home`, {
+    waitUntil: "domcontentloaded",
+    timeout: 45_000,
+  });
+  await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  await page.evaluate((projectId) => {
+    const key = "drama-world-builder";
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const state = parsed?.state;
+      if (!state?.projects?.length) return;
+      const target =
+        state.projects.find((p) => p.id === projectId) || state.projects[0];
+      if (target) target.name = "画布 Remix 壳（Remix）";
+      localStorage.setItem(key, JSON.stringify(parsed));
+    } catch {
+      /* ignore */
+    }
+  }, PROJECT);
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
   await waitForServer();
@@ -168,6 +194,7 @@ async function main() {
   const results = [];
 
   try {
+    await seedWorldsHydrationTrap(page);
     for (const route of ROUTES) {
       results.push(await routeSmoke(page, route));
     }

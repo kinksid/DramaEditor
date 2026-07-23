@@ -1,13 +1,13 @@
-# DramaEditor daily sync loop — Studio 世界详情功能+UI/UX 复刻
+# DramaEditor 5-minute loop — Studio 世界详情功能+UI/UX 复刻
 # Skills: webapp-testing + skills-zh/diagnose (+ emil-design-eng for UI)
 # Primary: https://studio.dreem-world.ai/worlds/019ef8e1-17a3-76d0-b384-6591f50cd2ee
 # 流程：Inspect → List → Modify → Debug → Review → Verify → Commit
 
 automation:
-  interval_cron: "0 9 * * *"
+  interval_cron: "*/5 * * * *"
   timezone: Asia/Shanghai
   max_items_per_run: 1
-  max_iterations_per_day: 1
+  max_iterations_per_day: 288
   early_exit_if_no_high: true
   branch: automation/hourly-inspection
   repo: kinksid/DramaEditor

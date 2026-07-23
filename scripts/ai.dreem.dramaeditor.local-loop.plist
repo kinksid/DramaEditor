@@ -12,7 +12,7 @@
   <key>WorkingDirectory</key>
   <string>/Volumes/YANG/DramaEditor</string>
   <key>StartInterval</key>
-  <integer>86400</integer>
+  <integer>300</integer>
   <key>RunAtLoad</key>
   <true/>
   <key>StandardOutPath</key>

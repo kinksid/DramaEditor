@@ -174,6 +174,7 @@ function WorldsPageContent() {
     cloneProject,
     createProjectFromSession,
     activeProjectId,
+    hasHydrated,
   } = useWorldBuilderStore();
   const projects = listProjects();
 
@@ -185,6 +186,7 @@ function WorldsPageContent() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [filterOpen, setFilterOpen] = useState(false);
   const [buildOpen, setBuildOpen] = useState(false);
+  // 文件夹/样例名来自 localStorage：首屏保持空，挂载后再灌入，避免 SSR/CSR 文本不一致
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [folderMap, setFolderMap] = useState<Record<string, string>>({});
   const [teams, setTeams] = useState<LocalTeam[]>([]);
@@ -205,6 +207,7 @@ function WorldsPageContent() {
   const [notice, setNotice] = useState<string | null>(null);
   const [hiddenSamples, setHiddenSamples] = useState<string[]>([]);
   const [sampleNames, setSampleNames] = useState<Record<string, string>>({});
+  const [libraryReady, setLibraryReady] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -252,6 +255,7 @@ function WorldsPageContent() {
     setHiddenSamples(readHiddenSamples());
     setSampleNames(readSampleNames());
     setTeams(readSession()?.teams ?? []);
+    setLibraryReady(true);
     const sync = () => setTeams(readSession()?.teams ?? []);
     window.addEventListener("dramaeditor-session", sync);
     return () => window.removeEventListener("dramaeditor-session", sync);
@@ -329,6 +333,10 @@ function WorldsPageContent() {
   );
 
   const items = useMemo(() => {
+    // SSR 与首屏 CSR 都先空列表；store + localStorage 就绪后再渲染，消除 hydration 项目名错位
+    if (!hasHydrated || !libraryReady) {
+      return [] as LibraryItem[];
+    }
     if (scope === "team") {
       return [] as LibraryItem[];
     }
@@ -380,6 +388,8 @@ function WorldsPageContent() {
 
     return next;
   }, [
+    hasHydrated,
+    libraryReady,
     scope,
     foldersWithCounts,
     folderMap,

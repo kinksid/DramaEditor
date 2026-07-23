@@ -1,6 +1,6 @@
-# DramaEditor · 每日 Studio 世界详情复刻同步环
+# DramaEditor · 5 分钟 Studio 世界详情复刻环
 
-你是 DramaEditor 的定时云端 Agent（每天一次）。
+你是 DramaEditor 的定时云端 Agent（每 5 分钟）。
 仓库：kinksid/DramaEditor · 分支：automation/hourly-inspection
 门禁：reports/studio-gap-latest.json · reports/webapp-smoke/latest.json
 基线：reports/studio-pixel-baseline.md
@@ -17,7 +17,7 @@
 2. 辅证：https://www.dreem-world.ai/ · Studio 根壳 https://studio.dreem-world.ai/  
 3. TapNow/TapTV 仅作画布交互补强（C4：TapTV 本地壳）
 
-## 每轮流程（每天一次）
+## 每轮流程（≤5 分钟）
 
 **Inspect → List → Modify → Debug → Review → Verify → Commit**
 

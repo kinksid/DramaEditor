@@ -151,10 +151,12 @@ export default function StudioHomePage() {
     createProjectFromSession,
     listProjects,
     switchProject,
+    hasHydrated,
   } = useWorldBuilderStore();
 
+  // 固定 SSR/首屏文案，避免 creationSession 从 localStorage 灌入造成 hydration 错位
   const [prompt, setPrompt] = useState(
-    creationSession.prompt || "大唐天宝年间，长安城西市，胡商云集、灯火彻夜不熄的盛世一隅。",
+    "大唐天宝年间，长安城西市，胡商云集、灯火彻夜不熄的盛世一隅。",
   );
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -162,11 +164,18 @@ export default function StudioHomePage() {
   const selectedLlmPresetId = useProviderSettingsStore((state) => state.selectedLlmPresetId);
 
   useEffect(() => {
-    updateCreationSession({ prompt });
-  }, [prompt, updateCreationSession]);
+    if (!hasHydrated) return;
+    const saved = useWorldBuilderStore.getState().creationSession.prompt?.trim();
+    if (saved) setPrompt(saved);
+  }, [hasHydrated]);
 
-  // 最近退出/打开的项目优先（与工作空间排序一致）；当前「测试」等会随退出顺序变化
-  const continueProject = listProjects()[0];
+  useEffect(() => {
+    if (!hasHydrated) return;
+    updateCreationSession({ prompt });
+  }, [prompt, updateCreationSession, hasHydrated]);
+
+  // 最近退出/打开的项目优先；hydrate 前不读 store，保证 SSR/CSR 一致
+  const continueProject = hasHydrated ? listProjects()[0] : undefined;
   const featuredCards = toFeaturedCards(sampleWorlds);
   const dramaTvCards = toDramaTvCards();
   const arenaCards = toArenaCards();
@@ -246,7 +255,7 @@ export default function StudioHomePage() {
                   className="min-h-28 w-full resize-none rounded-xl border-0 bg-transparent px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/35"
                 />
                 <ReferenceChips
-                  references={creationSession.references}
+                  references={hasHydrated ? creationSession.references : []}
                   onRemove={removeReference}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
@@ -271,7 +280,7 @@ export default function StudioHomePage() {
                 {createWarning && (
                   <p className="mt-2 text-left text-xs text-amber-200">{createWarning}</p>
                 )}
-                {creationSession.lastDecompose && (
+                {hasHydrated && creationSession.lastDecompose && (
                   <p className="mt-2 text-left text-xs text-white/45">
                     已应用拆解草稿：{creationSession.lastDecompose.worldview.worldTitle}
                   </p>
@@ -292,7 +301,17 @@ export default function StudioHomePage() {
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             {t("home.continueWatching")}
           </p>
-          {continueProject ? (
+          {!hasHydrated ? (
+            <div className="flex w-full max-w-xl items-center gap-4 rounded-3xl border border-white/10 bg-card p-3">
+              <div className="de-canvas-surface grid h-[120px] w-[84px] shrink-0 place-items-center rounded-2xl text-white/50">
+                <Play size={22} fill="currentColor" className="opacity-50" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white/45">加载最近项目…</p>
+                <h2 className="mt-2 truncate text-xl font-semibold text-ink-strong/40">—</h2>
+              </div>
+            </div>
+          ) : continueProject ? (
             <button
               type="button"
               onClick={() => {
@@ -326,7 +345,7 @@ export default function StudioHomePage() {
               </div>
             </button>
           ) : (
-            <p className="text-sm text-slate-500">暂无项目，点击创建开始新世界。</p>
+            <p className="text-sm text-slate-500">暂无项目，点击上方开始新世界。</p>
           )}
         </section>
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local half of the dual daily sync loop.
+ * Local half of the dual 5-minute loop.
  * - Pulls cloud commits into /Volumes/YANG/DramaEditor (ff-only)
  * - Writes heartbeat
  * - Runs typecheck + webapp smoke when high gaps exist
