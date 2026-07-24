@@ -26,6 +26,11 @@ const ROUTES = [
     expectText: /剧集|角色|视频|交互|素材库/,
   },
   {
+    id: "story-missing",
+    path: "/world-builder/stories/019ef8e1-4811-71d0-a9b5-0e27de58810d",
+    expectText: /未找到故事/,
+  },
+  {
     id: "setup",
     path: `/world-builder/setup?project=${PROJECT}`,
     expectText: /搭建互动短剧世界|世界设定|世界标题/,

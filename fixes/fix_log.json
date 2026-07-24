@@ -196,5 +196,19 @@
         "result": "Story desk right rail matches Studio World builder chat/pipeline cards."
       }
     ]
+  },
+  {
+    "timestamp": "2026-07-24T10:30:00.000Z",
+    "timestampLocal": "2026-07-24 18:30:00 Asia/Shanghai",
+    "automationId": "6acae4b8-8696-11f1-a7d1-d6b4613131ce",
+    "projectId": "drama-editor",
+    "fixes": [
+      {
+        "id": "G25-story-missing-resolve",
+        "status": "fixed",
+        "action": "Story desk uses resolveState pending/found/missing gate; resolvedProjectId replaces activeProjectId fallback for unknown storyId.",
+        "result": "Studio story 019ef8e1… shows 未找到故事; webapp smoke story-missing route added."
+      }
+    ]
   }
 ]

@@ -28,6 +28,8 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+type ResolveState = "pending" | "found" | "missing";
+
 const ASSET_TABS = new Set<TabId>(["characters", "locations", "videos", "interactions"]);
 
 export default function StoryProjectPage() {
@@ -59,7 +61,8 @@ function StoryProjectContent() {
   } = useWorldBuilderStore();
 
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
-  const [missing, setMissing] = useState(false);
+  const [resolveState, setResolveState] = useState<ResolveState>("pending");
+  const [resolvedProjectId, setResolvedProjectId] = useState<string | null>(null);
   const [editWorldOpen, setEditWorldOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -83,18 +86,24 @@ function StoryProjectContent() {
   }, [tabParam, storyId, router, validTabIds]);
 
   useEffect(() => {
-    if (!storyId) return;
+    if (!storyId) {
+      setResolvedProjectId(null);
+      setResolveState("missing");
+      return;
+    }
     const projects = listProjects();
     const byId = projects.find((p) => p.id === storyId);
     const byEpisode = projects.find((p) => p.episodes.some((e) => e.id === storyId));
-    const target = byId?.id ?? byEpisode?.id;
+    const target = byId?.id ?? byEpisode?.id ?? null;
     if (target && ensureProjectLoaded(target)) {
       markProjectOpened(target);
-      setMissing(false);
+      setResolvedProjectId(target);
+      setResolveState("found");
     } else {
-      setMissing(true);
+      setResolvedProjectId(null);
+      setResolveState("missing");
     }
-  }, [storyId, ensureProjectLoaded, listProjects, activeProjectId, markProjectOpened]);
+  }, [storyId, ensureProjectLoaded, listProjects, markProjectOpened]);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -103,8 +112,9 @@ function StoryProjectContent() {
     };
   }, [activeProjectId, markProjectOpened]);
 
-  const worldId = activeProjectId || storyId;
-  const currentProject = listProjects().find((p) => p.id === worldId);
+  const worldId = resolvedProjectId ?? "";
+  const currentProject =
+    resolveState === "found" ? listProjects().find((p) => p.id === worldId) : undefined;
   const projectName = currentProject?.name || world.title || "未命名项目";
   // 主标题与项目同名（不再用「未命名剧集」）
   const storyTitle = projectName;
@@ -150,7 +160,15 @@ function StoryProjectContent() {
               ? { label: "添加交互", onClick: () => assetActionsRef.current?.openAdd() }
               : null;
 
-  if (missing) {
+  if (resolveState === "pending") {
+    return (
+      <WorldBuilderLayout agentMode="none">
+        <div className="grid min-h-[50vh] place-items-center text-sm text-ink-muted">加载中…</div>
+      </WorldBuilderLayout>
+    );
+  }
+
+  if (resolveState === "missing") {
     return (
       <WorldBuilderLayout agentMode="none">
         <div className="grid min-h-[50vh] place-items-center px-6 text-center">
